@@ -5,7 +5,7 @@ Built by Spawner Industries. Status: **beta**.
 
 **As the name suggests, it is a scorekeeper for your duel:** your life points, the cards on the field, and the ATK/DEF changes from Equip and Field Spells. It also helps with the rules: you can check in the app whether a move is allowed *before* you do it in your real duel.
 
-You keep playing with your own cards. This app sits next to the table and keeps track of what is happening, so nobody has to count on paper, argue about whose turn it is, or wonder whether a move was allowed.
+You keep playing with your own cards. This app sits next to the table and keeps track of what is happening, so nobody has to count on paper, wonder whether a move was allowed, or argue about whose turn it is. So go grab that drink or snack, take a break, and come back with confidence: the app remembers where you were.
 
 ---
 

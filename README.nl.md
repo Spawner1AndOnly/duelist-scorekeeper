@@ -5,7 +5,7 @@ Door Spawner Industries. Status: **beta**.
 
 **Zoals de naam zegt, is het een scorekeeper voor je duel:** je levenspunten, de kaarten op het veld en de ATK/DEF-wijzigingen van Equip- en Field Spells. Hij helpt ook met de regels: je kunt in de app nagaan of een zet mag *voor* je hem in je echte duel doet.
 
-Je speelt gewoon verder met je eigen kaarten. De app ligt naast de tafel en houdt bij wat er gebeurt, zodat niemand meer op papier hoeft te tellen, ruzie maakt over wiens beurt het is, of zich afvraagt of een zet mocht.
+Je speelt gewoon verder met je eigen kaarten. De app ligt naast de tafel en houdt bij wat er gebeurt, zodat niemand meer op papier hoeft te tellen, zich afvraagt of een zet mocht, of ruzie maakt over wiens beurt het is. Ga dus gerust een drankje of snack halen, neem een pauze en kom met vertrouwen terug: de app onthoudt waar je gebleven was.
 
 ---
 
