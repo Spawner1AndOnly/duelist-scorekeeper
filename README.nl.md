@@ -1,6 +1,6 @@
 # Duelist Scorekeeper
 
-**Een gratis levenspunten-teller en regelhulp voor je Yu-Gi-Oh!-achtige kaartduels. Gemaakt voor je gsm.**
+**Een gratis levenspunten-teller en regelhulp voor je Yu-Gi-Oh!-kaartduels. Gemaakt voor je gsm.**
 Door Spawner Industries. Status: **beta**.
 
 **Zoals de naam zegt, is het een scorekeeper voor je duel:** je levenspunten, de kaarten op het veld en de ATK/DEF-wijzigingen van Equip- en Field Spells. Hij helpt ook met de regels: je kunt in de app nagaan of een zet mag *voor* je hem in je echte duel doet.

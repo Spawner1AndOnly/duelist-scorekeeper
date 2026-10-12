@@ -1,6 +1,6 @@
 # Duelist Scorekeeper
 
-**A free life-point counter and rules helper for your Yu-Gi-Oh!-style card duels. Made for your phone.**
+**A free life-point counter and rules helper for your Yu-Gi-Oh! card duels. Made for your phone.**
 Built by Spawner Industries. Status: **beta**.
 
 **As the name suggests, it is a scorekeeper for your duel:** your life points, the cards on the field, and the ATK/DEF changes from Equip and Field Spells. It also helps with the rules: you can check in the app whether a move is allowed *before* you do it in your real duel.
