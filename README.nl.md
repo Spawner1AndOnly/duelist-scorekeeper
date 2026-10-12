@@ -9,6 +9,18 @@ Je speelt gewoon verder met je eigen kaarten. De app ligt naast de tafel en houd
 
 **Zit er ook in:** Graveyard en Banished, Extra Monster Zones met Link-pijlen, Pendulum Zones, Speed Duel met Skill Cards, een muntworp om te bepalen wie begint, en ongedaan maken.
 
+## Zo gebruik je hem
+
+Je hoeft **niets** te downloaden van deze GitHub-pagina, niets te installeren uit een app-store en geen account te maken. Het is gewoon een webpagina.
+
+1. Open **https://spawner1andonly.github.io/duelist-scorekeeper/** op je gsm (rechtopstaand werkt het best).
+2. *Optioneel, maar aanbevolen:* zet hem op je startscherm, zodat hij als een app opent, schermvullend, en ook zonder internet blijft werken.
+   - **Android (Chrome):** tik op het menu (⋮) en kies **App installeren** of **Toevoegen aan startscherm**.
+   - **iPhone (Safari):** tik op de Deel-knop en kies **Zet op beginscherm**.
+3. Tik op **Start duel**, kies 1 of 2 spelers en Master-regels of Speed Duel, en speel.
+
+Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **Continue previous duel**).
+
 ---
 
 ## Wat de app wél doet

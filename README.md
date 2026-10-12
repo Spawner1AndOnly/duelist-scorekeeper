@@ -9,6 +9,18 @@ You keep playing with your own cards. This app sits next to the table and keeps 
 
 **Also built in:** Graveyard and Banished piles, Extra Monster Zones with Link arrows, Pendulum Zones, Speed Duel with Skill Cards, a coin toss to decide who starts, and undo.
 
+## How to use it
+
+You do **not** need to download anything from this GitHub page, install anything from an app store, or make an account. It is simply a web page.
+
+1. Open **https://spawner1andonly.github.io/duelist-scorekeeper/** on your phone (portrait mode works best).
+2. *Optional, but recommended:* add it to your home screen so it opens like an app, full screen, and keeps working without internet.
+   - **Android (Chrome):** tap the menu (⋮) and choose **Install app** or **Add to Home screen**.
+   - **iPhone (Safari):** tap the Share button and choose **Add to Home Screen**.
+3. Tap **Start duel**, pick 1 or 2 players and Master rules or Speed Duel, and play.
+
+Your duel is saved on your phone, so closing the app does not lose it (use **Continue previous duel**).
+
 ---
 
 ## What it does
