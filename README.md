@@ -10,9 +10,8 @@ You keep playing with your own cards. This app sits next to the table and keeps 
 ## What it does
 
 **Keeps score**
-- Life Points for two players (8000, or 4000 in Speed Duel) with a smooth count-up/down, a shake and a red/green flash, and a health bar.
+- Life Points for two players (8000, or 4000 in Speed Duel), with basic animation for the life-point counters and for the start of the duel (coin toss, who goes first).
 - Undo for every action (up to 60 steps), plus a Surrender button.
-- A coin toss at the start: the winner chooses who goes first, followed by a short "It's time to… DUEL!" intro.
 
 **Plays on one phone or two**
 - *2 players, 1 phone:* the opponent's half of the screen is upside down so both of you can read it.

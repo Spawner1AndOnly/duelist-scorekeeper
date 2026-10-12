@@ -10,9 +10,8 @@ Je speelt gewoon verder met je eigen kaarten. De app ligt naast de tafel en houd
 ## Wat de app wél doet
 
 **Houdt de score bij**
-- Levenspunten voor twee spelers (8000, of 4000 bij Speed Duel), met een vloeiende telling, een schud-effect met rode of groene flash en een gezondheidsbalk.
+- Levenspunten voor twee spelers (8000, of 4000 bij Speed Duel), met eenvoudige animaties voor de levenspunten-tellers en voor de start van het duel (muntworp, wie begint).
 - Ongedaan maken voor elke actie (tot 60 stappen) en een opgeefknop.
-- Een muntworp aan het begin: de winnaar kiest wie begint, gevolgd door een korte "It's time to… DUEL!"-intro.
 
 **Op één gsm of op twee**
 - *2 spelers, 1 gsm:* de helft van de tegenstander staat ondersteboven, zodat jullie allebei kunnen lezen.
