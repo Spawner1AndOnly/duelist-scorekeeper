@@ -7,6 +7,8 @@ Door Spawner Industries. Status: **beta**.
 
 Je speelt gewoon verder met je eigen kaarten. De app ligt naast de tafel en houdt bij wat er gebeurt, zodat niemand meer op papier hoeft te tellen, zich afvraagt of een zet mocht, of ruzie maakt over wiens beurt het is. Ga dus gerust een drankje of snack halen, neem een pauze en kom met vertrouwen terug: de app onthoudt waar je gebleven was.
 
+**Zit er ook in:** Graveyard en Banished, Extra Monster Zones met Link-pijlen, Pendulum Zones, Speed Duel met Skill Cards, een muntworp om te bepalen wie begint, en ongedaan maken.
+
 ---
 
 ## Wat de app wél doet

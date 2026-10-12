@@ -7,6 +7,8 @@ Built by Spawner Industries. Status: **beta**.
 
 You keep playing with your own cards. This app sits next to the table and keeps track of what is happening, so nobody has to count on paper, wonder whether a move was allowed, or argue about whose turn it is. So go grab that drink or snack, take a break, and come back with confidence: the app remembers where you were.
 
+**Also built in:** Graveyard and Banished piles, Extra Monster Zones with Link arrows, Pendulum Zones, Speed Duel with Skill Cards, a coin toss to decide who starts, and undo.
+
 ---
 
 ## What it does
