@@ -1,0 +1,1350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0d0907">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scorekeeper">
+<title>Duelist Scorekeeper</title>
+<style>
+:root{--cw:min(calc((100vw - 28px) / 5 / 1.458 - 5px),56px);--ch:calc(var(--cw) * 1.458);--bg:#0d0907;--panel:rgba(32,18,9,.74);--panel2:rgba(84,46,18,.82);--txt:#fff1e3;--dim:#d0ae93;--gold:#ffb43d;--red:#ff5d6c;--green:#52d68a;--blue:#5aa9ff}
+@media (max-height:700px){:root{--cw:min(calc((100vw - 28px) / 5 / 1.458 - 5px),37px)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg) url(img/bg-embers.jpg) center/cover no-repeat;color:var(--txt);font-family:system-ui,sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100dvh;padding:env(safe-area-inset-top) 6px env(safe-area-inset-bottom)}
+.side{flex:1;display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:0;padding:2px 0}
+.side.opp{transform:rotate(180deg)}
+#fbg{position:fixed;inset:0;z-index:0;display:none;background:var(--bg)}
+#fbg div{position:absolute;left:0;right:0;background:center/cover no-repeat}
+#fb1{top:0;height:50%;transform:rotate(180deg)}#fb0{top:50%;height:50%}
+#fbg.one #fb0{top:0;height:100%}#fbg.one #fb1{display:none}
+#app{position:relative;z-index:1}
+.emzrow{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:2px 0;position:relative;z-index:1}
+.emzcell{min-height:calc(var(--ch) + 10px);display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:10px;color:var(--dim)}
+.emzcell.on{padding:0}.emzcell .slot{width:100%}
+.emzcell.ph{border:1px dashed #6b452488;background:#0006}
+.cb.pend{background:linear-gradient(160deg,#27b58a,#e0414f)}
+.mid button:disabled{opacity:.35}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 70px);transform:translateX(-50%);background:#000c;color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
+#toast.on{opacity:1}
+.slot,.fchip{position:relative}.bdg{position:absolute;top:1px;right:3px;font-size:10px;font-weight:800;color:var(--gold);text-shadow:0 1px 2px #000;pointer-events:none}
+.lk{font-size:10px;letter-spacing:1px;color:var(--gold);line-height:1;white-space:nowrap}
+.lprow{display:flex;align-items:center;gap:6px}
+.lp{flex:1;background:var(--panel);border-radius:12px;padding:4px 10px;display:flex;align-items:baseline;justify-content:space-between;border:2px solid transparent;position:relative;overflow:hidden}
+.lpfill{position:absolute;left:0;bottom:0;height:5px;border-radius:0 3px 3px 0;background:#52d68a;pointer-events:none}
+.lp::after{content:"";position:absolute;inset:0;border-radius:10px;opacity:0;pointer-events:none}
+.lp.dmg{animation:lpshake .4s}.lp.dmg .num{color:var(--red)}.lp.dmg::after{background:#ff2d3f;animation:lpflash .6s}
+.lp.heal{animation:lpshakev .4s}.lp.heal .num{color:var(--green)}.lp.heal::after{background:#3dff8a;animation:lpflash .6s}
+@keyframes lpflash{0%{opacity:.75}100%{opacity:0}}
+@keyframes lpshakev{0%,100%{transform:translateY(0)}20%{transform:translateY(-4px)}40%{transform:translateY(4px)}60%{transform:translateY(-3px)}80%{transform:translateY(2px)}}
+@keyframes lpshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.lp.turn{border-color:var(--gold)}
+.lp .nm{font-size:12px;color:var(--dim)}
+.lp .num{font-size:38px;font-weight:800;line-height:1.1}
+.lp .num.low{color:var(--red)}
+.btns{display:flex;gap:3px}
+button{font:inherit;color:var(--txt);background:var(--panel2);border:0;border-radius:10px;padding:8px 6px;min-width:40px}
+button:active{filter:brightness(1.4)}
+.lpb{font-size:11px;font-weight:700;padding:8px 1px;min-width:0}
+.slots{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;min-height:0}
+.slot{background:var(--panel);border-radius:10px;padding:3px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;text-align:center;font-size:11px;min-height:0;overflow:hidden;border:1px solid #6b4524}
+.slot.empty{min-height:calc(var(--ch) + 12px);color:var(--dim);justify-content:center;font-size:22px}
+.slot .n{font-weight:700;line-height:1.1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.slot .st{font-size:12px;font-weight:400;white-space:nowrap;letter-spacing:-.3px}
+.slot .st span{opacity:.75}.slot .st span.act{font-weight:900;opacity:1}
+.slot .st .up{color:var(--green)}.slot .st .down{color:var(--red)}
+.cb{border-radius:4px;display:flex;align-items:center;justify-content:center;padding:2px;overflow:hidden;border:2px solid #e8c36a;box-shadow:0 2px 6px #0008;flex:none}
+.cb .n{font-size:8px;line-height:1.05;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.cb.port{width:var(--cw);height:var(--ch)}
+.cb.land{width:var(--ch);height:var(--cw)}
+.cb.atk{background:linear-gradient(160deg,#e0414f,#8a1424)}
+.cb.def{background:linear-gradient(160deg,#4a8fe8,#173f8a)}
+.cb.spell{background:linear-gradient(160deg,#27b58a,#0d5c47)}
+.cb.trap{background:linear-gradient(160deg,#c15bb0,#5a1f55)}
+.cb.fdv{background:url(img/cardback-v.jpg) center/cover}
+.cb.fd{background:url(img/cardback-h.jpg) center/cover}
+.cbw{height:var(--ch);width:100%;display:flex;align-items:center;justify-content:center}
+.sl-lbl{font-size:9px;color:var(--dim);margin:0 2px}
+.st.dim{color:var(--dim)}
+.mid{display:flex;flex-direction:column;gap:4px;padding:4px 0}
+.mid .st1{text-align:center;font-weight:800;font-size:14px;text-shadow:0 1px 4px #000,0 0 8px #000}
+.mid .row1{display:flex;gap:4px;align-items:stretch}
+.side.compact{flex:.6}.side.compact .lp .num{font-size:26px}.side.compact .lpb{padding:5px 3px;font-size:11px}
+#phase{flex:2;background:#8be32a;color:#0b2200;font-weight:800;font-size:15px;padding:10px 6px;border-radius:12px;line-height:1.2}
+#phase.wait{background:#7a5230;color:var(--txt)}
+#rules{flex:1;background:#ff6a2b;color:#2a0e00;font-weight:800;border-radius:12px}
+.mid button.sm{font-size:20px;padding:10px 4px;min-width:36px}
+dialog{background:#1c1109;border:1px solid #6b4524;color:var(--txt);border:0;border-radius:16px;width:min(94vw,520px);max-height:92dvh;padding:14px;overflow:auto}
+dialog::backdrop{background:#000a}
+dialog h2{margin:0 0 8px;font-size:18px}
+dialog .row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+dialog .row button{flex:1;min-width:56px}
+input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid #7a5230;background:#0a0705;color:var(--txt);user-select:text}
+.res{max-height:38dvh;overflow:auto;margin-top:6px}
+.res div{padding:8px;border-bottom:1px solid #4a3220;font-size:14px}
+.res small{color:var(--dim)}
+.card{background:#0a0705;border-radius:10px;padding:10px;margin-top:8px;font-size:14px;line-height:1.35;user-select:text;max-height:34dvh;overflow:auto}
+.card b{color:var(--gold)}
+.phtxt h3{margin:10px 0 2px;font-size:14px}.phtxt .may{color:var(--green)}.phtxt .cant{color:var(--red)}
+.phtxt ul{margin:2px 0 0 18px;padding:0;font-size:14px}
+.big{font-size:48px;text-align:center;font-weight:800;margin:10px 0}
+.x{float:right;background:none;font-size:22px}
+.hist{font-size:12px;color:var(--dim);max-height:20dvh;overflow:auto}
+.oh{flex:1;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;text-align:center}
+.oh.rot{transform:rotate(180deg)}.oh.win{color:var(--green)}.oh.lose{color:var(--red)}.oh.draw{color:var(--gold)}
+#over{position:fixed;inset:0;background:#000d;z-index:50;display:flex;flex-direction:column}
+#over[hidden]{display:none}
+.omid{display:flex;gap:8px;justify-content:center;padding:8px}.omid button{padding:12px 16px;font-weight:700}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg) url(img/bg-embers.jpg) center/cover;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;overflow:auto}
+#splash[hidden]{display:none}
+#splash img{width:max(240px,min(92vw,360px,calc(100dvh - 416px)));height:auto}
+#splash h1{margin:0;font-size:26px}
+#splash .by{color:#f1dcc8;font-size:13px;margin-top:-4px;font-weight:600;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1.5px 0 #000,0 1.5px 0 #000,-1.5px 0 0 #000,1.5px 0 0 #000,0 0 6px #000}
+#splash .grp{width:min(100%,380px)}
+#splash .lbl{font-size:12px;color:var(--dim);margin:6px 0 4px;text-align:left}
+#splash .opt{display:flex;gap:6px}
+#splash .opt button{flex:1;padding:12px 6px;font-weight:700;border:2px solid transparent}
+#splash .opt button.on{border-color:var(--gold);background:#6b4524}
+#splash .opt small{display:block;font-weight:400;color:var(--dim);font-size:11px}
+#splash .go{width:min(100%,380px);padding:14px;font-size:18px;font-weight:800;background:#8be32a;color:#0b2200;margin-top:6px}
+#splash .go2{width:min(100%,380px);padding:12px;font-weight:700;background:var(--blue);color:#001a33}
+#splash .kofi{width:min(100%,380px);display:block;background:#ff5e5b;color:#fff;font-weight:800;border-radius:10px;padding:10px;text-decoration:none}
+#splash small.fine{color:#f1dcc8;font-size:11px;max-width:380px;font-weight:600;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1.5px 0 #000,0 1.5px 0 #000,-1.5px 0 0 #000,1.5px 0 0 #000,0 0 6px #000}
+.zrow{gap:4px}.zb{flex:1;font-size:12px;padding:5px 4px;background:var(--panel);border:1px solid #6b4524}.zb b{color:var(--gold)}
+.fchip{flex:0 0 92px;background:var(--panel);border:1px solid #6b4524;border-radius:10px;font-size:10px;line-height:1.15;padding:2px 4px;text-align:center;color:var(--txt);overflow:hidden}.fchip{background-size:cover;background-position:center;font-weight:700;text-shadow:0 1px 3px #000,0 0 6px #000;min-height:44px}
+.fchip.empty{background-image:linear-gradient(#000b,#000b),url(img/cardback-h.jpg)}
+.fchip.fd{background-image:linear-gradient(#0006,#0006),url(img/cardback-h.jpg);border-color:#e8c36a}
+.fchip.up{background:linear-gradient(160deg,#27b58a,#0d5c47);border-color:#e8c36a;color:#fff}
+.fchip.up.g-zee{background:linear-gradient(160deg,#2f95e8,#0f4a8f)}
+.fchip.up.g-moeras{background:linear-gradient(160deg,#5f8f55,#2c4a2a)}
+.fchip.up.g-bos{background:linear-gradient(160deg,#3dbb5a,#176a2c)}
+.fchip.up.g-berg{background:linear-gradient(160deg,#c98a4a,#6e4220)}
+.fchip.up.g-vuur{background:linear-gradient(160deg,#ff6a2b,#a01e0a)}
+.fchip.up.g-spookhuis{background:linear-gradient(160deg,#8d6bb8,#40285e)}
+.fchip.up.g-duister{background:linear-gradient(160deg,#5a4a7a,#1e1530)}
+.fchip.up.g-licht{background:linear-gradient(160deg,#f0c75a,#a8791a);color:#2a1a00;text-shadow:none}
+.fchip.up.g-kasteel{background:linear-gradient(160deg,#8a929c,#444c56)}
+.fchip.up.g-stad{background:linear-gradient(160deg,#6c86a6,#2e3f58)}
+.fchip.up.g-arena{background:linear-gradient(160deg,#e8873a,#8f3d0c)}
+.fchip.up.g-cyber{background:linear-gradient(160deg,#27c4d8,#0b5d70)}
+.fchip.up.g-ruimte{background:linear-gradient(160deg,#6a5bd8,#231a66)}
+.fchip.up.g-toon{background:linear-gradient(160deg,#ff7fc0,#b0307a)}
+.fchip.up.g-draak{background:linear-gradient(160deg,#7aa83a,#34501a)}
+/* duel intro: skills -> coin toss -> IT'S TIME TO... DUEL! */
+#intro{position:fixed;inset:0;z-index:150;display:flex;flex-direction:column;background:var(--bg) url(img/bg-embers.jpg) center/cover;transition:opacity .5s}
+#intro[hidden]{display:none}
+#intro.out{opacity:0}
+.ihalf{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:12px}
+.ihalf.rot{transform:rotate(180deg)}
+.imid{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:2}
+.imid>*{pointer-events:auto}
+.ibox{display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;max-width:340px;width:100%;text-shadow:0 1px 4px #000,0 0 8px #000}
+.ihead{font-size:20px;font-weight:900;color:var(--gold)}.isub{font-size:15px}
+.ibox button,.igo{font-weight:800;font-size:17px;padding:14px 16px;width:100%;border-radius:14px}
+.igo{background:#8be32a;color:#0b2200;width:min(80vw,300px)}
+.coinwrap{width:120px;height:120px;perspective:600px;animation:cointoss 1.9s cubic-bezier(.3,.1,.5,1)}
+.coin{width:120px;height:120px;position:relative;transform-style:preserve-3d;transition:transform 1.9s cubic-bezier(.2,.7,.25,1)}
+.face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:50px;background:radial-gradient(circle at 35% 30%,#ffe9a0,#d6a21f 60%,#8a5d07);color:#5a3a00;border:5px solid #f5cf5a;box-shadow:0 6px 18px #000a}
+.face.b{transform:rotateX(180deg)}
+@keyframes cointoss{0%{transform:translateY(40px) scale(.8)}45%{transform:translateY(-110px) scale(1.5)}100%{transform:translateY(0) scale(1)}}
+.cres{font-size:38px;font-weight:900;color:#fff;text-shadow:0 2px 6px #000,0 0 12px #000;letter-spacing:2px}
+.clegend{font-size:12px;color:#f1dcc8;text-shadow:0 1px 3px #000}
+.itt{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:visible}
+.ittl{font-size:min(11vw,52px);font-weight:900;color:#ff8a1f;letter-spacing:2px;text-align:center;line-height:1.1;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 0 14px #ff8a1f88}
+.ltr{display:inline-block;opacity:0;transform:scale(2.4);animation:ltrin .22s ease-out forwards}
+.ltr.sp{width:.35em}
+.push .ltr{animation:ltrout .6s ease-in forwards}
+@keyframes ltrin{to{opacity:1;transform:scale(1)}}
+@keyframes ltrout{from{opacity:1;transform:scale(1)}to{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(.5)}}
+.duel{position:absolute;font-size:min(30vw,150px);font-weight:900;color:#8be32a;opacity:0;letter-spacing:2px;text-shadow:-4px -4px 0 #000,4px -4px 0 #000,-4px 4px 0 #000,4px 4px 0 #000,0 0 30px #8be32a;animation:duelslam .55s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes duelslam{0%{transform:scale(6);opacity:0}55%{opacity:1}100%{transform:scale(1);opacity:1}}
+.iflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5}
+.iflash.go{animation:iflash .45s ease-out}
+@keyframes iflash{0%{opacity:.95}100%{opacity:0}}
+#intro.shake{animation:ishake .35s}
+@keyframes ishake{0%,100%{transform:translate(0)}20%{transform:translate(-8px,5px)}40%{transform:translate(7px,-6px)}60%{transform:translate(-5px,-4px)}80%{transform:translate(4px,5px)}}
+/* small phones (e.g. 667px high): tighter layout; must stay last so it wins */
+@media (max-height:700px){.side{gap:1px}.lp .num{font-size:30px}.lpb{padding:5px 1px}.zb{padding:3px 4px}body.emzon{--cw:28px;--ch:calc(28px * 1.458)}.emzrow{--cw:26px;--ch:calc(26px * 1.458)}.emzcell{min-height:0}}
+</style>
+</head>
+<body>
+<div id="splash" hidden></div>
+<div id="fbg"><div id="fb1"></div><div id="fb0"></div></div>
+<div id="app">
+  <div class="side opp" id="s1"></div>
+  <div id="emz" hidden></div>
+  <div class="mid">
+    <div class="st1" id="status"></div>
+    <div class="row1">
+      <button class="sm" id="btnTools" title="Coin / dice">🎲</button>
+      <button class="sm" id="btnUndo" title="Undo last action" disabled>↩</button>
+      <button id="phase"></button>
+      <button id="rules">Rules</button>
+      <button class="sm" id="btnSearch" title="Card search">🔍</button>
+      <button class="sm" id="btnMenu" title="Menu">⚙️</button>
+    </div>
+  </div>
+  <div class="side" id="s0"></div>
+</div>
+
+<div id="over" hidden></div>
+<div id="intro" hidden></div>
+<div id="toast"></div>
+<dialog id="dlg"></dialog>
+
+<script>
+// ---------- Phases (official order) ----------
+const PHASES_MD=[
+ {n:"Draw Phase",may:["The turn player draws 1 card (the first player does NOT draw on the very first turn of the duel). A player who cannot draw loses the Duel.","Quick Effects, Quick-Play Spells and Traps can be activated (after the draw)."],cant:["Normal Summon/Set.","Attack."]},
+ {n:"Standby Phase",may:["Effects that trigger 'during the Standby Phase' (e.g. upkeep costs).","Quick Effects, Quick-Play Spells and Traps can be activated."],cant:["Normal Summon/Set.","Attack."]},
+ {n:"Main Phase 1",may:["1 Normal Summon OR Set per turn (Tribute if needed).","Unlimited Special Summons and Flip Summons.","Activate Spells, Set Spells/Traps.","Change monsters' battle position (once per monster; not if it was just summoned or Set this turn).","Activate monster effects."],cant:["Attack (only in the Battle Phase)."]},
+ {n:"Battle Phase",sub:["Start Step","Battle Step","Damage Step","End Step"],may:["Each face-up monster in Attack Position may attack once: declare an attacker and a target, or attack directly if the opponent has no monsters. You do not have to attack (or enter the Battle Phase) at all.","A face-down monster that is attacked is flipped face-up in the Damage Step.","Damage: ATK vs ATK → the difference is taken by the owner of the weaker monster; ATK vs DEF → damage only if ATK > DEF (the difference) — unless an effect says otherwise.","Quick Effects and Traps in the Battle Step."],cant:["Normal Summon/Set.","Change battle position.","In the Damage Step: only Counter Traps and effects that specifically allow it (e.g. ATK/DEF changes).","On the first turn of the duel the starting player has NO Battle Phase."]},
+ {n:"Main Phase 2",may:["Everything from Main Phase 1 (Normal Summon only if you haven't done one yet).","Activate/Set Spells and Traps.","Special Summons."],cant:["Attack.","Change position of monsters that attacked or were summoned this turn."]},
+ {n:"End Phase",may:["Effects 'at the end of the turn' / 'during the End Phase'.","Quick Effects and Traps can be activated.","Hand limit: if you hold more than 6 cards, discard down to 6."],cant:["Summon or attack.","After this, the turn ends and the opponent's turn begins."]}
+];
+// Speed Duel: no Main Phase 2 (official Speed Duel rules)
+const PHASES_SD=PHASES_MD.filter(x=>x.n!=="Main Phase 2").map(x=>x.n==="Main Phase 1"?{n:"Main Phase",may:x.may.concat(["There is NO Main Phase 2 in Speed Duel: Set and use your Spells and Traps before you go to the Battle Phase."]),cant:x.cant}:x);
+let PHASES=PHASES_MD;
+const OPP_TURN_RULES={may:["Activate Traps you Set (not on the turn you Set them).","Activate Quick-Play Spells you Set and Quick Effects.","Respond to the opponent's actions (chain)."],cant:["Normal Summon/Set.","Activate Normal Spells.","Attack."]};
+
+// ---------- State ----------
+const KEY="ygoref.v2";
+let S=load()||fresh();
+S.st=S.st||[Array(5).fill(null),Array(5).fill(null)];S.field=S.field||[null,null];S.n=S.n||5;S.ns=!!S.ns;S.gy=S.gy||[[],[]];S.ban=S.ban||[[],[]];S.skill=S.skill||[null,null];S.edup=S.edup||[[],[]];S.pt=S.pt||[0,0];if(S.n===5)for(const a of S.mon)while(a.length<7)a.push(null);
+function fresh(lp=8000,n=5){return{n,ns:false,field:[null,null],gy:[[],[]],ban:[[],[]],skill:[null,null],edup:[[],[]],pt:[0,0],lp:[lp,lp],sign:[-1,-1],turn:0,tc:1,ph:0,sub:0,startPlayer:0,view:"2p",mon:[Array(n===5?7:n).fill(null),Array(n===5?7:n).fill(null)],st:[Array(n).fill(null),Array(n).fill(null)],log:[]}}
+function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const STEPS=[5,10,50,100,500,1000,2000];
+const NAME=p=>p===0?"You":"Opponent";
+
+// ---------- Phase stepping ----------
+function stepFrom(st){
+  let {ph,sub,turn,tc}=st;
+  const cur=PHASES[ph];
+  if(cur.sub&&sub<cur.sub.length-1)return{ph,sub:sub+1,turn,tc};
+  if(ph<PHASES.length-1){
+    ph++;
+    if(tc===1&&PHASES[ph].n==="Battle Phase")ph=PHASES.length-1; // no Battle Phase on the first turn, and Main Phase 2 only follows a Battle Phase
+    return{ph,sub:0,turn,tc};
+  }
+  return{ph:0,sub:0,turn:1-turn,tc:tc+1};
+}
+function nextLabel(){
+  const n=stepFrom(S);
+  if(n.turn!==S.turn)return `Move to ${NAME(n.turn)==="You"?"your":"opponent's"} Draw Phase`;
+  const p=PHASES[n.ph];
+  return `Move to ${p.sub?p.sub[n.sub]:p.n}`;
+}
+function nextPhase(){
+  if(oppWait()){Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();return}
+  const n=stepFrom(S);if(n.turn!==S.turn)S.ns=false;
+  Object.assign(S,n);render();
+}
+function oppWait(){return S.view==="1p"&&S.turn===1}
+
+// ---------- Render ----------
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+const FB={};
+function slug(n){return String(n).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+let MAP=null;
+fetch("img/field/map.json").then(r=>r.json()).then(m=>{MAP=m;render()}).catch(()=>{MAP={}});
+function fieldGroup(p){const f=S.field[p];return(f&&MAP&&MAP[slug(f.name)])||""}
+function fieldBg(p){
+  const f=S.field[p];if(!f||f.pos!=="UP")return"";
+  const k=slug(f.name);
+  if(FB[k]!==undefined)return FB[k]||"";
+  if(MAP===null)return"";
+  FB[k]=false;
+  const cand=[`img/field/${k}.jpg`];if(MAP[k])cand.push(`img/field/${MAP[k]}.jpg`);
+  (function t(i){if(i>=cand.length)return;const im=new Image();im.onload=()=>{FB[k]=`url(${cand[i]})`;render()};im.onerror=()=>t(i+1);im.src=cand[i]})(0);
+  return"";
+}
+function render(){
+  PHASES=S.n===3?PHASES_SD:PHASES_MD;if(S.ph>=PHASES.length)S.ph=PHASES.length-1;
+  const one=S.view==="1p";
+  for(let p=0;p<2;p++){
+    const el=$("s"+p);
+    el.className="side"+(p===1&&!one?" opp":"")+(p===1&&one?" compact":"");
+    el.innerHTML=`
+      <div class="lprow"><div class="lp ${S.turn===p?"turn":""}" data-lp="${p}"><span class="nm">${p===0?"YOU":"OPPONENT"}${S.turn===p?" • turn":""}</span><span class="num ${S.lp[p]<=2000?"low":""}">${lpShown(p)}</span><span class="lpfill" style="${lpFill(p)}"></span></div><button class="fchip ${S.field[p]?(S.field[p].pos==="FD"?"fd":"up g-"+fieldGroup(p)):"empty"}" data-p="${p}">${fieldChip(p)}</button></div>
+      <div class="lprow"><div class="btns" style="flex:1">
+        ${STEPS.map(v=>`<button class="lpb" style="flex:1" data-p="${p}" data-d="${v*(S.sign?.[p]??-1)}">${S.sign?.[p]===1?"+":"-"}${v}</button>`).join("")}
+        <button class="lpb" data-p="${p}" data-sign="1" style="flex:0 0 38px;background:${S.sign?.[p]===1?"#1f5a3a":"#6b2230"}">${S.sign?.[p]===1?"+":"−"}</button>
+      </div></div>
+      <div class="slots" style="grid-template-columns:repeat(${S.n},1fr)">${S.mon[p].slice(0,S.n).map((m,i)=>slotHTML(p,i,m)).join("")}</div>
+      <div class="slots" style="grid-template-columns:repeat(${S.n},1fr)">${S.st[p].slice(0,S.n).map((m,i)=>stHTML(p,i,m)).join("")}</div>
+      <div class="lprow zrow"><button class="zb" data-p="${p}" data-pile="gy">🪦 ${S.n===3?"GY":"Graveyard"} <b>${S.gy[p].length}</b></button><button class="zb" data-p="${p}" data-pile="ban">🌀 ${S.n===3?"Ban.":"Banished"} <b>${S.ban[p].length}</b></button>${S.n===3?`<button class="zb" data-p="${p}" data-skill="1">⚡ Skill ${S.skill[p]?(S.skill[p].uses?"<b>used</b>":"<b>✓</b>"):"+"}</button>`:""}</div>`;
+  }
+  renderEMZ();
+  const b0=fieldBg(0),b1=fieldBg(1),fb=$("fbg");
+  if(!b0&&!b1)fb.style.display="none";
+  else{fb.style.display="block";const two=b0&&b1&&b0!==b1;fb.className=two?"":"one";
+    $("fb0").style.backgroundImage=b0||b1;$("fb1").style.backgroundImage=b1||b0}
+  const ph=PHASES[S.ph];
+  $("status").innerHTML=oppWait()?`Turn ${S.tc} • Opponent's turn`:`Turn ${S.tc} • ${NAME(S.turn)==="You"?"Your turn":"Opponent's turn"} • ${ph.n}${ph.sub?" – "+ph.sub[S.sub]:""} <small style="font-weight:400;color:${S.ns?"var(--red)":"var(--green)"}">• Normal Summon ${S.ns?"used":"available"}</small>${S.tc===1&&S.ph===0?` <small style="color:var(--gold)">• first turn: no draw</small>`:S.tc===1&&/^Main Phase/.test(ph.n)?` <small style="color:var(--gold)">• first turn: no Battle Phase</small>`:""}`;
+  const pb=$("phase");
+  pb.className=oppWait()?"wait":"";
+  pb.textContent=oppWait()?"Opponent's turn — tap when it's your turn":nextLabel();
+  lpAnim();
+  gameOver();
+  undoTrack();
+  save();
+}
+// ---------- Undo: every change to the game state can be taken back ----------
+let UNDO=[],LASTSTR=null,UNDOING=false;
+function toast(t){const e=$("toast");if(!e)return;e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),1300)}
+function undoTrack(){
+  const cur=JSON.stringify(S);
+  if(LASTSTR!==null&&cur!==LASTSTR&&!UNDOING){UNDO.push(LASTSTR);if(UNDO.length>60)UNDO.shift()}
+  LASTSTR=cur;UNDOING=false;
+  const b=$("btnUndo");if(b)b.disabled=!UNDO.length;
+}
+function undoStep(){
+  if(!UNDO.length){toast("Nothing to undo");return}
+  const snap=UNDO.pop();UNDOING=true;
+  S=JSON.parse(snap);
+  if(dlg.open)dlg.close();
+  render();
+  toast("↩ Undone");
+}
+
+// ---------- LP counter animation (counts up/down like in the series) ----------
+const LPD=[null,null],LPA=[null,null];let LPHOLD=false; // LPHOLD: duel intro running, show 0 LP and count up afterwards
+const lpMax=()=>S.n===3?4000:8000;
+const lpShown=p=>Math.round(LPD[p]??S.lp[p]);
+function lpFill(p){const v=Math.max(0,Math.min(1,(LPD[p]??S.lp[p])/lpMax()));return`width:${(v*100).toFixed(1)}%;background:${v>.5?"#52d68a":v>.25?"#ffb43d":"#ff5d6c"}`}
+function lpPaint(p){
+  const lp=document.querySelector(`#s${p} .lp`);if(!lp)return;
+  const num=lp.querySelector(".num"),fill=lp.querySelector(".lpfill");
+  if(num)num.textContent=lpShown(p);
+  if(fill)fill.setAttribute("style",lpFill(p));
+}
+function lpAnim(){
+  if(LPHOLD){for(let p=0;p<2;p++){LPD[p]=0;LPA[p]=null;lpPaint(p)}return}
+  const calm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for(let p=0;p<2;p++){
+    const to=S.lp[p];
+    if(LPD[p]===null||calm){LPD[p]=to;LPA[p]=null;lpPaint(p);continue}
+    const a=LPA[p];
+    if(a&&a.to===to){lpPaint(p);const lp=document.querySelector(`#s${p} .lp`);if(lp)lp.classList.add(a.dir<0?"dmg":"heal");continue}
+    if(LPD[p]===to){LPA[p]=null;lpPaint(p);continue}
+    const from=LPD[p],dir=to<from?-1:1,dur=Math.min(1500,Math.max(500,Math.abs(to-from)/4000*1200+400));
+    const anim=LPA[p]={to,dir,from,t0:performance.now(),dur};
+    const lp=document.querySelector(`#s${p} .lp`);if(lp){lp.classList.remove("dmg","heal");void lp.offsetWidth;lp.classList.add(dir<0?"dmg":"heal")}
+    const step=now=>{
+      if(LPA[p]!==anim)return;
+      const k=Math.min(1,(now-anim.t0)/anim.dur),e=1-Math.pow(1-k,3);
+      LPD[p]=anim.from+(anim.to-anim.from)*e;
+      lpPaint(p);
+      if(k<1)requestAnimationFrame(step);
+      else{LPD[p]=anim.to;LPA[p]=null;lpPaint(p);const l=document.querySelector(`#s${p} .lp`);if(l)l.classList.remove("dmg","heal")}
+    };
+    requestAnimationFrame(step);
+  }
+}
+function renderEMZ(){
+  const el=$("emz");if(!el)return;
+  const cells=[EMZ0,EMZ1].map(k=>{const p=S.mon[0][k]?0:S.mon[1][k]?1:-1;return{k,p}});
+  document.body.classList.toggle("emzon",S.n===5&&cells.some(c=>c.p>=0));
+  if(S.n!==5||cells.every(c=>c.p<0)){el.hidden=true;el.innerHTML="";return}
+  const one=S.view==="1p";
+  const col=[null,cells[0],null,cells[1],null];
+  el.className="emzrow";el.hidden=false;
+  el.innerHTML=col.map(c=>{
+    if(!c)return"<div></div>";
+    if(c.p<0)return`<div class="emzcell ph">EX</div>`;
+    const html=slotHTML(c.p,c.k,S.mon[c.p][c.k]);
+    return`<div class="emzcell on" ${c.p===1&&!one?'style="transform:rotate(180deg)"':""}>${html}</div>`;
+  }).join("");
+}
+function gameOver(){
+  if(LPA[0]||LPA[1]){setTimeout(gameOver,150);return}
+  const o=$("over"),a=S.lp[0],b=S.lp[1];
+  if(a>0&&b>0){o.hidden=true;return}
+  const m=(x,y)=>x===0&&y===0?["DRAW","draw"]:x===0?["YOU LOST","lose"]:["YOU WIN","win"];
+  const [t0,c0]=m(a,b),[t1,c1]=m(b,a);
+  const two=S.view!=="1p";
+  o.innerHTML=(two?`<div class="oh rot ${c1}">${t1}</div>`:"")+`<div class="omid"><button id="ovU">↩ Undo last change</button><button id="ovN" style="background:var(--gold);color:#241a00">New duel</button></div><div class="oh ${c0}">${t0}</div>`;
+  o.hidden=false;
+  $("ovU").onclick=()=>undoStep();
+  $("ovN").onclick=()=>{const v=S.view,n=S.n;startDuel(n===3?4000:8000,n,v)};
+}
+function fieldChip(p){
+  const f=S.field[p];
+  if(!f)return`<span style="color:var(--dim)">+ Field<br>Spell</span>`;
+  return`<b>${f.pos==="FD"?"Set Field":esc(f.name)}</b>${f.pos==="FD"?"":badges(f)}`;
+}
+function slotHTML(p,i,m){
+  const a=`data-p="${p}" data-i="${i}" data-row="mon"`;
+  if(!m)return`<div class="slot empty" ${a}>+<br><span class="sl-lbl">monster</span></div>`;
+  if(m.pos==="FD")return`<div class="slot" ${a}><div class="cbw"><div class="cb land fd"></div></div><div class="st dim">? / ?</div></div>`;
+  const cls=x=>x>0?"up":x<0?"down":"";
+  const d=m.pos==="DEF",s=stats(p,i),da=s.a-m.atk,dd=s.d-m.def;
+  return`<div class="slot" ${a}>${badges(m)}
+    <div class="cbw"><div class="cb ${d?"land def":"port atk"}"><span class="n">${esc(m.name)}</span></div></div>
+    <div class="st"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":` / <span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span>`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
+}
+function stHTML(p,i,m){
+  const a=`data-p="${p}" data-i="${i}" data-row="st"`;
+  if(!m)return`<div class="slot empty" ${a}>+<br><span class="sl-lbl">${isPZ(i)?"spell / trap<br>⚖ Pendulum":"spell / trap"}</span></div>`;
+  if(m.pos==="FD")return`<div class="slot" ${a}><div class="cbw"><div class="cb port fdv"></div></div><div class="st dim">Set</div></div>`;
+  const tg=m.eq&&m.tgt&&S.mon[m.tgt.p][m.tgt.i];
+  const lbl=tg?"→ "+(tg.pos==="FD"?"?":tg.name):m.kind==="pend"?"⚖ Scale "+m.scale:subType(m.type)||(m.kind==="spell"?"Spell":"Trap");
+  return`<div class="slot" ${a}>${badges(m)}<div class="cbw"><div class="cb port ${m.kind}"><span class="n">${esc(m.name)}</span></div></div><div class="st dim" style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(lbl)}</div></div>`;
+}
+
+// ---------- Card data ----------
+let CARDS=null;
+async function cards(){
+  if(CARDS)return CARDS;
+  const r=await fetch("data/cards.json");
+  CARDS=(await r.json()).map(c=>({id:c[0],name:c[1],type:c[2],desc:c[3],atk:c[4],def:c[5],lvl:c[6],attr:c[7],race:c[8],lm:c[9]|0,sc:c[10],lc:c[1].toLowerCase()}));
+  return CARDS;
+}
+async function find(q,row){
+  const all=await cards();q=q.trim().toLowerCase();if(q.length<2)return[];
+  const st=[],inn=[];
+  for(const c of all){if(row==='mon'&&!/Monster/.test(c.type))continue;if(row==='st'&&(!/Spell|Trap/.test(c.type)||/Field/.test(c.type)))continue;if(row==='stp'&&!(/Spell|Trap/.test(c.type)&&!/Field/.test(c.type))&&!/Pendulum/.test(c.type))continue;if(row==='field'&&c.type!=='Field Spell')continue;const i=c.lc.indexOf(q);if(i===0)st.push(c);else if(i>0)inn.push(c);if(st.length+inn.length>=60)break}
+  return st.concat(inn).slice(0,50);
+}
+function cardInfo(c){
+  const mon=c.atk!=null||c.def!=null||/Monster/.test(c.type);
+  return`<b>${esc(c.name)}</b><br><small>${esc(c.type)}${c.attr?" • "+esc(c.attr):""}${c.race?" • "+esc(c.race):""}${c.lvl!=null?" • Level/Link "+c.lvl:""}</small>${mon?`<br>ATK ${c.atk===-1?"?":c.atk??"-"} / DEF ${c.def===-1?"?":c.def??"-"}`:""}<hr style="border-color:#4a3220">${esc(c.desc).replace(/\n/g,"<br>")}`;
+}
+
+// ---------- Dialog helper ----------
+const dlg=$("dlg");
+function open(html,after){dlg.innerHTML=html;if(!dlg.open)dlg.showModal();after&&after()}
+function closeX(){return`<button class="x" onclick="dlg.close()">✕</button>`}
+
+// ---------- Life points ----------
+function addLog(t){S.log.unshift(t);S.log=S.log.slice(0,40)}
+function setLP(p,v,txt){S.prev=[...S.lp];S.lp[p]=Math.max(0,v);addLog(txt(S.lp[p]));render()}
+function changeLP(p,d){setLP(p,S.lp[p]+d,n=>`${NAME(p)}: ${d>0?"+":""}${d} → ${n}`)}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button,.slot,.lp");if(!t||t.closest("dialog"))return;
+  if(t.dataset.d){changeLP(+t.dataset.p,+t.dataset.d)}
+  else if(t.dataset.sign){const p=+t.dataset.p;S.sign=S.sign||[-1,-1];S.sign[p]*=-1;render()}
+  else if(t.dataset.skill){skillDialog(+t.dataset.p)}
+  else if(t.dataset.pile){pileDialog(+t.dataset.p,t.dataset.pile)}
+  else if(t.classList.contains("fchip")){cardZoneDialog(+t.dataset.p,0,"field")}
+  else if(t.classList.contains("lp")){lpDialog(+t.dataset.lp)}
+  else if(t.classList.contains("slot")){(t.dataset.row==="st"?stDialog:slotDialog)(+t.dataset.p,+t.dataset.i)}
+});
+function lpDialog(p){
+  open(`${closeX()}<h2>Life Points – ${NAME(p)}</h2>
+   <input type="number" id="lpv" inputmode="numeric" placeholder="Amount">
+   <div class="row"><button id="lpm" style="background:#6b2230">− Subtract</button><button id="lpp" style="background:#1f5a3a">+ Add</button><button id="lps">Set to…</button><button id="lph">½ Halve</button></div>
+   <div class="hist">${S.log.map(esc).join("<br>")}</div>`,()=>{
+    const v=()=>Math.abs(parseInt($("lpv").value)||0);
+    $("lpm").onclick=()=>{changeLP(p,-v());dlg.close()};
+    $("lpp").onclick=()=>{changeLP(p,v());dlg.close()};
+    $("lph").onclick=()=>{setLP(p,Math.ceil(S.lp[p]/2),n=>`${NAME(p)}: halved → ${n}`);dlg.close()};
+    $("lps").onclick=()=>{setLP(p,v(),n=>`${NAME(p)}: LP set to ${n}`);dlg.close()};
+  });
+}
+
+// ---------- Rules helpers ----------
+const inMain=()=>/^Main Phase/.test(PHASES[S.ph].n);
+const phName=()=>PHASES[S.ph].n+(PHASES[S.ph].sub?" – "+PHASES[S.ph].sub[S.sub]:"");
+const fmt=o=>`${o.a>=0?"+":""}${o.a} ATK / ${o.d>=0?"+":""}${o.d} DEF`;
+function guard(w,go,back){
+  if(!w.length){go();return}
+  open(`${closeX()}<h2>⚠ Not allowed by the rules</h2><ul style="font-size:14px;color:var(--red)">${w.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><p><small>A card effect may allow this. Only continue if it does.</small></p>
+   <div class="row"><button id="gb">Cancel</button><button id="gp" style="background:#6b2230">Do it anyway</button></div>`,()=>{
+    $("gb").onclick=()=>back?back():dlg.close();
+    $("gp").onclick=()=>{dlg.close();go()};
+  });
+}
+// graveyard / banished piles: lists of {name,id,type}; custom monsters (no id) are not tracked
+function sendTo(p,kind,c,fromField){
+  if(!c||!c.name||c.id===undefined)return;
+  const e={name:c.name,id:c.id,type:c.type};
+  if(fromField&&kind==="gy"&&/Pendulum/.test(c.type||"")){S.edup[p].unshift(e);addLog(`${c.name} (Pendulum) went to the Extra Deck face-up instead of the Graveyard`);return}
+  (kind==="ban"?S.ban:S.gy)[p].unshift(e);
+}
+function removeMon(p,i,dest="gy"){
+  const m=S.mon[p][i];
+  S.mon[p][i]=null;
+  if(dest!=="none")sendTo(p,dest,m,true);
+  [0,1].forEach(q=>S.st[q].forEach((e,k)=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){S.st[q][k]=null;sendTo(q,"gy",e);addLog(`${e.name} went to the Graveyard (equipped monster left the field)`)}}));
+}
+
+// ---------- Stat bonuses (equip / field) ----------
+function parseMods(t){
+  let a=0,d=0,found=false;
+  for(const m of t.matchAll(/(gain|lose)s?\s+(\d+)\s+(ATK\/DEF|ATK and DEF|ATK|DEF)/gi)){
+    const v=(/^gain/i.test(m[1])?1:-1)*(+m[2]),w=m[3].toUpperCase();
+    if(w!=="DEF")a+=v;if(w!=="ATK")d+=v;found=true;
+  }
+  return found?{a,d,found}:{a:0,d:0,found:false};
+}
+function sentences(t){return t.replace(/\n/g," ").split(/(?<=[.●])\s+/)}
+// old wording: "increases its ATK and DEF by 300 points", "The ATK of ... is decreased by 300 points"
+function parseOld(s){
+  let a=0,d=0,found=false;
+  const add=(w,v)=>{w=w.toUpperCase();if(w!=="DEF")a+=v;if(w!=="ATK")d+=v;found=true};
+  for(const m of s.matchAll(/\b(increase|decrease)s?\s+(?:its\s+|the\s+)?(ATK and DEF|ATK|DEF)\b[^.]*?\bby\s+(\d+)\s+points?/gi))add(m[2],(/^inc/i.test(m[1])?1:-1)*+m[3]);
+  for(const m of s.matchAll(/\b(ATK and DEF|ATK|DEF) of [^.]*?\bis (increased|decreased) by (\d+)/gi))add(m[1],(/^inc/i.test(m[2])?1:-1)*+m[3]);
+  return found?{a,d,found}:{a:0,d:0,found:false};
+}
+// m = the monster it is equipped to (needed for "ATK equal to its Level x 100")
+function parseEquip(desc,m){
+  for(const s of sentences(desc)){
+    const statWord=/(gain|lose|increase|decrease)s?\b.*\b(ATK|DEF)|\b(ATK|DEF)\b.*(increased|decreased)/i.test(s);
+    if(statWord){
+      const lv=s.match(/\b(gain|lose)s?\s+(ATK and DEF|ATK\/DEF|ATK|DEF)\s+equal to its (Level|Rank)\s*x\s*(\d+)/i);
+      if(lv&&!/\bif\b|\bwhen\b|\bwhile\b|until/i.test(s)){
+        const lvl=m&&m.lvl>0?m.lvl:0,v=(/^lose/i.test(lv[1])?-1:1)*lvl*(+lv[4]),w=lv[2].toUpperCase();
+        return{a:w==="DEF"?0:v,d:w==="ATK"?0:v,found:lvl>0,lvx:1,note:lvl>0?`${lv[3]} ${lvl} × ${lv[4]} applied.`:`Needs a monster with a ${lv[3]} — set it manually.`};
+      }
+      if(/for each|\bx its\b|\bequal to\b/i.test(s)){
+        const fe=s.match(/for each (?:other )?(?:face-up )?(.+?)(?:[.,;]|$)/i);
+        const per=fe&&!/same name|that has|different|Equip Spell|Attribute|Type/i.test(fe[1])?perKind(fe[1]):null;
+        if(per&&per!=="cnt"&&per!=="selfcnt"&&!/\bif\b|\bwhen\b|\bwhile\b|until|this turn/i.test(s)){const r=parseMods(s);if(r.found)return{a:0,d:0,ua:r.a,ud:r.d,per,found:true}}
+        return{a:0,d:0,found:false,note:"This bonus depends on the game state (“for each…”) — set it manually."};
+      }
+    }
+    if(/opponent controls|monsters you control/i.test(s))continue;
+    if(/during damage calculation|until the end|this turn|\bif\b|\bwhen\b|\bwhile\b|during (?:the|your|each)/i.test(s))continue;
+    const o=parseOld(s);if(o.found)return o;
+    if(/equipped monster|\bIt (?:gains|loses)|^The equipped|^Gains|gains? \d+|loses? \d+/i.test(s)){const r=parseMods(s);if(r.found)return r}
+  }
+  return{a:0,d:0,found:false};
+}
+const ATTRS=["EARTH","WATER","FIRE","WIND","LIGHT","DARK","DIVINE"];
+// warning for ATK/DEF changes in the card text that the app could not apply (so the player knows to adjust manually)
+function whyUnapplied(s){
+  if(/for each|\bx its\b|\bequal to\b/i.test(s))return"depends on a count (counters, monsters or cards)";
+  if(/your turn only|opponent's turn only/i.test(s))return"only applies on one player's turn";
+  if(/damage calculation|\bbattl/i.test(s))return"only applies in battle";
+  if(/this turn|until/i.test(s))return"is temporary";
+  if(/\bif\b|\bwhile\b|\bwhen\b|once per turn/i.test(s))return"only applies under a condition";
+  return"could not be read automatically";
+}
+function statNote(desc,covered){
+  const rs=new Set();
+  for(const s of sentences(desc||"")){
+    const p=s.replace(/\([^)]*\)/g,"");
+    if(!/\b(gain|lose|increase|decrease)s?\b[^.]*\b(ATK|DEF)\b|\b(ATK|DEF)\b[^.]*\b(increased|decreased)\b/i.test(p))continue;
+    if(!/\d|equal to|for each/i.test(p))continue;
+    if(covered(p))continue;
+    rs.add(whyUnapplied(p));
+  }
+  return rs.size?"⚠ The card text mentions an ATK/DEF change that was not applied automatically ("+[...rs].join("; ")+"). Adjust monsters manually if needed.":"";
+}
+const TYPEW=["fusion","synchro","xyz","link","ritual","pendulum","normal","effect","tuner","flip","spirit","union","gemini","toon"];
+// one alternative of a monster filter, e.g. 'FIRE Warrior', '"Springans" Xyz', 'Level 2 or lower' -> all parts must match (AND)
+function parseAlt(tok){
+  let s=tok;const alt={attr:"",race:"",type:"",names:[],lvlMax:0,lvlMin:0};
+  s=s.replace(/"([^"]+)"/g,(_,n)=>{alt.names.push(n.toLowerCase());return " "});
+  s=s.replace(/\bLevel\s+(\d+)\s+or\s+(lower|higher)\b/gi,(_,n,w)=>{if(/lower/i.test(w))alt.lvlMax=+n;else alt.lvlMin=+n;return " "});
+  s=s.replace(/\bLevel\s+(\d+)\b/gi,(_,n)=>{alt.lvlMax=alt.lvlMin=+n;return " "});
+  const rest=[];
+  for(const w of s.replace(/-Type\b/gi,"").replace(/\bmonsters?\b/gi," ").split(/\s+/).filter(Boolean)){
+    if(ATTRS.includes(w.toUpperCase()))alt.attr=w.toUpperCase();
+    else if(TYPEW.includes(w.toLowerCase()))alt.type=w.toLowerCase();
+    else rest.push(w);
+  }
+  alt.race=rest.join(" ").toLowerCase();
+  return alt;
+}
+// "A, B or C" = alternatives (OR); words inside one alternative must all match
+function parseAlts(f){
+  const prot=f.replace(/\bLevel\s+(\d+)\s+or\s+(lower|higher)\b/gi,"Level $1 ~$2");
+  const out=[];
+  for(const part of prot.split(/,| or | and /i).map(x=>x.trim()).filter(Boolean)){
+    const subs=part.split("/").map(x=>parseAlt(x.replace("~"," or ").trim()));
+    const dims=a=>[a.attr&&"a",a.race&&"r",a.type&&"t",(a.lvlMax||a.lvlMin)&&"l",a.names.length&&"n"].filter(Boolean);
+    const seen=new Set();let overlap=false;
+    for(const a of subs)for(const k of dims(a)){if(seen.has(k))overlap=true;seen.add(k)}
+    if(subs.length>1&&!overlap){ // e.g. Aqua/WATER/Level 2 or lower: one monster must match every part
+      const m={attr:"",race:"",type:"",names:[],lvlMax:0,lvlMin:0};
+      for(const a of subs){m.attr=m.attr||a.attr;m.race=m.race||a.race;m.type=m.type||a.type;m.names.push(...a.names);m.lvlMax=m.lvlMax||a.lvlMax;m.lvlMin=m.lvlMin||a.lvlMin}
+      out.push(m);
+    }else out.push(...subs);
+  }
+  return out;
+}
+function parseField(desc){
+  // returns a list of effects: [{a,d,scope,alts,not,label}] (permanent "(All) X monsters ... gain/lose N ATK/DEF" clauses only)
+  const out=[];
+  const add=(clause,f,scopeWord)=>{
+    const fe=clause.match(/for each (.+?)(?:[.,;]|$)/i);
+    let per=null;
+    if(fe){per=perKind(fe[1]);if(!per)return}
+    if(/until|this turn|during|while|\bif\b|once per turn|\bwhen\b|\bx its\b/i.test(clause))return;
+    const mods=parseMods(clause);if(!mods.found)return;
+    const ex=clause.match(/,?\s*except\s+(.+?)[.\s]*$/i);
+    const scope=/you control/i.test(scopeWord||"")?"own":/opponent controls/i.test(scopeWord||"")?"opp":"both";
+    out.push({a:mods.a,d:mods.d,scope,alts:f?parseAlts(f):[],not:ex?parseAlts(ex[1]):[],exc:ex?ex[1]:"",label:f||"all",per});
+  };
+  for(const s of sentences(desc)){
+    const plain=s.replace(/\([^)]*\)/g,"").trim();
+    const re=/\bAll (?:(.+?) )?monsters?(?: (on the field|you control|your opponent controls))?\s+(?=gain|lose)/gi;
+    const hits=[...plain.matchAll(re)];
+    hits.forEach((mm,h)=>{
+      const prefix=plain.slice(h?hits[h-1].index:0,mm.index).trim();
+      if(h===0&&prefix&&!/^(also|and|,)$/i.test(prefix))return;
+      const end=h+1<hits.length?hits[h+1].index:plain.length;
+      add(plain.slice(mm.index,end),mm[1]||"",mm[2]);
+    });
+    if(!hits.length){ // sentence starting with "X monsters you control gain N ATK"
+      const mm=plain.match(/^(?:(.+?) )?monsters?\s+(?:(you control|your opponent controls)\s+)?(?=gain|lose)/i);
+      if(mm&&!/\b(that|each|any|extra|summoned|face-up|except)\b/i.test(mm[1]||""))add(plain,mm[1]||"",mm[2]);
+    }
+  }
+  return out;
+}
+const fieldEffs=f=>Array.isArray(f.eff)?f.eff:(f.eff?[f.eff]:[]);
+function altHit(x,m){
+  if(x.attr&&x.attr!==(m.attr||"").toUpperCase())return false;
+  if(x.race&&x.race!==(m.race||"").toLowerCase())return false;
+  if(x.type&&!(m.type||"").toLowerCase().includes(x.type))return false;
+  if(x.names.length&&!x.names.every(n=>(m.name||"").toLowerCase().includes(n)))return false;
+  if(x.lvlMax||x.lvlMin){if(/Xyz|Link/i.test(m.type||"")||!(m.lvl>0))return false;if(x.lvlMax&&m.lvl>x.lvlMax)return false;if(x.lvlMin&&m.lvl<x.lvlMin)return false}
+  return true;
+}
+function fieldHits(e,owner,p,m){
+  if(m.pos==="FD")return false;
+  if(e.scope==="own"&&p!==owner)return false;
+  if(e.scope==="opp"&&p===owner)return false;
+  if(e.alts){ // current format
+    if(e.alts.length&&!e.alts.some(x=>altHit(x,m)))return false;
+    if(e.not&&e.not.some(x=>altHit(x,m)))return false;
+    return true;
+  }
+  if(!e.attrs.length&&!e.races.length&&!e.names.length)return true; // old saved format
+  if(e.attrs.length&&e.attrs.includes((m.attr||"").toUpperCase()))return true;
+  if(e.races.length&&e.races.includes((m.race||"").toLowerCase()))return true;
+  if(e.names.length&&e.names.some(n=>(m.name||"").toLowerCase().includes(n)))return true;
+  return false;
+}
+function stats(p,i){
+  const m=S.mon[p][i];if(!m)return null;
+  let a=m.atk+m.da,d=m.def+m.dd;const src=[];
+  for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
+  for(const q of[0,1]){const f=S.field[q];if(f&&f.pos==="UP"&&f.auto!==false)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}}
+  return{a:Math.max(0,a),d:Math.max(0,d),src};
+}
+
+// ---------- Counters & once-per-turn marks ----------
+function trackerHTML(m){
+  const opt=/once per turn/i.test(m.desc||""),od=/once per duel/i.test(m.desc||"");
+  const n=m.otT===S.tc?(m.otN||0):0;
+  return`<div class="row" style="align-items:center"><b style="flex:1.4">Counters: ${m.cnt||0}</b><button data-tk="cnt-1">−1</button><button data-tk="cnt+1">+1</button><button data-tk="cnt0">reset</button></div>`
+   +(opt?`<div class="row" style="align-items:center"><b style="flex:1.4">① Used this turn: ${n}×</b><button data-tk="ot+1">Used</button><button data-tk="ot0">Clear</button></div><small>The once-per-turn mark clears itself on the next turn.</small>`:"")
+   +(od?`<div class="row"><button data-tk="od">${m.od?"☑ Once per Duel effect used":"☐ Once per Duel effect used"}</button></div>`:"");
+}
+function trackerBind(m,again){
+  dlg.querySelectorAll("[data-tk]").forEach(b=>b.onclick=()=>{
+    const k=b.dataset.tk;
+    if(k==="cnt-1")m.cnt=Math.max(0,(m.cnt||0)-1);else if(k==="cnt+1")m.cnt=(m.cnt||0)+1;else if(k==="cnt0")m.cnt=0;
+    else if(k==="ot+1"){m.otN=(m.otT===S.tc?(m.otN||0):0)+1;m.otT=S.tc}else if(k==="ot0"){m.otN=0;m.otT=0}
+    else if(k==="od")m.od=!m.od;
+    again();
+  });
+}
+const badges=m=>{const b=[];if(m.cnt)b.push("●"+m.cnt);if(m.otT===S.tc&&m.otN)b.push(m.otN>1?"①×"+m.otN:"①");if(m.od)b.push("★");return b.length?`<span class="bdg">${b.join(" ")}</span>`:""};
+// "for each …" bonuses: what is counted
+function perKind(t){
+  t=String(t).toLowerCase();
+  if(/counter/.test(t)&&(/(on|of) this card|of these counters|counters? on this card/.test(t)))return"cnt";
+  if(/counter/.test(t)&&/\b(them|it)\b/.test(t))return"selfcnt";
+  if(/monsters? (in|on) your (gy|graveyard)/.test(t))return"gymon";
+  if(/cards? in your (gy|graveyard)/.test(t))return"gyall";
+  if(/monsters? you control/.test(t))return"ownmon";
+  if(/monsters? your opponent controls/.test(t))return"oppmon";
+  if(/monsters? on the field/.test(t))return"allmon";
+  return null;
+}
+const perLabel=k=>({cnt:"Counter on this card",selfcnt:"Counter on the monster",gymon:"monster in your Graveyard",gyall:"card in your Graveyard",ownmon:"monster you control",oppmon:"monster your opponent controls",allmon:"monster on the field"})[k]||k;
+function perCount(k,q,card,m){ // q = controller of the card with the bonus, card = that card, m = monster that gets the bonus
+  const n=a=>a.filter(Boolean).length;
+  switch(k){
+    case"cnt":return card.cnt||0;
+    case"selfcnt":return(m&&m.cnt)||0;
+    case"gymon":return S.gy[q].filter(x=>/Monster/.test(x.type||"")).length;
+    case"gyall":return S.gy[q].length;
+    case"ownmon":return n(S.mon[q]);
+    case"oppmon":return n(S.mon[1-q]);
+    case"allmon":return n(S.mon[0])+n(S.mon[1]);
+  }
+  return 0;
+}
+
+// ---------- Pendulum Zones ----------
+// Leftmost and rightmost Spell & Trap Zones are the Pendulum Zones. A Pendulum Monster in one is stored as {kind:"pend",scale}.
+const isPZ=i=>S.n===5&&(i===0||i===S.n-1);
+function pendScales(p){
+  const l=S.st[p][0],r=S.st[p][S.n-1];
+  if(!l||!r||l.kind!=="pend"||r.kind!=="pend")return null;
+  const lo=Math.min(l.scale,r.scale),hi=Math.max(l.scale,r.scale);
+  return{lo,hi,min:lo+1,max:hi-1,ok:hi-lo>=2};
+}
+const pendText=p=>{const r=pendScales(p);return r?(r.ok?`Pendulum Summon: Levels ${r.min}–${r.max} (Scales ${r.lo} & ${r.hi})`:`Scales ${r.lo} & ${r.hi}: no Level fits in between`):"Needs a Pendulum Monster in both Pendulum Zones"};
+
+// ---------- Extra Monster Zones & Link arrows ----------
+// Master Duel / TCG (Master Rule 2020): 5 Main Monster Zones (index 0-4) + 2 shared Extra Monster Zones.
+// A monster in an EMZ is stored as S.mon[controller][5 or 6]; EMZ left = index 5 (above column 2), right = 6 (above column 4).
+const EMZ0=5,EMZ1=6;
+const isEMZ=i=>i>=EMZ0;
+const zoneName=i=>i>=EMZ0?(i===EMZ0?"Extra Monster Zone (left)":"Extra Monster Zone (right)"):"Main Monster Zone "+(i+1);
+const slotName=i=>i>=EMZ0?"Extra Monster Zone":"slot "+(i+1);
+const LMK=[[1,-1,-1,"↖"],[2,0,-1,"↑"],[4,1,-1,"↗"],[8,-1,0,"←"],[16,1,0,"→"],[32,-1,1,"↙"],[64,0,1,"↓"],[128,1,1,"↘"]];
+const linkArrows=m=>m&&m.lm?LMK.filter(a=>m.lm&a[0]).map(a=>a[3]).join(""):"";
+// global grid: x 0-4 left to right as seen by player 0; row +1 = player 0's Main Monster Zones, 0 = Extra Monster Zones (x=1 and 3 only), -1 = player 1's
+function gridPos(p,i){
+  if(i>=EMZ0)return{x:i===EMZ0?1:3,r:0};
+  return{x:p===0?i:4-i,r:p===0?1:-1};
+}
+function zoneAt(x,r){ // -> {p,i} of the zone at a grid position, or null if there is no zone there
+  if(x<0||x>4||r<-1||r>1)return null;
+  if(r===0)return x===1?{p:-1,i:EMZ0}:x===3?{p:-1,i:EMZ1}:null;
+  const p=r===1?0:1;return{p,i:p===0?x:4-x};
+}
+function pointedZones(){ // Set of "p:i" (Main Monster Zones) and "e:i" (Extra Monster Zones) that any face-up Link Monster points at
+  const out=new Set();
+  for(const p of[0,1])S.mon[p].forEach((m,i)=>{
+    if(!m||m.pos==="FD"||!m.lm)return;
+    const g=gridPos(p,i),f=p===0?1:-1;
+    for(const a of LMK){
+      if(!(m.lm&a[0]))continue;
+      const z=zoneAt(g.x+a[1]*f,g.r+a[2]*f);
+      if(z)out.add(z.p<0?"e:"+z.i:z.p+":"+z.i);
+    }
+  });
+  return out;
+}
+const zoneKey=(p,i)=>i>=EMZ0?"e:"+i:p+":"+i;
+const emzFree=k=>!S.mon[0][k]&&!S.mon[1][k];
+function isLinked(p,i){ // is the monster at (p,i) pointed at by a Link Monster?
+  const m=S.mon[p][i];if(!m)return false;return pointedZones().has(zoneKey(p,i));
+}
+// rule warnings for putting a monster into zone z of player p; fromED = it is Special Summoned from the Extra Deck
+function zoneWarnings(p,z,c,how,fromED){
+  const w=[];const lk=/Link/i.test(c.type||""),pend=/Pendulum/i.test(c.type||"");
+  const pointed=pointedZones().has(zoneKey(p,z));
+  if(z>=EMZ0){
+    if(S.n!==5)w.push("There are no Extra Monster Zones in this format.");
+    if(!fromED)w.push("Only monsters Special Summoned from the Extra Deck are placed in an Extra Monster Zone.");
+    const other=z===EMZ0?EMZ1:EMZ0;
+    if(S.mon[p][other]&&!pointed)w.push("You already control a monster in the other Extra Monster Zone. You can only use this one if a Link Monster points to it (Extra Link).");
+  }else if(S.n===5&&fromED&&(lk||pend)&&!pointed){
+    w.push(`${lk?"A Link Monster":"A Pendulum Monster from the Extra Deck"} can only be Summoned to an Extra Monster Zone or to a Main Monster Zone that a Link Monster points to.`);
+  }
+  return w;
+}
+function freeZones(p){ // all empty zones the player could drop a monster into
+  const out=[];
+  for(let i=0;i<S.n;i++)if(!S.mon[p][i])out.push(i);
+  if(S.n===5)for(const k of[EMZ0,EMZ1])if(emzFree(k))out.push(k);
+  return out;
+}
+
+// ---------- Monster slot ----------
+function placeMon(p,i,c,pos,how){
+  S.mon[p][i]={name:c.name,atk:Math.max(0,c.atk??0),def:Math.max(0,c.def??0),da:0,dd:0,pos,id:c.id,type:c.type,race:c.race,attr:c.attr,lvl:c.lvl,
+    q:(c.atk===-1?"A":"")+(c.def===-1?"D":""),sumT:S.tc,how,lm:c.lm|0,desc:c.desc||""};
+}
+function loadMonDialog(p,i){
+  open(`${closeX()}<h2>Load monster (slot ${i+1}) – monsters only</h2><input type="search" id="q" placeholder="Search by name…" autocomplete="off">
+    <div class="res" id="res"></div>
+    <div class="row"><button id="cust">Custom monster (no search)</button></div>`,()=>{
+    const q=$("q");q.focus();
+    q.oninput=async()=>{
+      const r=await find(q.value,'mon');
+      $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)} • ${c.atk===-1?"?":c.atk??"-"}/${c.def===-1?"?":c.def??"-"}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
+      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;summonDialog(p,i,r[+d.dataset.k])};
+    };
+    $("cust").onclick=()=>{placeMon(p,i,{name:"Monster",atk:0,def:0,type:"Effect Monster"},"ATK","special");render();slotDialog(p,i)};
+  });
+}
+function summonDialog(p,i,c,opts){
+  opts=opts||{};
+  const extra=/Fusion|Synchro|XYZ|Link/i.test(c.type),isLink=/Link/i.test(c.type),isPend=/Pendulum/i.test(c.type);
+  if(isLink&&!c.lm)c.lm=c.lm|0;
+  const noNS=/(?:cannot|can't) be Normal Summoned/i.test(c.desc);
+  const lv=extra?0:(c.lvl||0);
+  const need=lv>=7?2:lv>=5?1:0;
+  const own=S.mon[p].map((m,k)=>m&&k!==i?{m,k}:null).filter(Boolean);
+  open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type)}${c.lvl!=null?" • Level/Link "+c.lvl:""} • ATK ${c.atk===-1?"?":c.atk??"-"} / DEF ${c.def===-1?"?":c.def??"-"}</small>
+   ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set – select:</p><div id="trib">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}</label>`).join("")||"<small>You control no other monsters.</small>"}</div>`:""}
+   ${S.n===5?`<p>${isLink?"":`<label><input type="checkbox" id="pends" ${opts.ed?"checked":""}> Pendulum Summon (uses your Pendulum Scales)</label>`}${isPend?`<br><label><input type="checkbox" id="fromED" ${opts.ed?"checked":""}> Pendulum Monster summoned face-up from the Extra Deck</label>`:""}</p>`:""}
+   ${S.n===5&&(extra||isPend)?`<p><b>Zone</b></p><div id="zsel" class="row" style="gap:4px"></div><small id="zhint"></small>`:""}
+   <div class="row"><button id="bn">Normal Summon</button><button id="bs">Set (face-down)</button></div>
+   <div class="row"><button id="sa">Special Summon (ATK)</button>${isLink?"":`<button id="sd">Special Summon (DEF)</button>`}</div>
+   ${isLink?"":`<div class="row"><button id="fd">🂠 Place face-down (by an effect — uses no Normal Set)</button></div>`}
+   <div class="card" style="max-height:22dvh">${esc(c.desc).replace(/\n/g,"<br>")}</div>
+   <div class="row"><button id="bk">← Back to search</button></div>`,()=>{
+    let zone=i;
+    const fromED=()=>extra||($("fromED")&&$("fromED").checked);
+    const drawZones=()=>{
+      if(!$("zsel"))return;
+      const pt=pointedZones(),free=freeZones(p).filter(z=>z<EMZ0||S.n===5);
+      $("zsel").innerHTML=free.map(z=>`<button data-z="${z}" style="flex:1 1 30%;${z===zone?"outline:2px solid var(--gold)":""}">${z>=EMZ0?(z===EMZ0?"EMZ left":"EMZ right"):"Zone "+(z+1)}${pt.has(zoneKey(p,z))?" 🔗":""}</button>`).join("");
+      $("zsel").onclick=e=>{const b=e.target.closest("[data-z]");if(b){zone=+b.dataset.z;drawZones()}};
+      $("zhint").textContent=(isLink||isPend?"Link Monsters and Pendulum Monsters from the Extra Deck go to an Extra Monster Zone or a zone marked 🔗 (a Link Monster points to it). ":"")+"Fusion/Synchro/Xyz can go to any Main Monster Zone or an Extra Monster Zone. 🔗 = pointed to by a Link Monster.";
+    };
+    drawZones();if($("fromED"))$("fromED").onchange=drawZones;
+    const go=how=>{
+      const sel=[...dlg.querySelectorAll("#trib input:checked")].map(x=>+x.value);const w=[];
+      if(zone>=EMZ0)w.push("Normal Summon/Set is never placed in an Extra Monster Zone (only Special Summons from the Extra Deck).");
+      if(p!==S.turn)w.push("Normal Summon/Set is only allowed on your own turn.");
+      if(!inMain())w.push(`Normal Summon/Set is only allowed in a Main Phase (now: ${phName()}).`);
+      if(S.ns)w.push("You already used your Normal Summon/Set this turn.");
+      if(extra)w.push("Extra Deck monsters can't be Normal Summoned or Set.");
+      if(noNS)w.push("This card can't be Normal Summoned/Set (it must be Special Summoned).");
+      if(sel.length!==need)w.push(`This monster needs ${need} Tribute(s); you selected ${sel.length}.`);
+      guard(w,()=>{sel.forEach(k=>removeMon(p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+    };
+    $("bn").onclick=()=>go("normal");$("bs").onclick=()=>go("set");
+    const special=pos=>{
+      const w=zoneWarnings(p,zone,c,"special",fromED());
+      if($("pends")&&$("pends").checked){
+        const ps=pendScales(p);
+        if(!ps)w.push("A Pendulum Summon needs a Pendulum Monster in both of your Pendulum Zones (the leftmost and rightmost Spell & Trap Zones).");
+        else if(extra&&!isPend)w.push("Only monsters with a Level can be Pendulum Summoned (not Xyz or Link Monsters).");
+        else if(!extra||isPend){if(!(c.lvl>=ps.min&&c.lvl<=ps.max))w.push(`Level ${c.lvl??"?"} is not between the Pendulum Scales (allowed: Levels ${ps.ok?ps.min+"–"+ps.max:"none"}).`)}
+        if(S.pt[p]===S.tc)w.push("You can only Pendulum Summon once per turn.");
+        if(p!==S.turn||!inMain())w.push("A Pendulum Summon is done in your own Main Phase.");
+      }
+      if(S.mon[p][zone])w.push("That zone is occupied.");
+      guard(w,()=>{placeMon(p,zone,c,pos,"special");if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+    };
+    $("sa").onclick=()=>special("ATK");
+    if($("sd"))$("sd").onclick=()=>special("DEF");
+    if($("fd"))$("fd").onclick=()=>{
+      const w=zoneWarnings(p,zone,c,"special",fromED());
+      if(S.mon[p][zone])w.push("That zone is occupied.");
+      guard(w,()=>{placeMon(p,zone,c,"FD","special");render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+    };
+    $("bk").onclick=()=>loadMonDialog(p,i);
+  });
+}
+function slotDialog(p,i){
+  const m=S.mon[p][i];
+  if(!m){loadMonDialog(p,i);return}
+  const s=stats(p,i),sg=m.sg||-1;
+  const lkTxt=m.lm?`<p><small>Link Monster – arrows: <b>${linkArrows(m)}</b>${isLinked(p,i)?" • this monster is linked (a Link Monster points to it)":""}. ${m.lm?"Link Monsters have no DEF and can't be in Defense Position.":""}</small></p>`:isLinked(p,i)?`<p><small>🔗 Linked: a Link Monster points to this monster.</small></p>`:"";
+  const adj=(label,key,eff)=>`<div><b>${label}: ${eff}</b> <small>(base ${m[key==="da"?"atk":"def"]}${m[key]?`, manual ${m[key]>0?"+":""}${m[key]}`:""})</small></div>
+   <div class="row">${STEPS.map(v=>`<button data-k="${key}" data-v="${v*sg}" style="min-width:40px;padding:8px 2px">${sg>0?"+":"-"}${v}</button>`).join("")}<button id="sg${key}" style="background:${sg>0?"#1f5a3a":"#6b2230"};flex:0 0 40px">${sg>0?"+":"−"}</button><button data-k="${key}" data-v="0">reset</button></div>`;
+  open(`${closeX()}<h2>${esc(m.name)}</h2>${s.src.length?`<small>From cards: ${s.src.map(esc).join(" • ")}</small>`:""}${lkTxt}
+   ${adj("ATK","da",s.a)}${m.lm?"":adj("DEF","dd",s.d)}
+   <div class="row">${[["ATK","⚔ Attack"],["DEF","🛡 Defense"],["FD","🂠 Face-down DEF"]].filter(x=>!m.lm||x[0]==="ATK").map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>
+   ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
+   ${m.pos==="FD"?"":trackerHTML(m)}
+   <div class="row">${m.pos==="ATK"?`<button id="atk" style="background:#8a1424">⚔ Attack…</button>`:""}<button id="info">Card text</button></div>
+   <div class="row"><button id="clr" style="background:#6b2230">🪦 To Graveyard</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
+   <div class="card" id="ct" hidden></div>`,()=>{
+    dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=+b.dataset.v;m[k]=v===0?0:m[k]+v;render();slotDialog(p,i)});
+    ["da","dd"].forEach(k=>{if($("sg"+k))$("sg"+k).onclick=()=>{m.sg=-(m.sg||-1);slotDialog(p,i)}});
+    dlg.querySelectorAll("[data-pos]").forEach(b=>b.onclick=()=>setPos(p,i,b.dataset.pos));
+    if($("atk"))$("atk").onclick=()=>attackDialog(p,i);
+    trackerBind(m,()=>{render();slotDialog(p,i)});
+    $("clr").onclick=()=>{removeMon(p,i);render();dlg.close()};
+    $("ban").onclick=()=>{removeMon(p,i,"ban");render();dlg.close()};
+    $("rm").onclick=()=>{removeMon(p,i,"none");render();dlg.close()};
+    $("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id||x.name===m.name);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text (custom monster).";};
+  });
+}
+function setPos(p,i,np){
+  const m=S.mon[p][i],old=m.pos,w=[];
+  if(old===np)return;
+  const turnMain=()=>{if(p!==S.turn)w.push("This is only allowed on your own turn.");if(!inMain())w.push(`Only allowed in a Main Phase (now: ${phName()}).`)};
+  if(old==="FD"&&np==="ATK"){
+    turnMain();
+    if(m.how==="set"&&m.sumT===S.tc)w.push("A monster can't be flipped face-up (Flip Summon) on the turn it was Set.");
+  }else if(np==="FD"){w.push("A face-up monster is only turned face-down by a card effect.")}
+  else if(old==="FD"&&np==="DEF"){w.push("A face-down monster is flipped face-up in Attack Position (Flip Summon). Defense only by an effect.")}
+  else{
+    turnMain();
+    if((m.how==="normal"||m.how==="set")&&m.sumT===S.tc)w.push("A Normal Summoned/Set monster can't change position the turn it was summoned.");
+    if(m.flipT===S.tc)w.push("A Flip Summoned monster can't change position the turn it was flipped.");
+    if(m.posT===S.tc)w.push("This monster already changed position this turn.");
+    if(m.attT===S.tc)w.push("This monster attacked this turn, so it can't change position.");
+  }
+  guard(w,()=>{if(old==="FD"&&np==="ATK")m.flipT=S.tc;else m.posT=S.tc;m.pos=np;render();slotDialog(p,i)},()=>slotDialog(p,i));
+}
+
+// ---------- Attack ----------
+function attackWarnings(p,i){
+  const m=S.mon[p][i],w=[];
+  if(p!==S.turn)w.push("Only the turn player can attack.");
+  if(!(S.ph===3&&S.sub===1))w.push(`Attacks are declared in the Battle Step of the Battle Phase (now: ${phName()}).`);
+  if(m.attT===S.tc)w.push("This monster already attacked this turn.");
+  return w;
+}
+function attackDialog(p,i){
+  const m=S.mon[p][i],q=1-p,s=stats(p,i),w0=attackWarnings(p,i);
+  const targets=S.mon[q].map((t,k)=>t?{t,k}:null).filter(Boolean);
+  open(`${closeX()}<h2>⚔ ${esc(m.name)} attacks (${s.a} ATK)</h2>
+   ${w0.length?`<div class="card" style="color:var(--red)">⚠ ${w0.map(esc).join("<br>⚠ ")}</div>`:""}
+   <p>Choose the target:</p><div class="res" id="tl">${targets.map(o=>`<div data-k="${o.k}"><b>${o.t.pos==="FD"?"Face-down monster":esc(o.t.name)}</b><br><small>${o.t.pos==="FD"?slotName(o.k):o.t.pos==="ATK"?"ATK "+stats(q,o.k).a:"DEF "+stats(q,o.k).d}</small></div>`).join("")}<div data-k="-1"><b>Direct attack</b></div></div>
+   <div class="row"><button id="bk">← Back</button></div>`,()=>{
+    $("tl").onclick=e=>{const d=e.target.closest("[data-k]");if(d)battleConfirm(p,i,+d.dataset.k)};
+    $("bk").onclick=()=>slotDialog(p,i);
+  });
+}
+function battleConfirm(p,i,k){
+  const m=S.mon[p][i],q=1-p,A=stats(p,i).a,w=attackWarnings(p,i);let txt,eff;
+  const hit=(who,n,why)=>setLP(who,S.lp[who]-n,x=>`${NAME(who)}: −${n} (${why}) → ${x}`);
+  if(k<0){
+    if(S.mon[q].some(Boolean))w.push("A direct attack is only allowed if the opponent controls no monsters.");
+    txt=`Direct attack: ${NAME(q)} takes ${A} damage.`;eff=()=>hit(q,A,"direct attack");
+  }else{
+    const t=S.mon[q][k],ts=stats(q,k),fd=t.pos==="FD",atkPos=t.pos==="ATK";
+    const tname=fd?`Face-down monster (${t.name})`:t.name;
+    if(atkPos){
+      const v=ts.a;
+      if(A>v){txt=`${tname} (${v} ATK) is destroyed. ${NAME(q)} takes ${A-v} damage.`;eff=()=>{removeMon(q,k);hit(q,A-v,"battle")}}
+      else if(A<v){txt=`${m.name} (${A}) is destroyed. ${NAME(p)} takes ${v-A} damage.`;eff=()=>{removeMon(p,i);hit(p,v-A,"battle")}}
+      else{txt="Both monsters are destroyed. No damage.";eff=()=>{removeMon(q,k);removeMon(p,i);render()}}
+    }else{
+      const v=ts.d;
+      if(A>v){txt=`${tname} (${v} DEF) is destroyed. No battle damage.${fd?" It is flipped face-up first.":""}`;eff=()=>{removeMon(q,k);render()}}
+      else if(A<v){txt=`${tname} (${v} DEF) holds. ${NAME(p)} takes ${v-A} damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";hit(p,v-A,"battle")}}
+      else{txt=`${tname} (${v} DEF) holds. No damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";render()}}
+    }
+  }
+  open(`${closeX()}<h2>⚔ Battle result</h2>
+   ${w.length?`<div class="card" style="color:var(--red)">⚠ ${w.map(esc).join("<br>⚠ ")}</div>`:""}
+   <p style="font-size:16px">${esc(txt)}</p><small>Card effects (like traps) can change this. Apply only if nothing else happened.</small>
+   <div class="row"><button id="ap" style="background:#1f5a3a">Apply result</button><button id="mk">Only mark as attacked</button><button id="bk">Back</button></div>`,()=>{
+    $("ap").onclick=()=>guard(w,()=>{m.attT=S.tc;eff();render();dlg.close()},()=>battleConfirm(p,i,k));
+    $("mk").onclick=()=>{m.attT=S.tc;render();dlg.close()};
+    $("bk").onclick=()=>attackDialog(p,i);
+  });
+}
+
+// ---------- Spell / Trap / Field zones ----------
+const getZ=(p,i,z)=>z==="field"?S.field[p]:S.st[p][i];
+const setZ=(p,i,z,v)=>{if(z==="field")S.field[p]=v;else S.st[p][i]=v};
+const putZone=(p,i,z,e)=>{if(z==="field"&&S.field[p]&&S.field[p]!==e){sendTo(p,"gy",S.field[p],true);addLog(`${S.field[p].name} was replaced by a new Field Spell`)}setZ(p,i,z,e)};
+const subType=t=>(t||"").replace(/ (Spell|Trap)$/,"");
+function pickTarget(onPick,back){
+  const list=[];for(const q of[0,1])S.mon[q].forEach((m,k)=>{if(m)list.push({q,k,m})});
+  open(`${closeX()}<h2>Equip to which monster?</h2>${list.length?"":"<p>There are no monsters on the field.</p>"}
+   <div class="res" id="tl">${list.map((o,x)=>`<div data-x="${x}"><b>${o.m.pos==="FD"?"Face-down monster":esc(o.m.name)}</b><br><small>${NAME(o.q)} • ${slotName(o.k)}</small></div>`).join("")}</div>
+   <div class="row"><button id="bk">Cancel</button></div>`,()=>{
+    $("tl").onclick=e=>{const d=e.target.closest("[data-x]");if(d){const o=list[+d.dataset.x];onPick({p:o.q,i:o.k})}};
+    $("bk").onclick=()=>back?back():dlg.close();
+  });
+}
+function openZone(p,i,z){cardZoneDialog(p,i,z)}
+// make a card face-up in a zone: pick equip target / parse field effect first
+function activateIn(p,i,z,e,back){
+  const done=()=>{e.pos="UP";if(/Field/.test(e.type))e.eff=parseField(e.desc||"");render();openZone(p,i,z)};
+  if(/Equip/.test(e.type)){
+    pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);done()},back);
+  }else done();
+}
+function stPlace(p,i,c,z){
+  const t=c.type,spell=/Spell/.test(t),quick=/Quick-Play/.test(t);
+  const mk=pos=>({name:c.name,kind:spell?"spell":"trap",type:t,pos:"FD",id:c.id,desc:c.desc,setT:S.tc});
+  open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(t)}</small>
+   <div class="row"><button id="ba">Activate (face-up)</button><button id="bs">Set (face-down)</button></div>
+   <div class="card" style="max-height:26dvh">${esc(c.desc).replace(/\n/g,"<br>")}</div>
+   <div class="row"><button id="bk">← Back to search</button></div>`,()=>{
+    const back=()=>stPlace(p,i,c,z);
+    $("ba").onclick=()=>{const w=[];
+      if(!spell)w.push("Trap Cards can't be activated from the hand: Set it first, then activate it from the next turn on.");
+      else{if(p!==S.turn)w.push("Spells are only activated from the hand on your own turn.");if(!quick&&!inMain())w.push(`${t} can only be activated in a Main Phase (now: ${phName()}).`)}
+      guard(w,()=>{const e=mk();putZone(p,i,z,e);activateIn(p,i,z,e,()=>{setZ(p,i,z,null);render();back()})},back)};
+    $("bs").onclick=()=>{const w=[];
+      if(p!==S.turn)w.push("Cards are only Set on your own turn.");
+      if(!inMain())w.push(`Spells/Traps can only be Set in a Main Phase (now: ${phName()}).`);
+      guard(w,()=>{putZone(p,i,z,mk());render();openZone(p,i,z)},back)};
+    $("bk").onclick=()=>loadZoneDialog(p,i,z);
+  });
+}
+function pendPlace(p,i,c){
+  open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type)} • Pendulum Scale ${c.sc??"?"}</small>
+   <div class="row"><button id="ba" style="background:#8be32a;color:#0b2200;font-weight:800">Place in Pendulum Zone</button></div>
+   <div class="card" style="max-height:26dvh">${esc(c.desc).split("\n").join("<br>")}</div>
+   <div class="row"><button id="bk">← Back to search</button></div>`,()=>{
+    $("ba").onclick=()=>{
+      const w=[];
+      if(p!==S.turn)w.push("Pendulum Monsters are placed in a Pendulum Zone on your own turn.");
+      if(!inMain())w.push(`Only in a Main Phase (now: ${phName()}).`);
+      guard(w,()=>{S.st[p][i]={name:c.name,kind:"pend",type:c.type,pos:"UP",id:c.id,desc:c.desc,scale:c.sc??0,setT:S.tc};render();cardZoneDialog(p,i,"st")},()=>pendPlace(p,i,c));
+    };
+    $("bk").onclick=()=>loadZoneDialog(p,i,"st");
+  });
+}
+function loadZoneDialog(p,i,z){
+  open(`${closeX()}<h2>${z==="field"?"Load Field Spell":isPZ(i)&&z!=="field"?`Load card (Pendulum Zone) – Spells, Traps & Pendulum Monsters`:`Load Spell/Trap (slot ${i+1}) – Spells & Traps only`}</h2><input type="search" id="q" placeholder="Search by name…" autocomplete="off"><div class="res" id="res"></div>`,()=>{
+    const q=$("q");q.focus();
+    q.oninput=async()=>{
+      const r=await find(q.value,z==="field"?"field":isPZ(i)?"stp":"st");
+      $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
+      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];if(/Monster/.test(c.type))pendPlace(p,i,c);else stPlace(p,i,c,z)};
+    };
+  });
+}
+function cardZoneDialog(p,i,z){
+  const m=getZ(p,i,z);
+  if(!m){loadZoneDialog(p,i,z);return}
+  const t=m.type||(m.kind==="spell"?"Normal Spell":"Normal Trap"),spell=m.kind==="spell",quick=/Quick-Play/.test(t);
+  const oneShot=/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(t);
+  const sg=m.sg||-1,pend=m.kind==="pend";
+  const pendUI=pend?`<p><b>⚖ Pendulum Scale ${m.scale}</b><br><small>${esc(pendText(p))}</small></p>`:"";
+  const eqUI=m.eq&&m.pos==="UP"?(()=>{
+    const tg=m.tgt&&S.mon[m.tgt.p][m.tgt.i];
+    const adj=(label,key)=>`<div><b>${label}: ${m.eq[key]>=0?"+":""}${m.eq[key]}</b></div><div class="row">${STEPS.map(v=>`<button data-ek="${key}" data-v="${v*sg}" style="min-width:40px;padding:8px 2px">${sg>0?"+":"-"}${v}</button>`).join("")}<button id="esg${key}" style="background:${sg>0?"#1f5a3a":"#6b2230"};flex:0 0 40px">${sg>0?"+":"−"}</button></div>`;
+    return`<p><b>Equipped to:</b> ${tg?(tg.pos==="FD"?"Face-down monster":esc(tg.name)):"?"} <button id="chg" style="min-width:0">Change</button></p>
+      ${m.eq.per?`<small>Counted automatically: ${fmt({a:m.eq.ua,d:m.eq.ud})} for each ${esc(perLabel(m.eq.per))} (now ${perCount(m.eq.per,p,m,null)}). Use the buttons below for extra corrections.</small><br>`:""}${m.eq.found?"<small>Bonus detected from the card text — correct it if needed.</small>":"<small>No bonus detected in the text — set it manually if this card changes ATK/DEF.</small>"}${m.eq.note?`<br><small>${esc(m.eq.note)}</small>`:(w=>w?`<br><small>${esc(w)}</small>`:"")(statNote(m.desc,p=>parseEquip(p,tg).found))}${adj("ATK","a")}${adj("DEF","d")}`;
+  })():"";
+  const fUI=/Field/.test(t)&&m.pos==="UP"?(fieldEffs(m).length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${fieldEffs(m).map(e=>`<li>${e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,p,m,null)})`:""}</li>`).join("")}</ul>
+      <div class="row"><button id="auto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div><small>Applies to matching face-up monsters. Archetypes match by name — check the card text if unsure.</small>${(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,p=>parseField(p).length>0))}`
+      :`<p><small>${esc(statNote(m.desc,p=>parseField(p).length>0)||"No permanent stat bonus detected. Adjust monsters manually if needed.")}</small></p>`):"";
+  open(`${closeX()}<h2>${esc(m.name)}</h2><small>${esc(t)}</small>
+   ${pend?"":`<div class="row">${[["UP","Face-up (activated)"],["FD","🂠 Set (face-down)"]].map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>`}
+   ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
+   ${pendUI}${eqUI}${fUI}${m.pos==="UP"?trackerHTML(m):""}
+   <div class="row">${oneShot&&m.pos==="UP"?`<button id="res1" style="background:#1f5a3a">Resolved → Graveyard</button>`:""}<button id="info">Card text</button></div>
+   ${z==="field"?`<div class="row"><button id="repl">↻ Replace with another Field Spell (this one goes to the Graveyard)</button></div>`:""}
+   <div class="row"><button id="clr" style="background:#6b2230">${pend?"⬆ To Extra Deck (face-up)":"🪦 To Graveyard"}</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
+   <div class="card" id="ct" hidden></div>`,()=>{
+    const again=()=>{render();cardZoneDialog(p,i,z)};
+    trackerBind(m,again);
+    if($("repl"))$("repl").onclick=()=>loadZoneDialog(p,0,"field");
+    dlg.querySelectorAll("[data-pos]").forEach(b=>b.onclick=()=>{
+      const np=b.dataset.pos;if(np===m.pos)return;const w=[];
+      if(np==="FD")w.push("A face-up Spell/Trap is not turned face-down again, except by a card effect.");
+      else{
+        if(!spell){if(m.setT===S.tc)w.push("A Trap can't be activated the turn it was Set.")}
+        else if(quick){if(m.setT===S.tc)w.push("A Quick-Play Spell can't be activated the turn it was Set.")}
+        else{if(p!==S.turn)w.push("This Spell is only activated on your own turn.");if(!inMain())w.push(`${t} can only be activated in a Main Phase (now: ${phName()}).`)}
+      }
+      guard(w,()=>{if(np==="FD"){m.pos="FD";m.eq=null;m.tgt=null;m.eff=null;again()}else activateIn(p,i,z,m,()=>cardZoneDialog(p,i,z))},()=>cardZoneDialog(p,i,z));
+    });
+    dlg.querySelectorAll("[data-ek]").forEach(b=>b.onclick=()=>{m.eq[b.dataset.ek]+=+b.dataset.v;m.eq.found=true;again()});
+    ["a","d"].forEach(k=>{const b=$("esg"+k);if(b)b.onclick=()=>{m.sg=-(m.sg||-1);cardZoneDialog(p,i,z)}});
+    if($("chg"))$("chg").onclick=()=>pickTarget(tg=>{m.tgt=tg;if(m.eq&&m.eq.lvx)m.eq=parseEquip(m.desc||"",S.mon[tg.p][tg.i]);again()},()=>cardZoneDialog(p,i,z));
+    if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
+    const leave=dest=>{const e=getZ(p,i,z);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
+    if($("res1"))$("res1").onclick=()=>leave("gy");
+    $("clr").onclick=()=>leave("gy");$("ban").onclick=()=>leave("ban");$("rm").onclick=()=>leave("none");
+    $("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text.";};
+  });
+}
+function stDialog(p,i){cardZoneDialog(p,i,"st")}
+
+// ---------- Graveyard & Banished ----------
+const pileOf=(p,kind)=>kind==="ban"?S.ban[p]:kind==="ed"?S.edup[p]:S.gy[p];
+const pileName=kind=>kind==="ban"?"Banished":kind==="ed"?"Face-up Extra Deck":"Graveyard";
+function pileDialog(p,kind){
+  const L=pileOf(p,kind);
+  open(`${closeX()}<h2>${pileName(kind)} – ${NAME(p)} (${L.length})</h2>
+   <div class="res" id="pl" style="max-height:48dvh">${L.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type||"")}</small></div>`).join("")||"<div><small>Empty. Cards that leave the field land here automatically.</small></div>"}</div>
+   <div class="row">${kind==="ed"?"":`<button id="padd">+ Add card</button>`}${L.length?`<button id="pall" style="background:#6b2230">Empty it</button>`:""}${kind==="gy"?`<button id="ped">Face-up Extra Deck (${S.edup[p].length})</button>`:""}</div>${kind==="ed"?`<small>Pendulum Monsters that would go to the Graveyard from the field are placed here face-up. You can Pendulum Summon them again.</small>`:""}`,()=>{
+    $("pl").onclick=e=>{const d=e.target.closest("[data-k]");if(d)pileEntry(p,kind,+d.dataset.k)};
+    if($("padd"))$("padd").onclick=()=>pileAdd(p,kind);
+    if($("ped"))$("ped").onclick=()=>pileDialog(p,"ed");
+    if($("pall"))$("pall").onclick=()=>open(`${closeX()}<h2>Empty the ${pileName(kind)}?</h2><p>All ${L.length} cards of ${NAME(p)} are removed from this list.</p><div class="row"><button id="no">Cancel</button><button id="yes" style="background:#6b2230">Empty it</button></div>`,()=>{$("no").onclick=()=>pileDialog(p,kind);$("yes").onclick=()=>{L.length=0;render();pileDialog(p,kind)}});
+  });
+}
+function pileAdd(p,kind){
+  open(`${closeX()}<h2>Add to ${pileName(kind)} – ${NAME(p)}</h2><small>For cards that go there straight from your hand or deck (discard, mill, cost…).</small>
+   <input type="search" id="q" placeholder="Search by name…" autocomplete="off"><div class="res" id="res"></div>
+   <div class="row"><button id="bk">← Back</button></div>`,()=>{
+    const q=$("q");q.focus();
+    q.oninput=async()=>{
+      const r=await find(q.value);
+      $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
+      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];sendTo(p,kind,c);addLog(`${c.name} → ${NAME(p)}'s ${pileName(kind)}`);render();pileAdd(p,kind)};
+    };
+    $("bk").onclick=()=>pileDialog(p,kind);
+  });
+}
+function pileEntry(p,kind,k){
+  const L=pileOf(p,kind),c=L[k];if(!c)return;
+  const mon=/Monster/.test(c.type||""),isField=/Field/.test(c.type||"");
+  const other=kind==="ban"?"gy":"ban";
+  if(kind==="ed"){
+    open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAME(p)}'s Face-up Extra Deck</small>
+     <div class="row"><button id="ps" style="background:#8be32a;color:#0b2200;font-weight:800">Pendulum Summon…</button><button id="info">Card text</button><button id="rm">Remove</button></div>
+     <div class="card" id="ct" hidden></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
+      $("ps").onclick=async()=>{const all=await cards();const c0=all.find(x=>x.id===c.id)||{name:c.name,type:c.type,atk:0,def:0,desc:""};const i=freeZones(p).find(z=>z<EMZ0);summonDialog(p,i===undefined?0:i,c0,{ed:true,take:()=>{const j=L.indexOf(c);if(j>=0)L.splice(j,1)}})};
+      $("rm").onclick=()=>{L.splice(k,1);render();pileDialog(p,kind)};
+      $("info").onclick=async()=>{const all=await cards();const x=all.find(y=>y.id===c.id);$("ct").hidden=false;$("ct").innerHTML=x?cardInfo(x):"No card text."};
+      $("bk").onclick=()=>pileDialog(p,kind);
+    });
+    return;
+  }
+  open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAME(p)}'s ${pileName(kind)}</small>
+   <div class="row">${mon?`<button id="sa">Special Summon (ATK)</button><button id="sd">Special Summon (DEF)</button>`:`<button id="setf">Set on the field</button>`}</div>
+   <div class="row"><button id="mv">→ ${pileName(other)}</button><button id="rm">Remove (to hand/deck)</button><button id="info">Card text</button></div>
+   <div class="card" id="ct" hidden></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
+    const take=()=>{L.splice(k,1)};
+    const warn=t=>open(`${closeX()}<h2>Can't do that</h2><p>${esc(t)}</p><div class="row"><button id="bk2">← Back</button></div>`,()=>{$("bk2").onclick=()=>pileEntry(p,kind,k)});
+    const full=async pos=>{
+      const all=await cards();const c0=all.find(x=>x.id===c.id)||{name:c.name,type:c.type,atk:0,def:0};
+      const i=S.mon[p].slice(0,S.n).findIndex(x=>!x);
+      if(i<0)return warn("You have no free monster zone.");
+      take();placeMon(p,i,c0,pos,"special");render();dlg.close();
+    };
+    if($("sa")){$("sa").onclick=()=>full("ATK");$("sd").onclick=()=>full("DEF")}
+    if($("setf"))$("setf").onclick=async()=>{
+      const all=await cards();const c0=all.find(x=>x.id===c.id)||{};
+      const e={name:c.name,kind:/Spell/.test(c.type||"")?"spell":"trap",type:c.type,pos:"FD",id:c.id,desc:c0.desc||"",setT:S.tc};
+      if(isField){if(S.field[p])return warn("Your Field Zone is occupied. Send that Field Spell away first.");take();S.field[p]=e}
+      else{const i=S.st[p].slice(0,S.n).findIndex(x=>!x);if(i<0)return warn("You have no free Spell/Trap zone.");take();S.st[p][i]=e}
+      render();dlg.close();
+    };
+    $("mv").onclick=()=>{take();pileOf(p,other).unshift(c);render();pileDialog(p,kind)};
+    $("rm").onclick=()=>{take();render();pileDialog(p,kind)};
+    $("info").onclick=async()=>{const all=await cards();const x=all.find(y=>y.id===c.id);$("ct").hidden=false;$("ct").innerHTML=x?cardInfo(x):"No card text."};
+    $("bk").onclick=()=>pileDialog(p,kind);
+  });
+}
+
+// ---------- Speed Duel Skill Cards ----------
+// Official: each player picks 1 Skill, set face-down (opponent only sees the character); Skills don't use the Chain.
+let SKILLS=null;
+async function skills(){if(SKILLS)return SKILLS;const r=await fetch("data/skills.json");SKILLS=(await r.json()).map(c=>({id:c[0],name:c[1],ch:c[2],desc:c[3]}));return SKILLS}
+function skillDialog(p,show){
+  const k=S.skill[p];
+  if(!k){skillPick(p);return}
+  const vis=show||k.uses>0;
+  const multi=/●/.test(k.desc);
+  // Official (Speed Duel Addendum 1.2): a Skill can only be activated once per Duel unless its text says otherwise,
+  // and if it doesn't say when, only in your own Main Phase with no Chain being built or resolved.
+  const repeatable=/once per turn|each turn|every turn|any number of times|as many times|during each|each time|whenever/i.test(k.desc);
+  const onceDuel=!repeatable,onceTurn=/Once per turn/i.test(k.desc);
+  const timed=/start of the Duel|Standby Phase|Draw Phase|Battle Phase|End Phase|opponent's turn|during your turn|during the turn|during damage|\bwhen\b|\bif\b|\bduring\b|at any time/i.test(k.desc);
+  open(`${closeX()}<h2>⚡ Skill – ${NAME(p)}</h2>
+   <p><b>${esc(k.ch)}</b>'s Skill, face-down.<br><small>${k.uses?`Activated ${k.uses}× (last on turn ${k.lastT}).`:"Not activated yet."}</small></p>
+   ${vis?`<div class="card"><b>${esc(k.name)}</b><br>${esc(k.desc).split("\n").join("<br>")}</div>`:`<p><small>The opponent may only see the character, not the Skill. Only the owner should look at it.</small></p>`}
+   ${multi?`<p><small>This Skill has several effects — keep track yourself of which ones you used.</small></p>`:""}
+   <div class="row"><button id="act" style="background:#8be32a;color:#0b2200;font-weight:800">⚡ Activate (flip it)</button>${vis?"":`<button id="peek">👁 Look (only you)</button>`}</div>
+   <div class="row">${k.uses?"":`<button id="chg">Change Skill</button>`}<button id="rm" style="background:#6b2230">Remove Skill</button></div>
+   <p><small>Skills don't use the Chain and can't be responded to. Activate only when its condition is met and no card is resolving.</small></p>`,()=>{
+    if($("peek"))$("peek").onclick=()=>skillDialog(p,true);
+    $("act").onclick=()=>{
+      const w=[];
+      if(onceDuel&&!multi&&k.uses>0)w.push("A Skill can only be activated once per Duel unless its text says otherwise (official Speed Duel rule).");
+      if(!timed&&(p!==S.turn||!inMain()))w.push("This Skill doesn't say when it can be used, so it can only be activated in your own Main Phase.");
+      if(onceTurn&&!multi&&k.lastT===S.tc)w.push("This Skill can only be used once per turn and was already used this turn.");
+      guard(w,()=>{k.uses=(k.uses||0)+1;k.lastT=S.tc;addLog(`${NAME(p)} activated the Skill "${k.name}" (${k.ch})`);render();skillDialog(p,true)},()=>skillDialog(p,show));
+    };
+    if($("chg"))$("chg").onclick=()=>skillPick(p);
+    $("rm").onclick=()=>{S.skill[p]=null;render();dlg.close()};
+  });
+}
+async function skillPick(p){
+  const all=await skills();const chars=[...new Set(all.map(s=>s.ch))].sort();
+  open(`${closeX()}<h2>Choose your Skill – ${NAME(p)}</h2><small>Each player picks 1 Skill before the Duel. Only the player choosing should look at this screen.</small>
+   <input type="search" id="q" placeholder="Search Skill or character…" autocomplete="off"><div class="res" id="res" style="max-height:42dvh"></div>
+   <div class="row"><button id="cust">Custom Skill</button></div>`,()=>{
+    const q=$("q");
+    const draw=()=>{
+      const v=q.value.trim().toLowerCase();
+      if(v.length<2){
+        $("res").innerHTML=chars.map(c=>`<div data-ch="${esc(c)}"><b>${esc(c)}</b> <small>${all.filter(s=>s.ch===c).length} Skill(s)</small></div>`).join("");
+        $("res").onclick=e=>{const d=e.target.closest("[data-ch]");if(d){q.value=d.dataset.ch;draw()}};
+        return;
+      }
+      const r=all.filter(s=>s.name.toLowerCase().includes(v)||s.ch.toLowerCase().includes(v)).slice(0,60);
+      $("res").innerHTML=r.map((s,k)=>`<div data-k="${k}"><b>${esc(s.name)}</b><br><small>${esc(s.ch)}</small></div>`).join("")||"<div><small>Nothing found.</small></div>";
+      $("res").onclick=e=>{const d=e.target.closest("[data-k]");if(d)skillConfirm(p,r[+d.dataset.k])};
+    };
+    q.oninput=draw;draw();
+    $("cust").onclick=()=>open(`${closeX()}<h2>Custom Skill</h2><input type="text" id="cn" placeholder="Skill name"><input type="text" id="cc" placeholder="Character (optional)" style="margin-top:6px"><textarea id="ct" rows="5" placeholder="Skill text" style="width:100%;margin-top:6px;font:inherit;padding:10px;border-radius:10px;border:1px solid #7a5230;background:#0a0705;color:var(--txt);user-select:text"></textarea><div class="row"><button id="bk">← Back</button><button id="ok" style="background:#1f5a3a">Set it</button></div>`,()=>{
+      $("bk").onclick=()=>skillPick(p);
+      $("ok").onclick=()=>{const n=$("cn").value.trim();if(!n)return;S.skill[p]={id:0,name:n,ch:$("cc").value.trim()||"Custom",desc:$("ct").value.trim(),uses:0};render();dlg.close()};
+    });
+  });
+}
+function skillConfirm(p,s){
+  open(`${closeX()}<h2>${esc(s.name)}</h2><small>${esc(s.ch)}</small><div class="card">${esc(s.desc).split("\n").join("<br>")}</div>
+   <div class="row"><button id="bk">← Back</button><button id="ok" style="background:#1f5a3a">Choose this Skill</button></div>`,()=>{
+    $("bk").onclick=()=>skillPick(p);
+    $("ok").onclick=()=>{S.skill[p]={id:s.id,name:s.name,ch:s.ch,desc:s.desc,uses:0};render();dlg.close()};
+  });
+}
+
+// ---------- Phase buttons ----------
+$("phase").onclick=nextPhase;
+$("btnUndo").onclick=undoStep;
+$("rules").onclick=()=>{
+  const ph=PHASES[S.ph];const w=oppWait();
+  const r=w?OPP_TURN_RULES:ph;
+  const cant=[...r.cant];
+  if(!w&&S.tc===1&&ph.n==="Draw Phase")cant.unshift("FIRST TURN: the first player does NOT draw a card (the Draw Phase itself still takes place).");
+  if(!w&&S.tc===1&&/^Main Phase/.test(ph.n))cant.unshift("FIRST TURN: the first player has no Battle Phase. From here the turn goes straight to the End Phase (Main Phase 2 only follows a Battle Phase).");
+  const canSkip=!w&&S.tc>1&&S.ph===2&&PHASES[3]&&PHASES[3].n==="Battle Phase";
+  open(`${closeX()}<h2>${w?"Opponent's turn":ph.n+(ph.sub?" – "+ph.sub[S.sub]:"")}</h2><div class="phtxt">
+   ${!w&&ph.sub?`<small>Steps: ${ph.sub.join(" → ")}</small>`:""}
+   <h3 class="may">✅ You MAY / CAN</h3><ul>${r.may.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+   <h3 class="cant">⛔ You may NOT</h3><ul>${cant.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+   </div>${canSkip?`<div class="row"><button id="skipbp">Skip the Battle Phase → End Phase</button></div><small>You do not have to battle. Without a Battle Phase there is no Main Phase 2 either.</small>`:""}<div class="row"><button onclick="dlg.close()">Close</button></div>`,()=>{
+    if($("skipbp"))$("skipbp").onclick=()=>{S.ph=PHASES.length-1;S.sub=0;render();dlg.close()};
+  });
+};
+
+// ---------- Coin & dice ----------
+$("btnTools").onclick=()=>open(`${closeX()}<h2>Coin & dice</h2>
+  <div class="big" id="out">–</div>
+  <div class="row"><button id="coin">🪙 Flip coin</button><button id="d6">🎲 d6</button><button id="d20">d20</button></div>
+  <div class="row"><button id="twod6">🎲🎲 2× d6</button></div>`,()=>{
+  const out=$("out"),r=n=>1+Math.floor(crypto.getRandomValues(new Uint32Array(1))[0]/4294967296*n);
+  $("coin").onclick=()=>out.textContent=r(2)===1?"HEADS":"TAILS";
+  $("d6").onclick=()=>out.textContent=r(6);
+  $("d20").onclick=()=>out.textContent=r(20);
+  $("twod6").onclick=()=>{const a=r(6),b=r(6);out.textContent=`${a} + ${b} = ${a+b}`};
+});
+
+// ---------- Card search ----------
+$("btnSearch").onclick=()=>open(`${closeX()}<h2>Card search</h2><input type="search" id="q" placeholder="Search by name…" autocomplete="off">
+  <div class="res" id="res"></div><div class="card" id="ct" hidden></div>`,()=>{
+  const q=$("q");q.focus();
+  q.oninput=async()=>{const r=await find(q.value);
+    $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)} • ${c.atk===-1?"?":c.atk??"-"}/${c.def===-1?"?":c.def??"-"}</small></div>`).join("");
+    $("res").onclick=e=>{const d=e.target.closest("[data-k]");if(!d)return;$("ct").hidden=false;$("ct").innerHTML=cardInfo(r[+d.dataset.k]);$("ct").scrollIntoView({block:"nearest"})}};
+});
+
+// ---------- Duel intro: (Speed Duel: Skills) -> coin toss -> "IT'S TIME TO… DUEL!" ----------
+let rnd=n=>Math.floor(crypto.getRandomValues(new Uint32Array(1))[0]/4294967296*n);
+const calmMotion=()=>window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+function introLayout(h0,h1,mid){ // h0 = bottom half (you), h1 = top half (opponent, upside down in 2 players)
+  const two=S.view!=="1p",el=$("intro");
+  el.className="";el.hidden=false;
+  el.innerHTML=(two?`<div class="ihalf rot">${h1||""}</div>`:"")+`<div class="ihalf">${h0||""}</div>`+(mid?`<div class="imid">${mid}</div>`:"");
+}
+function startDuel(lp,n,view){
+  const sp0=S.startPlayer||0;
+  LPHOLD=true;
+  S=fresh(lp,n);S.view=view;S.startPlayer=sp0;S.turn=sp0;render();
+  $("splash").hidden=true;if(dlg.open)dlg.close();
+  if(n===3)introSkills();else introCoin();
+}
+function introSkills(){
+  const two=S.view!=="1p";
+  const lbl=p=>S.skill[p]?"⚡ Skill chosen ✓ (tap to change)":"⚡ Choose a Skill (optional)";
+  const draw=()=>{
+    introLayout(`<div class="ibox"><div class="ihead">${two?"YOU":"YOUR SKILL"}</div><button id="isk0">${lbl(0)}</button><div class="isub">Skills are set face-down before the coin toss.</div></div>`,
+      two?`<div class="ibox"><div class="ihead">OPPONENT</div><button id="isk1">${lbl(1)}</button><div class="isub">Skills are set face-down before the coin toss.</div></div>`:"",
+      `<button class="igo" id="itoss">Toss the coin 🪙</button>`);
+    $("isk0").onclick=()=>skillPick(0);
+    if($("isk1"))$("isk1").onclick=()=>skillPick(1);
+    $("itoss").onclick=()=>{dlg.onclose=null;introCoin()};
+  };
+  dlg.onclose=draw;draw();
+}
+function introCoin(){
+  const two=S.view!=="1p";
+  const heads=rnd(2)===0,winner=heads?0:1;
+  const forced=S.n===3&&!!S.skill[winner]; // Speed Duel: whoever presented a Skill before the toss and wins it must go first
+  const legend=two?"▼ Heads = bottom player · ▲ Tails = top player":"Heads = You · Tails = Opponent";
+  introLayout("","",`<div class="coinwrap"><div class="coin" id="coin"><div class="face">H</div><div class="face b">T</div></div></div><div class="cres" id="cres">&nbsp;</div><div class="clegend">${legend}</div>`);
+  const coin=$("coin");
+  const spins=calmMotion()?0:5;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{coin.style.transform=`rotateX(${spins*360+(heads?0:180)}deg)`}));
+  setTimeout(()=>{
+    $("cres").textContent=heads?"HEADS":"TAILS";
+    setTimeout(()=>introChoice(winner,forced,two,legend,heads),700);
+  },calmMotion()?200:2000);
+}
+function introChoice(winner,forced,two,legend,heads){
+  const you=winner===0;
+  const mine=(who)=>`<div class="ibox"><div class="ihead">🏆 ${two?"YOU WIN THE TOSS":(you?"YOU WIN THE TOSS":"OPPONENT WINS THE TOSS")}</div>${forced
+      ?`<div class="isub">${two||you?"You":"The opponent"} presented a Skill, so ${two||you?"you":"they"} must go first.</div><button id="ifirst">OK, ${two||you?"I go":"they go"} first</button>`
+      :`<div class="isub">${two||you?"You get to choose:":"Tap the opponent's choice:"}</div><button id="ifirst">${two||you?"I go first":"Opponent goes first"}</button><button id="isecond">${two||you?"My opponent goes first":"I go first"}</button>`}</div>`;
+  const wait=`<div class="ibox"><div class="ihead">OPPONENT WON THE TOSS</div><div class="isub">They are choosing…</div></div>`;
+  const mid=`<div class="cres" style="font-size:26px">${heads?"HEADS":"TAILS"}</div><div class="clegend">${legend}</div>`;
+  if(two)introLayout(you?mine():wait,you?wait:mine(),mid);
+  else introLayout(mine(),"",mid);
+  const pick=first=>{ // first = true -> the toss winner goes first (in 1p without 'you', the buttons are labelled the other way round)
+    const winnerFirst=forced?true:first; // 'ifirst' always means: the toss winner goes first
+    introFlash(winnerFirst?winner:1-winner);
+  };
+  const f=document.querySelectorAll("#ifirst"),sc=document.querySelectorAll("#isecond");
+  f.forEach(b=>b.onclick=()=>pick(true));sc.forEach(b=>b.onclick=()=>pick(false));
+}
+function introFlash(starter){
+  const two=S.view!=="1p",el=$("intro"),calm=calmMotion();
+  const word="IT'S TIME TO…";
+  const letters=[...word].map((ch,i)=>ch===" "?`<span class="ltr sp" style="animation-delay:${i*40}ms">&nbsp;</span>`:`<span class="ltr" style="animation-delay:${i*40}ms;--dx:${rnd(1100)-550}px;--dy:${rnd(900)-450}px;--r:${rnd(720)-360}deg">${ch}</span>`).join("");
+  const half=`<div class="itt"><div class="ittl" data-t>${letters}</div><div class="duel" data-d hidden>DUEL!</div></div>`;
+  introLayout(half,two?half:"","");
+  el.insertAdjacentHTML("beforeend",`<div class="iflash" id="iflash"></div>`);
+  const finish=()=>{
+    LPHOLD=false;S.startPlayer=starter;S.turn=starter;S.tc=1;S.ph=0;S.sub=0;render();
+    el.hidden=true;el.className="";el.innerHTML="";
+  };
+  if(calm){el.classList.add("out");setTimeout(finish,450);return}
+  const t1=word.length*40+500;                       // letters have popped in
+  setTimeout(()=>{
+    el.querySelectorAll(".ittl").forEach(e=>e.classList.add("push"));
+    el.querySelectorAll("[data-d]").forEach(e=>e.hidden=false);
+    $("iflash").classList.add("go");el.classList.add("shake");
+  },t1+350);
+  setTimeout(()=>el.classList.add("out"),t1+350+1500);
+  setTimeout(finish,t1+350+1500+520);
+}
+
+// ---------- Menu ----------
+const APP_NAME="Duelist Scorekeeper";
+const COFFEE_URL="https://ko-fi.com/spawnerindustries";
+$("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
+  <div class="row"><button id="view">View: ${S.view==="2p"?"2 players, 1 phone (switch to 1 player)":"1 player, own phone (switch to 2 players)"}</button></div>
+  <div class="row"><button id="n8">New duel (8000 LP, 5 zones)</button><button id="n4">Speed Duel (4000 LP, 3 zones)</button></div>
+  <div class="row"><button id="who">Who starts? Now: ${NAME(S.startPlayer)}</button></div>
+  <div class="row"><button id="surr" style="background:#6b2230">🏳 Surrender…</button></div>
+  <p><small>A new duel resets LP, monsters and the turn counter.</small></p>
+  <div class="row"><button id="home">🏠 Back to main menu</button></div>
+  <div class="row"><a href="${COFFEE_URL}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#ff5e5b;color:#fff;font-weight:800;border-radius:10px;padding:10px;text-decoration:none">☕ Support me on Ko-fi</a></div>
+  <p><small>Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami. Yu-Gi-Oh! and all card names and card text are © Konami. This app shows no card artwork. Card data via YGOPRODeck.</small></p>`,()=>{
+  const nd=(lp,n)=>{dlg.close();startDuel(lp,n,S.view)};
+  $("home").onclick=()=>{dlg.close();showSplash()};
+  $("surr").onclick=()=>open(`${closeX()}<h2>Surrender?</h2><p>The duel ends and the other player wins.</p><div class="row"><button id="s0" style="background:#6b2230">I surrender</button>${S.view==="1p"?"":`<button id="s1" style="background:#6b2230">Opponent surrenders</button>`}</div><div class="row"><button id="sno">Cancel</button></div>`,()=>{
+    const go=p=>{dlg.close();setLP(p,0,()=>`${NAME(p)} surrendered`)};
+    $("s0").onclick=()=>go(0);if($("s1"))$("s1").onclick=()=>go(1);$("sno").onclick=()=>dlg.close();
+  });
+  $("n8").onclick=()=>nd(8000,5);$("n4").onclick=()=>nd(4000,3);
+  $("who").onclick=()=>{S.startPlayer=1-S.startPlayer;S.turn=S.startPlayer;S.tc=1;S.ph=0;S.sub=0;render();dlg.close()};
+  $("view").onclick=()=>{S.view=S.view==="2p"?"1p":"2p";render();dlg.close()};
+});
+
+// ---------- Splash ----------
+function showSplash(){
+  const sp=$("splash");
+  let view=S.view==="1p"?"1p":"2p",mode=S.n===3?"speed":"master";
+  const hasDuel=S.tc>1||S.ph>0||(S.log&&S.log.length>0)||S.lp.some(v=>v!==(S.n===3?4000:8000));
+  const kofi="https://ko-fi.com/spawnerindustries";
+  function draw(){
+    sp.innerHTML=`<img src="img/logo.png" alt="Duelist Scorekeeper">
+    <div class="by">by Spawner Industries</div>
+    <div class="grp"><div class="lbl">View</div><div class="opt">
+      <button data-v="2p" class="${view==="2p"?"on":""}">2 players<small>1 phone</small></button>
+      <button data-v="1p" class="${view==="1p"?"on":""}">1 player<small>own phone</small></button></div></div>
+    <div class="grp"><div class="lbl">Rules</div><div class="opt">
+      <button data-m="master" class="${mode==="master"?"on":""}">Master Duel<small>8000 LP, 5 zones</small></button>
+      <button data-m="speed" class="${mode==="speed"?"on":""}">Speed Duel<small>4000 LP, 3 zones</small></button></div></div>
+    <button class="go" id="spGo">Start duel</button>
+    ${hasDuel?'<button class="go2" id="spCont">Continue previous duel</button>':""}
+    <a class="kofi" href="${kofi}" target="_blank" rel="noopener">☕ Support me on Ko-fi</a>
+    <small class="fine">Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami.</small>`;
+    sp.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{view=b.dataset.v;draw()});
+    sp.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{mode=b.dataset.m;draw()});
+    $("spGo").onclick=()=>startDuel(mode==="speed"?4000:8000,mode==="speed"?3:5,view);
+    const c=$("spCont");if(c)c.onclick=()=>{S.view=view;render();sp.hidden=true};
+  }
+  draw();sp.hidden=false;sp.scrollTop=0;
+}
+showSplash();
+
+render();
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
