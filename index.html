@@ -410,7 +410,10 @@ function fxAdd(cls,r,w,h,html,css){
 }
 const fxLife=(e,ms)=>setTimeout(()=>e.remove(),ms);
 let LASTHIT=0;
-let STSNAP={};
+let STSNAP={},PENDFX={};
+function queueStatFx(p,i,up){ // a pop-up dims the field: wait until it is closed, then play
+  setTimeout(()=>{if(dlg.open)PENDFX[p+":"+i]={p,i,up};else fxStatChange(monEl(p,i),up)},60);
+}
 function fxStatChange(el,up){ // ATK/DEF went up (green glow + white plusses) or down (red glow + white minuses) on this monster
   if(calmMotion()||!el)return;
   const r=el.getBoundingClientRect(),col=up?"#3dff8a":"#ff2d3f",opp=!!el.closest(".side.opp")||!!el.closest('.emzcell[style*="rotate"]'),dir=opp?-1:1;
@@ -430,7 +433,7 @@ function statWatch(){ // compare every face-up monster's ATK/DEF with the previo
     if(!m||m.pos==="FD")return;
     const st=stats(p,i),k=p+":"+i,prev=STSNAP[k];
     now[k]={id:m.name+"|"+m.sumT,a:st.a,d:st.d};
-    if(prev&&prev.id===now[k].id){const dl=(st.a+st.d)-(prev.a+prev.d);if(dl!==0)setTimeout(()=>fxStatChange(monEl(p,i),dl>0),60)}
+    if(prev&&prev.id===now[k].id){const dl=(st.a+st.d)-(prev.a+prev.d);if(dl!==0)queueStatFx(p,i,dl>0)}
   });
   STSNAP=now;
 }
@@ -727,7 +730,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-p],[data-lp]");
   DLGP=t?(t.dataset.p!==undefined?+t.dataset.p:+t.dataset.lp):S.turn;
 },true);
-dlg.addEventListener("close",()=>{if(dlg.open)return;FLIP=null;dlg.classList.remove("flip")}); // (a dialog re-opened straight away keeps its orientation)
+dlg.addEventListener("close",()=>{if(dlg.open)return;FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
 function open(html,after){
   dlg.innerHTML=html;
   const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
@@ -914,8 +917,8 @@ function parseEquip(desc,m){
         const lvl=m&&m.lvl>0?m.lvl:0,v=(/^lose/i.test(lv[1])?-1:1)*lvl*(+lv[4]),w=lv[2].toUpperCase();
         return{a:w==="DEF"?0:v,d:w==="ATK"?0:v,found:lvl>0,lvx:1,note:lvl>0?`${lv[3]} ${lvl} × ${lv[4]} applied.`:`Needs a monster with a ${lv[3]} — set it manually.`};
       }
-      if(/for each|\bx its\b|\bequal to\b/i.test(s)){
-        const fe=s.match(/for each (?:other )?(?:face-up )?(.+?)(?:[.,;]|$)/i);
+      if(/for (?:each|every)|\bx its\b|\bequal to\b/i.test(s)){
+        const fe=s.match(/for (?:each|every) (?:other )?(?:face-up )?(.+?)(?:[.,;]|$)/i);
         const per=fe&&!/same name|that has|different|Equip Spell|Attribute|Type/i.test(fe[1])?perKind(fe[1]):null;
         if(per&&per!=="cnt"&&per!=="selfcnt"&&!/\bif\b|\bwhen\b|\bwhile\b|until|this turn/i.test(s)){const r=parseMods(s);if(r.found)return{a:0,d:0,ua:r.a,ud:r.d,per,found:true}}
         return{a:0,d:0,found:false,note:"This bonus depends on the game state (“for each…”) — set it manually."};
@@ -931,7 +934,7 @@ function parseEquip(desc,m){
 const ATTRS=["EARTH","WATER","FIRE","WIND","LIGHT","DARK","DIVINE"];
 // warning for ATK/DEF changes in the card text that the app could not apply (so the player knows to adjust manually)
 function whyUnapplied(s){
-  if(/for each|\bx its\b|\bequal to\b/i.test(s))return"depends on a count (counters, monsters or cards)";
+  if(/for (?:each|every)|\bx its\b|\bequal to\b/i.test(s))return"depends on a count (counters, monsters or cards)";
   if(/your turn only|opponent's turn only/i.test(s))return"only applies on one player's turn";
   if(/damage calculation|\bbattl/i.test(s))return"only applies in battle";
   if(/this turn|until/i.test(s))return"is temporary";
@@ -943,7 +946,7 @@ function statNote(desc,covered){
   for(const s of sentences(desc||"")){
     const p=s.replace(/\([^)]*\)/g,"");
     if(!/\b(gain|lose|increase|decrease)s?\b[^.]*\b(ATK|DEF)\b|\b(ATK|DEF)\b[^.]*\b(increased|decreased)\b/i.test(p))continue;
-    if(!/\d|equal to|for each/i.test(p))continue;
+    if(!/\d|equal to|for (?:each|every)/i.test(p))continue;
     if(covered(p))continue;
     rs.add(whyUnapplied(p));
   }
@@ -986,16 +989,17 @@ function parseField(desc){
   // returns a list of effects: [{a,d,scope,alts,not,label}] (permanent "(All) X monsters ... gain/lose N ATK/DEF" clauses only)
   const out=[];
   const add=(clause,f,scopeWord)=>{
-    const fe=clause.match(/for each (.+?)(?:[.,;]|$)/i);
+    const fe=clause.match(/for (?:each|every) (.+?)(?:[.,;]|$)/i);
     let per=null;
     if(fe){per=perKind(fe[1]);if(!per)return}
     if(/until|this turn|during|while|\bif\b|once per turn|\bwhen\b|\bx its\b/i.test(clause))return;
-    const mods=parseMods(clause);if(!mods.found)return;
+    const mods=parseMods(clause);if(!mods.found||(!mods.a&&!mods.d))return;
+    if(/^(?:the )?(?:equipped|that|this|the|those)\b/i.test((f||"").trim()))return;
     const ex=clause.match(/,?\s*except\s+(.+?)[.\s]*$/i);
     const scope=/you control/i.test(scopeWord||"")?"own":/opponent controls/i.test(scopeWord||"")?"opp":"both";
     out.push({a:mods.a,d:mods.d,scope,alts:f?parseAlts(f):[],not:ex?parseAlts(ex[1]):[],exc:ex?ex[1]:"",label:f||"all",per});
   };
-  for(const s of sentences(desc)){
+  for(const s of sentences((desc||"").replace(/\r?\n/g,". ")).flatMap(x=>x.split(/,\s*also\s+/i))){
     const plain=s.replace(/\([^)]*\)/g,"").trim();
     const re=/\bAll (?:(.+?) )?monsters?(?: (on the field|you control|your opponent controls))?\s+(?=gain|lose)/gi;
     const hits=[...plain.matchAll(re)];
@@ -1042,6 +1046,8 @@ function stats(p,i){
   if(m.tm&&m.tm.t===S.tc){a+=m.tm.a;d+=m.tm.d;src.push(`temporary ${fmt(m.tm)}`)}
   for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
   for(const q of[0,1]){const f=S.field[q];if(f&&f.pos==="UP"&&f.auto!==false)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}}
+  for(const q of[0,1])S.mon[q].forEach(f=>{if(f&&f.pos!=="FD"&&f.auto!==false&&f.eff&&f.eff.length)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}});
+  if(m.pos!=="FD"&&m.auto!==false&&m.self)for(const e of m.self){const k=perCount(e.per,p,m,m);if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${m.name} ${fmt({a:e.a*k,d:e.d*k})}`)}
   for(const q of[0,1])S.st[q].forEach(f=>{if(f&&f.pos==="UP"&&f.auto!==false&&!f.eq&&f.eff)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}});
   return{a:Math.max(0,a),d:Math.max(0,d),src};
 }
@@ -1066,7 +1072,9 @@ function trackerBind(m,again){
 const badges=m=>{const b=[];if(m.cnt)b.push("●"+m.cnt);if(m.otT===S.tc&&m.otN)b.push(m.otN>1?"①×"+m.otN:"①");if(m.od)b.push("★");return b.length?`<span class="bdg">${b.join(" ")}</span>`:""};
 // "for each …" bonuses: what is counted
 function perKind(t){
+  if(/-type\b|\b(?:light|dark|earth|water|fire|wind|divine)\b|"|\blevel\b|\brank\b|\btuner\b|\bfusion\b|\bsynchro\b|\bxyz\b|\bpendulum\b|\blink\b|\bnormal monster|\beffect monster/i.test(String(t))&&!/counter/i.test(String(t)))return null;
   t=String(t).toLowerCase();
+  if(!/counter/.test(t)&&!/^(?:other\s+)?(?:face-up\s+)?(?:monsters?|cards?)\b/.test(t.trim()))return null;
   if(/counter/.test(t)&&(/(on|of) this card|of these counters|counters? on this card/.test(t)))return"cnt";
   if(/counter/.test(t)&&/\b(them|it)\b/.test(t))return"selfcnt";
   if(/monsters? (in|on) your (gy|graveyard)/.test(t))return"gymon";
@@ -1164,7 +1172,7 @@ function freeZones(p){ // all empty zones the player could drop a monster into
 function placeMon(p,i,c,pos,how,own){
   FXQ.push({t:"dust",p,i});
   S.mon[p][i]={own:own??p,name:c.name,atk:Math.max(0,c.atk??0),def:Math.max(0,c.def??0),da:0,dd:0,pos,id:c.id,type:c.type,race:c.race,attr:c.attr,lvl:c.lvl,
-    q:(c.atk===-1?"A":"")+(c.def===-1?"D":""),sumT:S.tc,how,lm:c.lm|0,desc:c.desc||""};
+    q:(c.atk===-1?"A":"")+(c.def===-1?"D":""),sumT:S.tc,how,lm:c.lm|0,desc:c.desc||"",eff:parseField(c.desc||""),self:selfStatic(c.desc||"")};
 }
 function loadMonDialog(p,i){
   open(`${closeX()}<h2>Load monster (slot ${i+1}) – monsters only</h2><input type="search" id="q" placeholder="Search by name…" autocomplete="off">
@@ -1305,6 +1313,10 @@ function slotDialog(p,i){
   const m=S.mon[p][i];
   if(!m){loadMonDialog(p,i);return}
   const s=stats(p,i),sg=m.sg||-1;
+  const acts=m.pos==="FD"?[]:cardActs(m,p,{p,i});
+  const effs=[...fieldEffs(m),...(m.self||[])];
+  const effUI=m.pos==="FD"?"":(effs.length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${effs.map(e=>`<li>${e.scope==="self"?"This card":e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,e.scope==="self"?p:p,m,m)})`:""}</li>`).join("")}</ul><div class="row"><button id="mauto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div>`:"")
+    +(m.pos==="FD"?"":(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,pz=>parseField(pz).length>0||selfStatic(pz).length>0||tempEffects(pz).length>0||selfGain(pz).length>0)));
   const lkTxt=m.lm?`<p><small>Link Monster – arrows: <b>${linkArrows(m)}</b>${isLinked(p,i)?" • this monster is linked (a Link Monster points to it)":""}. ${m.lm?"Link Monsters have no DEF and can't be in Defense Position.":""}</small></p>`:isLinked(p,i)?`<p><small>🔗 Linked: a Link Monster points to this monster.</small></p>`:"";
   const adj=(label,key,eff)=>`<div><b>${label}: ${eff}</b> <small>(base ${m[key==="da"?"atk":"def"]}${m[key]?`, manual ${m[key]>0?"+":""}${m[key]}`:""})</small></div>
    <div class="row">${STEPS.map(v=>`<button data-k="${key}" data-v="${v*sg}" style="min-width:40px;padding:8px 2px">${sg>0?"+":"-"}${v}</button>`).join("")}<button id="sg${key}" style="background:${sg>0?"#1f5a3a":"#6b2230"};flex:0 0 40px">${sg>0?"+":"−"}</button><button data-k="${key}" data-v="0">reset</button></div>`;
@@ -1313,12 +1325,15 @@ function slotDialog(p,i){
    <div class="row">${[["ATK","⚔ Attack"],["DEF","🛡 Defense"],["FD","🂠 Face-down DEF"]].filter(x=>!m.lm||x[0]==="ATK").map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${m.pos==="FD"?"":trackerHTML(m)}
+   ${effUI}${actsHTML(acts,false)}
    <div class="row">${m.pos==="ATK"?`<button id="atk" style="background:#8a1424">⚔ Attack…</button>`:""}<button id="info">Card text</button><button id="m2st">⬇ To Spell &amp; Trap zone…</button><button id="ctl">⇄ Control${ownerOf(m,p)!==p?" (not yours)":"…"}</button></div>
    ${m.pos!=="FD"&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctle">⇄ Its effect takes control of a monster…</button></div>`:""}
    <div class="row"><button id="clr" style="background:#6b2230">🪦 To Graveyard</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
    ${ownerOf(m,p)!==p?`<p><small>Owned by ${who(ownerOf(m,p))}: if it leaves the field it goes to ${ownerOf(m,p)===0?"your":"your opponent's"} Graveyard / Banished pile.</small></p>`:""}
    `,()=>{
     autoText(m);
+    actsBind(acts,false,null,()=>slotDialog(p,i));
+    if($("mauto"))$("mauto").onclick=()=>{m.auto=m.auto===false;render();slotDialog(p,i)};
     $("m2st").onclick=()=>monToSTDialog(p,i);
     $("ctl").onclick=()=>ctlDialog(p,i);
     if($("ctle"))$("ctle").onclick=()=>ctlFromCard(p,m,()=>slotDialog(p,i));
@@ -1679,7 +1694,7 @@ function loadZoneDialog(p,i,z){
 function standbyEffects(desc,c,eqTarget){
   const out=[],o=1-c,num=x=>+String(x).replace(/,/g,"");
   for(const sent of (desc||"").split(/(?<=[.;])\s+|\n/)){
-    if(!/Standby Phase/i.test(sent)||/for each|randomly|Detach/i.test(sent))continue;
+    if(!/Standby Phase/i.test(sent)||/for (?:each|every)|randomly|Detach/i.test(sent))continue;
     let owner;
     if(/your opponent'?s (?:each )?Standby|opponent's Standby|of their Standby|your opponent gains/i.test(sent))owner=o;
     else if(/each player's Standby|the Standby Phase|next Standby|turn player/i.test(sent))owner="turn";
@@ -1736,17 +1751,117 @@ function autoText(m){
   b.hidden=false;
   const i=$("info");if(i)i.onclick=()=>{b.hidden=!b.hidden};
 }
-// Life Point effects with a fixed amount in the card text: [{who:0|1,d:+n|-n,txt}] (p = the player who controls the card; "you" = p)
+// ---------- Effects with numbers, read from the card text (the app never runs card effects: it offers a button, the player decides) ----------
+const sentOf=t=>(t||"").split(/(?<=[.;])\s+|\n/);
+const LEAVE_RX=/\b(?:when|if|each time)\b[^.:;]{0,90}\b(?:this card|it) (?:is |are |was )?(?:sent|destroyed|leaves?|banished)\b|\bis sent from the (?:field|hand or field) to the (?:GY|Graveyard)\b/i;
+const NUMV=x=>+String(x).replace(/,/g,"");
+// Life Point effects with a fixed amount: [{who,d,txt,leave,sent}] (p = controller; "you" = p). leave = triggers when the card leaves the field
 function lpEffects(desc,p){
-  const out=[],q=1-p,num=x=>+String(x).replace(/,/g,""),add=(who,d,kind)=>{if(!out.some(o=>o.who===who&&o.d===d))out.push({who,d,txt:`${who===p?"you":"your opponent"} ${(d>0?"gain":kind==="pay"?"pay":"take")+(who===p?"":"s")} ${Math.abs(d)}${kind==="dmg"?" damage":" LP"}`})};
-  // recurring Standby Phase effects (Snatch Steal, Cure Mermaid, Lava Golem) are not "apply now" effects: skip those sentences
-  const t=(desc||"").split(/(?<=[.;])\s+|\n/).filter(x=>!/Standby Phase/i.test(x)).join(" ");let m;
-  const R1=/increase your (?:Life Points|LP) by (\d[\d,]*)/gi;while(m=R1.exec(t))add(p,num(m[1]),"gain");
-  const R2=/(your opponent|you) gains? (\d[\d,]*) (?:Life Points|LP)/gi;let any=false;while(m=R2.exec(t)){any=true;add(/opponent/i.test(m[1])?q:p,num(m[2]),"gain")}
-  if(!any){const R3=/\bgain (\d[\d,]*) (?:Life Points|LP)/gi;while(m=R3.exec(t))add(p,num(m[1]),"gain")}
-  const R4=/inflict (\d[\d,]*) (?:points of )?damage to (your opponent|you)\b/gi;while(m=R4.exec(t))add(/opponent/i.test(m[2])?q:p,-num(m[1]),"dmg");
-  const R5=/\bpay (\d[\d,]*) (?:Life Points|LP)/gi;while(m=R5.exec(t))add(p,-num(m[1]),"pay");
+  const out=[],q=1-p;
+  const add=(who,d,kind,sent)=>{const leave=LEAVE_RX.test(sent);if(!out.some(o=>o.who===who&&o.d===d&&o.leave===leave))out.push({who,d,leave,sent:sent.trim(),txt:`${who===p?"you":"your opponent"} ${(d>0?"gain":kind==="pay"?"pay":"take")+(who===p?"":"s")} ${Math.abs(d)}${kind==="dmg"?" damage":" LP"}`})};
+  for(const sent of sentOf(desc)){
+    if(/Standby Phase/i.test(sent))continue; // recurring: see standbyEffects
+    let m;
+    const R1=/increase your (?:Life Points|LP) by (\d[\d,]*)/gi;while(m=R1.exec(sent))add(p,NUMV(m[1]),"gain",sent);
+    const R2=/(your opponent|you) gains? (\d[\d,]*) (?:Life Points|LP)/gi;let any=false;while(m=R2.exec(sent)){any=true;add(/opponent/i.test(m[1])?q:p,NUMV(m[2]),"gain",sent)}
+    if(!any){const R3=/\bgain (\d[\d,]*) (?:Life Points|LP)/gi;while(m=R3.exec(sent))add(p,NUMV(m[1]),"gain",sent)}
+    const R4=/inflict (\d[\d,]*) (?:points of )?damage to (your opponent|you)\b/gi;while(m=R4.exec(sent))add(/opponent/i.test(m[2])?q:p,-NUMV(m[1]),"dmg",sent);
+    const R5=/\bpay (\d[\d,]*) (?:Life Points|LP)/gi;while(m=R5.exec(sent))add(p,-NUMV(m[1]),"pay",sent);
+  }
   return out;
+}
+// temporary ATK/DEF changes with a fixed amount ("until the end of this turn"): [{scope:self|target|own|opp|all,a,d,sent}]
+function tempEffects(desc){
+  const out=[];
+  for(const sent of sentOf(desc)){
+    if(!/until the end of (?:this|the) turn|until the End Phase|until the end of the Damage Step/i.test(sent))continue;
+    if(/for (?:each|every)|equal to|half|double|original|becomes?|Standby Phase/i.test(sent))continue;
+    let m,scope=null,a=0,d=0,sg=1,n=0,stat="";
+    if(m=sent.match(/\b(gains?|loses?) (\d[\d,]*) (ATK|DEF)(\/DEF| and DEF| and ATK)?/i)){
+      sg=/loses?/i.test(m[1])?-1:1;n=NUMV(m[2]);stat=m[3].toUpperCase()+(m[4]?"+":"");
+      const before=sent.slice(0,m.index).trim();
+      if(/All (?:face-up )?monsters? you control/i.test(before))scope="own";
+      else if(/All (?:face-up )?monsters? your opponent controls/i.test(before))scope="opp";
+      else if(/All (?:face-up )?monsters? on the field/i.test(before))scope="all";
+      else if(/^(?:this card|it)$/i.test(before.split(/[,:;]\s*/).pop().trim()))scope="self";
+      else if(/\btarget|that (?:monster|target|card)|the targeted|1 (?:face-up )?monster|\bit$/i.test(before))scope="target";
+    }else if(m=sent.match(/\b(increase|decrease|reduce) the (ATK|DEF)(?: and (DEF|ATK))? of ([^.]*?) by (\d[\d,]*)/i)){
+      sg=/increase/i.test(m[1])?1:-1;n=NUMV(m[5]);stat=m[2].toUpperCase()+(m[3]?"+":"");
+      const subj=m[4];
+      if(/this card/i.test(subj))scope="self";else if(/^all (?:face-up )?monsters? you control/i.test(subj))scope="own";else if(/^all (?:face-up )?monsters? your opponent controls/i.test(subj))scope="opp";else if(/\b(?:1|one|that|the targeted|target)\b/i.test(subj))scope="target";
+    }
+    if(!scope||!n)continue;
+    if(stat.includes("+")){a=sg*n;d=sg*n}else if(stat==="ATK")a=sg*n;else d=sg*n;
+    out.push({scope,a,d,sent:sent.trim()});
+  }
+  return out;
+}
+// "when/each time ...: this card gains N ATK(/DEF)" -> permanent change that the player applies (not static, not temporary)
+function selfGain(desc){
+  const out=[];
+  for(const sent of sentOf(desc)){
+    if(/until the end|this turn|for (?:each|every)|while|as long as|Standby Phase|equal to|Damage Step|is in (?:Attack|Defense) Position|is face-up|you control (?:no|a|another)/i.test(sent))continue;
+    if(!/^(?:when|each time|whenever|if|once per turn|after|at the end|during)\b|:/i.test(sent.trim()))continue;
+    const m=sent.match(/(?:^|[:;,]\s*|\bthen\s+|\bif you do,\s*)(?:This card|It) (gains|loses) (\d[\d,]*) (ATK|DEF)(\/DEF| and DEF)?/i);if(!m)continue;
+    const sg=/loses/i.test(m[1])?-1:1,n=NUMV(m[2]);let a=0,d=0;
+    if(m[4]){a=sg*n;d=sg*n}else if(m[3].toUpperCase()==="ATK")a=sg*n;else d=sg*n;
+    out.push({a,d,sent:sent.trim()});
+  }
+  return out;
+}
+// static "This card gains N ATK(/DEF) for each X" (X is something the app can count): applied automatically
+function selfStatic(desc){
+  const out=[];
+  for(const sent of sentOf(desc)){
+    if(/until|this turn|while|as long as|Standby Phase|\bif\b|\bwhen\b|once per turn/i.test(sent))continue;
+    const m=sent.match(/^This card (gains|loses) (\d[\d,]*) (ATK|DEF)(\/DEF| and DEF| and ATK)? for (?:each|every) ([^.]+?)\.?$/i);if(!m)continue;
+    const per=perKind(m[5]);if(!per)continue;
+    const sg=/loses/i.test(m[1])?-1:1,n=NUMV(m[2]);let a=0,d=0;
+    if(m[4]){a=sg*n;d=sg*n}else if(m[3].toUpperCase()==="ATK")a=sg*n;else d=sg*n;
+    out.push({a,d,scope:"self",alts:[],not:[],exc:"",label:"this card",per});
+  }
+  return out;
+}
+const addTemp=(mon,a,d)=>{if(!mon)return;const t=mon.tm&&mon.tm.t===S.tc?mon.tm:{a:0,d:0,t:S.tc};t.a+=a;t.d+=d;mon.tm=t};
+const fmtAD=(a,d)=>a&&d&&a===d?`${a>0?"+":"−"}${Math.abs(a)} ATK/DEF`:[a?`${a>0?"+":"−"}${Math.abs(a)} ATK`:"",d?`${d>0?"+":"−"}${Math.abs(d)} DEF`:""].filter(Boolean).join(" ");
+// all buttons for a face-up card: [{label,color,sent,leave,run(done,back)}]; selfLoc = {p,i} when the card is a monster on the field
+function cardActs(m,p,selfLoc){
+  const acts=[];if(!m||m.pos==="FD"||!m.desc)return acts;
+  lpEffects(m.desc,p).forEach(o=>acts.push({leave:o.leave,sent:o.sent,color:o.d>0?"#1f5a3a":"#6b2230",
+    label:`${o.leave?"When it leaves the field: ":"Apply: "}${o.txt}`,
+    run:done=>{S.prev=[...S.lp];S.lp[o.who]=Math.max(0,S.lp[o.who]+o.d);addLog(`${m.name}: ${NAME(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)} → ${S.lp[o.who]}`);done()}}));
+  tempEffects(m.desc).forEach(o=>{
+    if(o.scope==="self"&&!selfLoc)return; // a Spell/Trap has no "this card" ATK
+    const col=(o.a>0||o.d>0)?"#1f5a3a":"#6b2230",what=fmtAD(o.a,o.d);
+    const where={self:"this card",target:"choose a monster",own:"all your monsters",opp:"all your opponent's monsters",all:"all monsters"}[o.scope];
+    acts.push({leave:false,sent:o.sent,color:col,label:`This turn: ${what} (${where})`,
+      run:(done,back)=>{
+        if(o.scope==="target"){pickTarget(t=>{const tm=S.mon[t.p][t.i];addTemp(tm,o.a,o.d);addLog(`${m.name}: ${tm.name} ${what} this turn`);done()},back);return}
+        const hit=[];
+        if(o.scope==="self")hit.push(S.mon[selfLoc.p][selfLoc.i]);
+        else if(o.scope==="own")S.mon[p].forEach(x=>x&&x.pos!=="FD"&&hit.push(x));
+        else if(o.scope==="opp")S.mon[1-p].forEach(x=>x&&x.pos!=="FD"&&hit.push(x));
+        else if(o.scope==="all")[0,1].forEach(q=>S.mon[q].forEach(x=>x&&x.pos!=="FD"&&hit.push(x)));
+        if(!hit.length){toast("No monster to change");done();return}
+        hit.forEach(x=>addTemp(x,o.a,o.d));addLog(`${m.name}: ${what} this turn (${where})`);done();
+      }});
+  });
+  if(selfLoc)selfGain(m.desc).forEach(o=>acts.push({leave:false,sent:o.sent,color:(o.a>0||o.d>0)?"#1f5a3a":"#6b2230",label:`Apply: this card ${fmtAD(o.a,o.d)}`,
+    run:done=>{m.da=(m.da||0)+o.a;m.dd=(m.dd||0)+o.d;addLog(`${m.name}: ${fmtAD(o.a,o.d)}`);done()}}));
+  return acts;
+}
+function actsHTML(acts,oneShot){
+  const A=acts.map((a,x)=>({a,x})).filter(o=>!o.a.leave),Lv=acts.map((a,x)=>({a,x})).filter(o=>o.a.leave);
+  const row=({a,x},suffix)=>`<div style="margin:3px 0"><button data-ax="${x}" style="background:${a.color};width:100%;text-align:left">${esc(a.label)}${suffix||""}</button><small style="display:block;color:var(--dim);padding:0 4px">${esc(a.sent.length>150?a.sent.slice(0,147)+"…":a.sent)}</small></div>`;
+  return (A.length?`<p style="margin:6px 0 2px"><b>Effects with numbers</b> <small>(from the card text — only apply if the effect really happens)</small></p>${A.map(o=>row(o,oneShot&&A.length===1?" → Graveyard":"")).join("")}`:"")
+   +(Lv.length?`<p style="margin:6px 0 2px"><b>When this card leaves the field</b></p>${Lv.map(o=>row(o)).join("")}`:"");
+}
+function actsBind(acts,oneShot,leaveFn,reopen){
+  const normal=acts.filter(a=>!a.leave).length;
+  dlg.querySelectorAll("[data-ax]").forEach(b=>b.onclick=()=>{
+    const a=acts[+b.dataset.ax];
+    a.run(()=>{if(oneShot&&!a.leave&&normal===1&&leaveFn)leaveFn("gy");else{render();if(reopen)reopen();else dlg.close()}},reopen);
+  });
 }
 function cardZoneDialog(p,i,z){
   const m=getZ(p,i,z);
@@ -1754,7 +1869,7 @@ function cardZoneDialog(p,i,z){
   const t=m.type||(m.kind==="spell"?"Normal Spell":"Normal Trap"),spell=m.kind==="spell",quick=/Quick-Play/.test(t);
   const oneShot=/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(t);
   const sg=m.sg||-1,pend=m.kind==="pend";
-  const lpf=m.pos==="UP"&&!pend?lpEffects(m.desc,p):[];
+  const acts=m.pos==="UP"&&!pend?cardActs(m,p,null):[];
   const pendUI=pend?`<p><b>⚖ Pendulum Scale ${m.scale}</b><br><small>${esc(pendText(p))}</small></p>`:"";
   const eqUI=m.eq&&m.pos==="UP"?(()=>{
     const tg=m.tgt&&S.mon[m.tgt.p][m.tgt.i];
@@ -1769,7 +1884,7 @@ function cardZoneDialog(p,i,z){
    ${pend?"":`<div class="row">${[["UP","Face-up (activated)"],["FD","🂠 Set (face-down)"]].map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>`}
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${pendUI}${eqUI}${fUI}${m.pos==="UP"?trackerHTML(m):""}
-   ${lpf.length?`<p style="margin:6px 0 2px"><b>Life Points</b> <small>(from the card text — only apply if the effect really happens)</small></p><div class="row">${lpf.map((o,x)=>`<button data-lx="${x}" style="background:${o.d>0?"#1f5a3a":"#6b2230"}">Apply: ${esc(o.txt)}${oneShot&&lpf.length===1?" → Graveyard":""}</button>`).join("")}${oneShot&&lpf.length>1?`<button id="lxall" style="background:#1f5a3a">Apply all → Graveyard</button>`:""}</div>`:""}
+   ${actsHTML(acts,oneShot&&m.pos==="UP")}
    <div class="row">${oneShot&&m.pos==="UP"?`<button id="res1" style="background:#1f5a3a">Resolved → Graveyard</button>`:""}<button id="info">Card text</button></div>
    ${m.pos==="UP"&&!m.eq&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctlc">⇄ Take control of a monster…</button></div>`:""}
    ${m.uid&&S.mon.some(L=>L.some(x=>x&&x.ctl&&x.ctl.src===m.uid))?`<p><small>⇄ The monster taken with this card stays with you while this card is on the field.</small></p>`:""}
@@ -1796,9 +1911,7 @@ function cardZoneDialog(p,i,z){
     if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
     const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(e)ctlSrcGone(e.uid);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
     if($("res1"))$("res1").onclick=()=>leave("gy");
-    const applyLP=o=>{S.prev=[...S.lp];S.lp[o.who]=Math.max(0,S.lp[o.who]+o.d);addLog(`${m.name}: ${NAME(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)} → ${S.lp[o.who]}`)};
-    dlg.querySelectorAll("[data-lx]").forEach(b=>b.onclick=()=>{applyLP(lpf[+b.dataset.lx]);if(oneShot&&lpf.length===1)leave("gy");else{render();dlg.close()}});
-    if($("lxall"))$("lxall").onclick=()=>{lpf.forEach(applyLP);leave("gy")};
+    actsBind(acts,oneShot&&m.pos==="UP",leave,()=>cardZoneDialog(p,i,z));
     if($("ctlc"))$("ctlc").onclick=()=>{if(!oneShot)m.uid=m.uid||newUid();ctlFromCard(p,m,()=>cardZoneDialog(p,i,z))};
     $("clr").onclick=()=>leave("gy");$("ban").onclick=()=>leave("ban");$("rm").onclick=()=>leave("none");
     if(!(m.pos!=="FD"&&m.desc))$("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text.";};
