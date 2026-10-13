@@ -37,6 +37,14 @@ dialog.flip{transform:rotate(180deg)}.x.fl{float:left;font-size:20px}
 #toast.on{opacity:1}
 .slot,.fchip{position:relative}.bdg{position:absolute;top:1px;right:3px;font-size:10px;font-weight:800;color:var(--gold);text-shadow:0 1px 2px #000;pointer-events:none}
 .lk{font-size:10px;letter-spacing:1px;color:var(--gold);line-height:1;white-space:nowrap}
+#pickbar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;display:flex;align-items:center;gap:10px;background:#1c1109ee;border:2px solid var(--gold);border-radius:14px;padding:8px 12px;font-weight:800;white-space:nowrap;font-size:14px;box-shadow:0 4px 18px #000b}#pickbar.rot{transform:translate(-50%,-50%) rotate(180deg)}
+body.picking .slot[data-row="mon"]:not(.empty){outline:3px solid var(--gold);outline-offset:-2px;animation:pkp .8s infinite alternate}
+@keyframes pkp{to{outline-color:#fff}}
+.lvb{position:absolute;top:2px;left:3px;display:flex;align-items:center;gap:1px;background:#e8731a;color:#fff;border-radius:9px;padding:0 4px 0 2px;font-size:10px;font-weight:800;line-height:14px;box-shadow:0 1px 3px #000a;pointer-events:none;z-index:1}
+.lvb i{font-style:normal;color:#ffe08a;font-size:11px}
+.lvb.rk{background:#23232b;border:1px solid #ffe08a;line-height:12px}.lvb.lkn{background:#1f5fd0}
+.eqs{position:absolute;top:22px;left:3px;display:flex;flex-direction:column;gap:0;font-size:14px;line-height:13px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;z-index:1}
+.eqt{position:absolute;top:1px;left:50%;transform:translateX(-50%);font-size:16px;line-height:15px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;z-index:1}
 .lprow{display:flex;align-items:center;gap:6px}
 .lp{flex:1;background:var(--panel);border-radius:12px;padding:4px 10px;display:flex;align-items:baseline;justify-content:space-between;border:2px solid transparent;position:relative;overflow:hidden}
 .lpfill{position:absolute;left:0;bottom:0;height:5px;border-radius:0 3px 3px 0;background:#52d68a;pointer-events:none}
@@ -302,7 +310,24 @@ function fieldBg(p){
   (function t(i){if(i>=cand.length)return;const im=new Image();im.onload=()=>{FB[k]=`url(${cand[i]})`;render()};im.onerror=()=>t(i+1);im.src=cand[i]})(0);
   return"";
 }
+// Equip Spells: every monster that really has equip cards gets its own symbol + colour (also readable without colours):
+// blue circle, green triangle, yellow square, orange cross, red star, purple arrow, cyan diamond, pink heart, white x, lime club (10 = max). The equip card shows that symbol on top, the monster shows one symbol per equip card under its level badge.
+const EQ_SYM=[["●","#5aa9ff","circle"],["▲","#52d68a","triangle"],["■","#ffd34d","square"],["✚","#ff9a3d","cross"],["★","#ff5d6c","star"],["▶","#b57bff","arrow"],["◆","#3de0e0","diamond"],["♥","#ff7ad9","heart"],["✖","#ffffff","x"],["♣","#c8f23d","club"]];
+let EQM={};
+function eqMap(){
+  const g={};
+  [0,1].forEach(p=>S.st[p].forEach(e=>{
+    if(!e||!e.eq||!e.tgt)return;
+    const t=S.mon[e.tgt.p]&&S.mon[e.tgt.p][e.tgt.i];if(!t)return;
+    const k=e.tgt.p*10+e.tgt.i;g[k]=(g[k]||0)+1;
+  }));
+  const m={};Object.keys(g).map(Number).sort((a,b)=>a-b).forEach((k,n)=>{m[k]={sym:EQ_SYM[n%EQ_SYM.length],n:g[k]}});
+  return m;
+}
+const eqMon=(p,i)=>{const o=EQM[p*10+i];return o?`<span class="eqs">${Array(o.n).fill(`<span style="color:${o.sym[1]}" title="${o.n} equip card${o.n>1?"s":""} (${o.sym[2]})">${o.sym[0]}</span>`).join("")}</span>`:""};
+const eqCard=e=>{if(!e||!e.eq||!e.tgt)return"";const o=EQM[e.tgt.p*10+e.tgt.i];return o?`<span class="eqt" style="color:${o.sym[1]}" title="Equipped to a monster (${o.sym[2]})">${o.sym[0]}</span>`:""};
 function render(){
+  EQM=eqMap();
   PHASES=S.n===3?PHASES_SD:PHASES_MD;if(S.ph>=PHASES.length)S.ph=PHASES.length-1;
   const one=S.view==="1p";
   for(let p=0;p<2;p++){
@@ -554,13 +579,20 @@ function fieldChip(p){
   if(!f)return`<span style="color:var(--dim)">+ Field<br>Spell</span>`;
   return`<b>${f.pos==="FD"?"Set Field":esc(f.name)}</b>${f.pos==="FD"?"":badges(f)}`;
 }
+// level (orange ★), Xyz rank (dark ★) or Link rating (blue L); nothing for custom monsters or when unknown
+function lvlBadge(m){
+  if(m.lvl==null||m.lvl<=0)return"";
+  if(m.lm||/Link/i.test(m.type||""))return`<span class="lvb lkn" title="Link Rating ${m.lvl}">L${m.lvl}</span>`;
+  if(/XYZ|Xyz/.test(m.type||""))return`<span class="lvb rk" title="Rank ${m.lvl}"><i>★</i>${m.lvl}</span>`;
+  return`<span class="lvb" title="Level ${m.lvl}"><i>★</i>${m.lvl}</span>`;
+}
 function slotHTML(p,i,m){
   const a=`data-p="${p}" data-i="${i}" data-row="mon"`;
   if(!m)return`<div class="slot empty" ${a}>+<br><span class="sl-lbl">monster</span></div>`;
   if(m.pos==="FD")return`<div class="slot" ${a}>${ownerOf(m,p)!==p?`<span class="ctlb">⇄</span>`:""}<div class="cbw"><div class="cb land fd"></div></div><div class="st dim">? / ?</div></div>`;
   const cls=x=>x>0?"up":x<0?"down":"";
   const d=m.pos==="DEF",s=stats(p,i),da=s.a-m.atk,dd=s.d-m.def;
-  return`<div class="slot" ${a}>${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
+  return`<div class="slot" ${a}>${lvlBadge(m)}${eqMon(p,i)}${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
     <div class="cbw"><div class="cb ${d?"land def":"port atk"}"><span class="n">${esc(m.name)}</span></div></div>
     <div class="st"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":` / <span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span>`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
 }
@@ -570,14 +602,16 @@ function stHTML(p,i,m){
   if(m.pos==="FD")return`<div class="slot" ${a}><div class="cbw"><div class="cb port fdv"></div></div><div class="st dim">Set</div></div>`;
   const tg=m.eq&&m.tgt&&S.mon[m.tgt.p][m.tgt.i];
   const lbl=tg?"→ "+(tg.pos==="FD"?"?":tg.name):m.kind==="pend"?"⚖ Scale "+m.scale:subType(m.type)||(m.kind==="spell"?"Spell":"Trap");
-  return`<div class="slot" ${a}>${badges(m)}<div class="cbw"><div class="cb port ${m.kind}"><span class="n">${esc(m.name)}</span></div></div><div class="st dim" style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(lbl)}</div></div>`;
+  return`<div class="slot" ${a}>${eqCard(m)}${badges(m)}<div class="cbw"><div class="cb port ${m.kind}"><span class="n">${esc(m.name)}</span></div></div><div class="st dim" style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(lbl)}</div></div>`;
 }
 
 // ---------- Card data ----------
 let CARDS=null;
 async function cards(){
   if(CARDS)return CARDS;
-  const r=await fetch("data/cards.json");
+  let r=await fetch("data/cards.json");
+  if(!r.ok)r=await fetch("data/cards.json",{cache:"reload"}); // second try past the cache
+  if(!r.ok)throw new Error("cards.json "+r.status);
   CARDS=(await r.json()).map(c=>({id:c[0],name:c[1],type:c[2],desc:c[3],atk:c[4],def:c[5],lvl:c[6],attr:c[7],race:c[8],lm:c[9]|0,sc:c[10],lc:c[1].toLowerCase()}));
   return CARDS;
 }
@@ -709,15 +743,33 @@ function ctlDialog(p,i){
    <p><small>Owner: <b>${NAME(o)}</b> • controlled by: <b>${NAME(p)}</b>${stolen?(m.ctl&&m.ctl.ep?" • returns in the End Phase":m.ctl&&m.ctl.src?" • as long as the card that took it stays on the field":" • until a card effect returns it"):""}</small></p>
    ${stolen?`<div class="row"><button id="cb" style="background:#1f5a3a">↩ Return it to ${NAME(o)} now</button></div>`:""}
    <p><b>${q===0?"You take":"Your opponent takes"} control</b></p>
-   <div class="row"><button id="ce">Until the End Phase<br><small>Change of Heart, Brain Control…</small></button><button id="cl">Until a card returns it<br><small>Mind Control, Creature Swap…</small></button></div>
+   <div class="row"><button id="ce">Until the End Phase<br><small>Change of Heart, Brain Control…</small></button><button id="cl">Until a card returns it<br><small>Mind Control…</small></button></div>
+   <div class="row"><button id="cs">⇄ Swap with one of ${q===0?"your":"your opponent's"} monsters<br><small>Creature Swap: both change sides, neither can change position this turn</small></button></div>
    <p><small>Rules: a card always goes to its owner's Graveyard (also when the other player controls it, e.g. after a Tribute for Soul Exchange). At the end of the duel every card goes back to its owner.</small></p>
    <div class="row"><button id="co">${stolen?`It really belongs to ${who(p)}`:`It belongs to ${who(q)}`}<br><small>e.g. a Kaiju or Lava Golem summoned to this side</small></button></div>
    <div class="row"><button id="bk">← Back</button></div>`,()=>{
     const take=ep=>{const j=moveCtl(p,i,q,{ep});if(j<0){toast(q===0?"You have no free monster zone":"Your opponent has no free monster zone");return}addLog(`${NAME(q)} took control of ${m.name}${ep?" until the End Phase":""}`);render();dlg.close()};
     $("ce").onclick=()=>take(true);$("cl").onclick=()=>take(false);
+    $("cs").onclick=()=>swapDialog(p,i);
     if($("cb"))$("cb").onclick=()=>{returnCtl(p,i);render();dlg.close()};
     $("co").onclick=()=>{m.own=stolen?p:q;if(m.own===p)delete m.ctl;else m.ctl={t:S.tc};render();ctlDialog(p,i)};
     $("bk").onclick=()=>slotDialog(p,i);
+  });
+}
+// Creature Swap: monster i of player p (the one given away) is swapped with a monster of the other player
+function swapDialog(p,i){
+  const q=1-p,m=S.mon[p][i];if(!m)return;
+  const list=S.mon[q].map((o,k)=>o?{o,k}:null).filter(Boolean);
+  open(`${closeX()}<h2>⇄ Swap ${m.pos==="FD"?"this face-down monster":esc(m.name)}</h2>
+   <p><small>Pick the monster ${NAME(q)} gives in return. Both change sides until a card returns them; they can't change battle position for the rest of this turn.</small></p>
+   <div class="res" id="tl">${list.map((x,n)=>`<div data-x="${n}"><b>${x.o.pos==="FD"?"Face-down monster":esc(x.o.name)}</b><br><small>${NAME(q)} • ${slotName(x.k)}</small></div>`).join("")||"<div><small>The other player controls no monsters.</small></div>"}</div>
+   <div class="row"><button id="bk">← Back</button></div>`,()=>{
+    $("tl").onclick=e=>{const dv=e.target.closest("[data-x]");if(!dv)return;const x=list[+dv.dataset.x],b=x.o;
+      const j=moveCtl(p,i,q);if(j<0){toast(q===0?"You have no free monster zone":"Your opponent has no free monster zone");return}
+      const j2=moveCtl(q,x.k,p);if(j2<0){moveCtl(q,j,p);toast("No free zone for the swap");render();return}
+      m.noPosT=S.tc;b.noPosT=S.tc;
+      addLog(`Creature Swap: ${m.name} ⇄ ${b.name}`);render();dlg.close()};
+    $("bk").onclick=()=>ctlDialog(p,i);
   });
 }
 // a Spell/Trap/monster whose text takes control: pick an opponent's monster
@@ -1026,7 +1078,8 @@ function loadMonDialog(p,i){
     <div class="row"><button id="cust">Custom monster (no search)</button></div>`,()=>{
     const q=$("q");q.focus();
     q.oninput=async()=>{
-      const r=await find(q.value,'mon');
+      let r;
+      try{r=await find(q.value,'mon')}catch(e){CARDS=null;$("res").innerHTML=`<div><small>⚠ The card data could not be loaded (${esc(String(e.message||e))}). Check your connection, reload the page (Ctrl+F5), then try again. Meanwhile you can use “Custom monster”.</small></div>`;return}
       $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)} • ${c.atk===-1?"?":c.atk??"-"}/${c.def===-1?"?":c.def??"-"}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
       $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;summonDialog(p,i,r[+d.dataset.k])};
     };
@@ -1051,10 +1104,13 @@ function summonDialog(p,i,c,opts){
     const n={two:2,three:3}[t[1].toLowerCase()]||+t[1];
     return !t[2]||parseAlts(t[2]).some(a=>altHit(a,c))?n:1;
   };
+  // Lava Golem: Special Summoned to the opponent's field by Tributing N monsters THEY control (= the monsters on the side where it lands)
+  const lavaM=(c.desc||"").match(/Tributing (\d|two|three) monsters they control/i),lavaN=lavaM?({two:2,three:3}[lavaM[1].toLowerCase()]||+lavaM[1]):0;
   const noTrib=((c.desc||"").match(/[^.\n]*without Tributing[^.\n]*\./i)||[])[0];
   open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type)}${c.lvl!=null?" • Level/Link "+c.lvl:""} • ATK ${c.atk===-1?"?":c.atk??"-"} / DEF ${c.def===-1?"?":c.def??"-"}</small>
    ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set – select:</p><div id="trib">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}${tribVal(o.m)>1?` <small style="color:var(--gold)">(counts as ${tribVal(o.m)} Tributes)</small>`:""}</label>`).join("")||"<small>You control no other monsters.</small>"}${opp.length?`<details style="margin-top:4px"><summary><small>Opponent's monsters (only with a card like Soul Exchange)</small></summary>${opp.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="o${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)} <small>(opponent)</small></label>`).join("")}</details>`:""}</div>`:""}
-   ${ssOpp?`<p><label><input type="checkbox" id="ownx"> This card belongs to ${who(1-p)} – it is Special Summoned to this side of the field by its own effect (Kaiju, Lava Golem…)</label></p>`:""}
+   ${ssOpp?`<p><label><input type="checkbox" id="ownx" ${lavaN?"checked":""}> This card belongs to ${who(1-p)} – it is Special Summoned to this side of the field by its own effect (Kaiju, Lava Golem…)</label></p>`:""}
+   ${lavaN?`<p><b>Tribute ${lavaN} monsters on this side</b> <small>(they go to their owner's Graveyard)</small> – select:</p><div id="ltr">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}</label>`).join("")||"<small>No other monsters on this side.</small>"}</div>`:""}
    ${S.n===5?`<p>${isLink?"":`<label><input type="checkbox" id="pends" ${opts.ed?"checked":""}> Pendulum Summon (uses your Pendulum Scales)</label>`}${isPend?`<br><label><input type="checkbox" id="fromED" ${opts.ed?"checked":""}> Pendulum Monster summoned face-up from the Extra Deck</label>`:""}</p>`:""}
    ${S.n===5&&(extra||isPend)?`<p><b>Zone</b></p><div id="zsel" class="row" style="gap:4px"></div><small id="zhint"></small>`:""}
    <div class="row"><button id="bn">Normal Summon</button><button id="bs">Set (face-down)</button></div>
@@ -1102,7 +1158,9 @@ function summonDialog(p,i,c,opts){
         if(p!==S.turn||!inMain())w.push("A Pendulum Summon is done in your own Main Phase.");
       }
       if(S.mon[p][zone])w.push("That zone is occupied.");
-      guard(w,()=>{placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      const ls=lavaN?[...dlg.querySelectorAll("#ltr input:checked")].map(x=>+x.value):[];
+      if(lavaN&&ls.length!==lavaN)w.push(`This card is Special Summoned by Tributing ${lavaN} monsters that ${NAME(p)} controls; you selected ${ls.length}.`);
+      guard(w,()=>{ls.forEach(k=>removeMon(p,k));placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
     $("sa").onclick=()=>special("ATK");
     if($("sd"))$("sd").onclick=()=>special("DEF");
@@ -1147,6 +1205,7 @@ function slotDialog(p,i){
 function setPos(p,i,np){
   const m=S.mon[p][i],old=m.pos,w=[];
   if(old===np)return;
+  if(m.noPosT===S.tc)w.push("After Creature Swap these monsters can't change their battle position for the rest of this turn.");
   const turnMain=()=>{if(p!==S.turn)w.push("This is only allowed on your own turn.");if(!inMain())w.push(`Only allowed in a Main Phase (now: ${phName()}).`)};
   if(old==="FD"&&np==="ATK"){
     turnMain();
@@ -1382,15 +1441,25 @@ const getZ=(p,i,z)=>z==="field"?S.field[p]:S.st[p][i];
 const setZ=(p,i,z,v)=>{if(z==="field")S.field[p]=v;else S.st[p][i]=v};
 const putZone=(p,i,z,e)=>{if(z==="field"&&S.field[p]&&S.field[p]!==e){sendTo(p,"gy",S.field[p],true);addLog(`${S.field[p].name} was replaced by a new Field Spell`)}setZ(p,i,z,e)};
 const subType=t=>(t||"").replace(/ (Spell|Trap)$/,"");
+let PICK=null; // while set: the next tap on a monster on the field is the chosen target
 function pickTarget(onPick,back){
-  const list=[];for(const q of[0,1])S.mon[q].forEach((m,k)=>{if(m)list.push({q,k,m})});
-  open(`${closeX()}<h2>Equip to which monster?</h2>${list.length?"":"<p>There are no monsters on the field.</p>"}
-   <div class="res" id="tl">${list.map((o,x)=>`<div data-x="${x}"><b>${o.m.pos==="FD"?"Face-down monster":esc(o.m.name)}</b><br><small>${NAME(o.q)} • ${slotName(o.k)}</small></div>`).join("")}</div>
-   <div class="row"><button id="bk">Cancel</button></div>`,()=>{
-    $("tl").onclick=e=>{const d=e.target.closest("[data-x]");if(d){const o=list[+d.dataset.x];onPick({p:o.q,i:o.k})}};
-    $("bk").onclick=()=>back?back():dlg.close();
-  });
+  if(![0,1].some(q=>S.mon[q].some(Boolean))){toast("There are no monsters on the field.");if(back)back();else dlg.close();return}
+  try{dlg.close()}catch(e){}
+  const bar=document.createElement("div");bar.id="pickbar";
+  bar.innerHTML=`<span>Tap the monster to equip</span><button id="pickx">Cancel</button>`;
+  if(S.view==="2p"&&DLGP===1)bar.classList.add("rot");
+  document.body.appendChild(bar);document.body.classList.add("picking");
+  const end=()=>{PICK=null;bar.remove();document.body.classList.remove("picking")};
+  const who=DLGP; // the player who plays the equip: the pop-up that follows must stay turned towards that player, also when the target is on the other half
+  PICK={onPick:(p,i)=>{end();DLGP=who;onPick({p,i})}};
+  $("pickx").onclick=()=>{end();if(back)back();else render()};
 }
+document.addEventListener("click",e=>{
+  if(!PICK||e.target.closest("#pickbar"))return;
+  const sl=e.target.closest('.slot[data-row="mon"]');
+  e.stopPropagation();e.preventDefault();
+  if(sl&&!sl.classList.contains("empty"))PICK.onPick(+sl.dataset.p,+sl.dataset.i);
+},true);
 const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first

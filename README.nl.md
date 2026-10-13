@@ -30,22 +30,31 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 - Ongedaan maken voor elke actie (tot 60 stappen) en een opgeefknop.
 
 **Op één gsm of op twee**
-- *2 spelers, 1 gsm:* de helft van de tegenstander staat ondersteboven, zodat jullie allebei kunnen lezen.
+- *2 spelers, 1 gsm:* de helft van de tegenstander staat ondersteboven, zodat jullie allebei kunnen lezen. De middenstrook met de knoppen en de pop-ups draaien mee naar de speler die aan de beurt is (en je kunt een pop-up met de hand omdraaien).
 - *1 speler, eigen gsm:* elke speler gebruikt zijn eigen gsm.
 
 **Kent de beurtstructuur**
-- Draw, Standby, Main, Battle (met stappen) en End Phase, en de regels van de eerste beurt (de starter trekt niet en heeft geen Battle Phase).
+- Draw, Standby, Main, Battle en End Phase, en de regels van de eerste beurt (de starter trekt niet en heeft geen Battle Phase).
 - Een **Rules**-knop die uitlegt wat je in de huidige fase wel en niet mag.
 - De limiet van één Normal Summon, het aantal Tributes, Flip Summon, positie wisselen, aanvallen en de timing van Spells en Traps worden gecontroleerd. Mag iets niet, dan zegt de app waarom, en je kunt toch kiezen voor **Do it anyway**, want een kaarteffect kan het wel toelaten.
 
 **Toont het bord**
+- Elk open monster toont zijn **Level** (oranje sterbolletje), Xyz-**Rank** of **Link-rating**.
+- Elk monster met Equip Spells krijgt een eigen **vorm en kleur** (blauw bolletje, groen driehoekje, geel vierkantje, oranje kruisje, rood sterretje, paarse pijl, cyaan ruitje, roze hartje, wit kruisje, lime klaver), getoond op het monster (één per Equip Spell) en op de Equip Spell zelf. Omdat het een vorm is, werkt het ook zonder kleuren. Om een kaart te equippen tik je gewoon op het monster op het veld.
 - Monsterzones, Spell & Trap-zones, Field Zone, Graveyard en Banished.
 - Standaardregels: twee gedeelde **Extra Monster Zones** met **Link-pijlen** (alle Link-monsters zitten erin) en de officiële plaatsingsregels, en **Pendulum Zones** met schalen en controle op Pendulum Summon.
 - Speed Duel: 3 monsterzones, 3 Spell & Trap-zones, geen Main Phase 2 en **Skill Cards** (124 Skills, face-down gelegd, met de officiële activeerregels).
 
 **Zoekt kaarten op**
 - Ongeveer 14.600 kaarten met hun volledige tekst. Leg een monster, Spell of Trap met één tik op het bord.
-- Aanvallen worden berekend: schade, vernietigde monsters, omgedraaide face-down monsters.
+- Aanvallen worden berekend: schade, vernietigde monsters, omgedraaide face-down monsters. Je ziet wie wie aanvalt (ringen, pijl en cijfers) vóór het aanvalseffect, en de verdediger wordt gevraagd of hij wil reageren met een Trap, Quick-Play Spell of effect. Met een kleine **effectbouwer** voer je die reactie in (ATK/DEF wijzigen, een monster vernietigen, de aanval negeren, levenspunten wijzigen) en de aanval gaat daarna verder met de nieuwe cijfers.
+- Vernietigde en gebruikte kaarten vliegen naar de Graveyard of Banished, en terug het veld op als je ze van daaruit Special Summont.
+
+**Weet wie een kaart bezit (controlewissels)**
+- Change of Heart, Snatch Steal, Creature Swap, Soul Exchange en andere kaarten die controle overnemen: een monster dat je controleert maar niet bezit, gaat altijd naar de Graveyard of Banished van zijn **eigenaar**; effecten "tot de End Phase" geven het monster automatisch terug; kaarten als Snatch Steal geven het terug als de kaart het veld verlaat.
+- Kaarten die door hun eigen tekst aan de kant van de tegenstander Special Summoned worden (Lava Golem met zijn Tributes, Kaiju…) horen bij jou.
+- Monster Reborn op een kaart in de Graveyard van de tegenstander zet die aan jouw kant.
+- Op het einde van het duel herinnert de app je aan welke kaarten je moet teruggeven aan hun eigenaar.
 
 **Rekent mee met ATK/DEF-wijzigingen**
 - Equip Spells en Field Spells die ATK/DEF verhogen of verlagen worden automatisch toegepast als de kaarttekst dat toelaat, ook bonussen die groeien met tellers of het aantal monsters.
@@ -60,8 +69,8 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 ## Wat de app niet doet
 
 - **Het is geen kaartspel.** Er is geen deck, geen hand en geen kaarten trekken. Je echte kaarten (of hoe je ook speelt) blijven in je eigen handen.
-- **Hij leest of voert geen kaarteffecten uit.** Geen kettingen, geen kosten, geen "vernietig die kaart". Je past effecten zelf toe met de LP-knoppen en door kaarten naar de Graveyard te verplaatsen, en de app helpt waar het kan.
-- **Hij houdt niet bij:** Xyz-materialen, Fusion-/Link-materialen, tokens als echte kaarten en controlewissels (een gestolen monster).
+- **Hij leest of voert geen kaarteffecten uit.** Geen echte kettingen, geen kosten, geen "vernietig die kaart" (de effectbouwer bij een aanval is een eenvoudige hulp, geen regelmotor). Je past effecten zelf toe met de LP-knoppen en door kaarten naar de Graveyard te verplaatsen, en de app helpt waar het kan.
+- **Hij houdt niet bij:** Xyz-materialen, Fusion-/Link-materialen en tokens als echte kaarten, en "banished instead"-effecten worden niet automatisch toegepast.
 - **Hij controleert je deck niet:** geen decksgrootte, geen verboden-/beperkt-lijst.
 - **Hij is geen scheidsrechter.** Hij volgt de officiële regels voor zover de maker ze kon opzoeken, maar je kunt hem altijd overrulen en hij kan fout zijn. Zegt een kaart of een uitspraak iets anders, dan wint de kaart en het regelboek.
 - Geen online spel en geen synchronisatie tussen twee gsm's (nog niet), geen timer, geen bijhouden van wedstrijden (best of 3).

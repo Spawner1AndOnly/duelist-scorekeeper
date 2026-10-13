@@ -1,4 +1,4 @@
-const C="ygoref-v13";
+const C="ygoref-v14";
 const FILES=["./","index.html","manifest.json","icon.svg","icon-192.png","icon-512.png","apple-touch-icon.png","favicon-32.png","data/cards.json","data/skills.json","img/field/map.json","img/cardback-h.jpg","img/cardback-v.jpg","img/logo.png","img/fx/shield.webp","img/fx/dust.webp","img/bg-embers.jpg"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))))});
