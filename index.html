@@ -194,6 +194,14 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .fxtext{font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 0 12px #000;text-align:center;animation:fxtext 1s ease-out forwards}
 @keyframes fxtext{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.15);opacity:1}80%{opacity:1}100%{transform:translateY(-14px);opacity:0}}
 #phase.paused{background:var(--gold);color:#241a00}
+.fxring{border-radius:12px;border:4px solid var(--c);box-shadow:0 0 16px 5px var(--c),inset 0 0 12px var(--c);animation:fxring .9s ease-out forwards}
+@keyframes fxring{0%{opacity:0;transform:scale(1.25)}20%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0}}
+.fxchip{padding:3px 9px;border-radius:12px;background:var(--c);color:#111;font-size:13px;font-weight:900;white-space:nowrap;transform:translate(-50%,-100%);box-shadow:0 2px 8px #000a;animation:fxchip .95s ease-out forwards}
+@keyframes fxchip{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
+.fxarrow{left:0;top:0;width:100vw;height:100vh;overflow:visible}
+.fxarrow line{stroke:#ffd45a;stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 6px #ffb43d);stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:fxdraw .4s ease-out forwards,fxarrowout .4s .55s forwards}
+@keyframes fxdraw{to{stroke-dashoffset:0}}
+@keyframes fxarrowout{to{opacity:0}}
 </style>
 </head>
 <body>
@@ -339,20 +347,21 @@ function fxAdd(cls,r,w,h,html,css){
 }
 const fxLife=(e,ms)=>setTimeout(()=>e.remove(),ms);
 function fxSlash(r,flip){
-  const L=Math.max(r.width,r.height)*2.3,a=(flip?35:-35)*Math.PI/180,cx=r.left+r.width/2,cy=r.top+r.height/2;
+  const L=Math.min(Math.max(r.width,r.height)*2.3,380),a=(flip?35:-35)*Math.PI/180,cx=r.left+r.width/2,cy=r.top+r.height/2;
   const e=document.createElement("div");e.className="fxslash";
   e.style.cssText=`left:${cx-Math.cos(a)*L/2}px;top:${cy-Math.sin(a)*L/2}px;width:${L}px;--a:${flip?35:-35}deg`;
   $("fx").appendChild(e);fxLife(e,420);
 }
-function fxFlash(r){const e=fxAdd("fxflash",r,r.width*1.6,r.height*1.6);fxLife(e,600)}
-function fxDust(r){const w=Math.max(r.width,r.height)*1.5;const e=fxAdd("fxdust",r,w,w);fxLife(e,800)}
+function fxFlash(r){const e=fxAdd("fxflash",r,Math.min(r.width*1.6,240),Math.min(r.height*1.6,300));fxLife(e,600)}
+function fxDust(r){const w=Math.min(Math.max(r.width,r.height)*1.5,230);const e=fxAdd("fxdust",r,w,w);fxLife(e,800)}
+const shieldW=r=>Math.min(Math.max(r.width*1.5,90),190);
 function fxShieldHold(r){ // the shield holds: shakes and says BLOCKED
-  const w=Math.max(r.width*1.5,90),h=w*1.21;
+  const w=shieldW(r),h=w*1.21;
   const e=fxAdd("fxshield hold",r,w,h);fxLife(e,1400);
   const t=fxAdd("fxtext",{left:r.left,top:r.top-h*0.45,width:r.width,height:r.height},180,40,"BLOCKED","animation-delay:.25s;opacity:0");fxLife(t,1400);
 }
 function fxShieldBreak(r){ // the shield splits in two
-  const w=Math.max(r.width*1.5,90),h=w*1.21;
+  const w=shieldW(r),h=w*1.21;
   const a=fxAdd("fxshield half l",r,w,h),b=fxAdd("fxshield half r",r,w,h);fxLife(a,900);fxLife(b,900);
 }
 function fxLunge(p,i,toRect){
@@ -361,20 +370,32 @@ function fxLunge(p,i,toRect){
   if(el.closest(".side.opp")||el.closest('.emzcell[style*="rotate"]')){dx=-dx;dy=-dy} // those halves are turned upside down
   el.animate([{transform:"translate(0,0) scale(1)"},{transform:`translate(${dx}px,${dy}px) scale(1.1)`,offset:.5},{transform:"translate(0,0) scale(1)"}],{duration:420,easing:"ease-in-out"});
 }
-// plan: {kind:"direct",p,i,q} | {p,i,q,k,def,brk,tDies,aDies}
+function fxRing(r,color){const e=fxAdd("fxring",r,r.width+10,r.height+10,"",`--c:${color}`);fxLife(e,1000)}
+function fxChip(r,text,color){const e=document.createElement("div");e.className="fxchip";e.textContent=text;e.style.cssText=`left:${r.left+r.width/2}px;top:${r.top-4}px;--c:${color}`;$("fx").appendChild(e);fxLife(e,1000)}
+function fxArrow(ra,rt){
+  const x1=ra.left+ra.width/2,y1=ra.top+ra.height/2,x2=rt.left+rt.width/2,y2=rt.top+rt.height/2;
+  const len=Math.hypot(x2-x1,y2-y1),k=Math.max(0,(len-Math.max(rt.width,rt.height)*0.45)/len); // stop at the edge of the target
+  const ex=x1+(x2-x1)*k,ey=y1+(y2-y1)*k;
+  const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");svg.setAttribute("class","fxarrow");
+  svg.innerHTML=`<defs><marker id="fxah" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd45a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" marker-end="url(#fxah)" style="--len:${len}"/>`;
+  $("fx").appendChild(svg);fxLife(svg,1000);
+}
+// plan: {kind:"direct",p,i,q} | {p,i,q,k,def,brk,tDies,aDies,aTxt,tTxt}
 async function fxBattle(pl){
   if(calmMotion())return;
   const ra=monEl(pl.p,pl.i)&&monEl(pl.p,pl.i).getBoundingClientRect();
   if(pl.kind==="direct"){
     const lp=document.querySelector(`#s${pl.q} .lp`);const rl=lp&&lp.getBoundingClientRect();
+    if(rl&&ra){fxRing(ra,"#ffd45a");fxRing(rl,"#ff5d6c");fxChip(ra,pl.aTxt||"ATTACKER","#ffd45a");fxArrow(ra,rl);await sleep(420)}
     if(rl){fxLunge(pl.p,pl.i,rl);await sleep(230);fxSlash(rl);await sleep(380)}
     return;
   }
   const el=monEl(pl.q,pl.k),rt=el&&el.getBoundingClientRect();if(!rt||!ra)return;
+  fxRing(ra,"#ffd45a");fxRing(rt,"#ff5d6c");fxChip(ra,pl.aTxt||"ATTACKER","#ffd45a");fxChip(rt,pl.tTxt||"TARGET","#ff8a8a");fxArrow(ra,rt);await sleep(420);
   fxLunge(pl.p,pl.i,rt);await sleep(200);
   if(pl.def){
     if(pl.brk){ // the shield appears, the slash hits it, it splits in two, the monster is destroyed
-      const w=Math.max(rt.width*1.5,90),sh=fxAdd("fxshield",rt,w,w*1.21);
+      const w=shieldW(rt),sh=fxAdd("fxshield",rt,w,w*1.21);
       await sleep(300);fxSlash(rt);await sleep(220);
       sh.remove();fxShieldBreak(rt);await sleep(300);
       if(pl.tDies)fxFlash(rt);await sleep(520)}
@@ -1181,18 +1202,18 @@ function battleConfirm(p,i,k){
   const hit=(who,n,why)=>setLP(who,S.lp[who]-n,x=>`${NAME(who)}: −${n} (${why}) → ${x}`);
   if(k<0){
     if(S.mon[q].some(Boolean))w.push("A direct attack is only allowed if the opponent controls no monsters.");
-    txt=`Direct attack: ${NAME(q)} takes ${A} damage.`;eff=()=>hit(q,A,"direct attack");pl={kind:"direct",p,i,q};
+    txt=`Direct attack: ${NAME(q)} takes ${A} damage.`;eff=()=>hit(q,A,"direct attack");pl={kind:"direct",p,i,q,aTxt:`ATK ${A}`};
   }else{
     const t=S.mon[q][k],ts=stats(q,k),fd=t.pos==="FD",atkPos=t.pos==="ATK";
     const tname=fd?`Face-down monster (${t.name})`:t.name;
     if(atkPos){
       const v=ts.a;
-      pl={p,i,q,k,def:false,tDies:A>=v,aDies:A<=v};
+      pl={p,i,q,k,def:false,tDies:A>=v,aDies:A<=v,aTxt:`ATK ${A}`,tTxt:fd?"face-down":`ATK ${v}`};
       if(A>v){txt=`${tname} (${v} ATK) is destroyed. ${NAME(q)} takes ${A-v} damage.`;eff=()=>{removeMon(q,k);hit(q,A-v,"battle")}}
       else if(A<v){txt=`${m.name} (${A}) is destroyed. ${NAME(p)} takes ${v-A} damage.`;eff=()=>{removeMon(p,i);hit(p,v-A,"battle")}}
       else{txt="Both monsters are destroyed. No damage.";eff=()=>{removeMon(q,k);removeMon(p,i);render()}}
     }else{
-      const v=ts.d;pl={p,i,q,k,def:true,brk:A>v,tDies:A>v};
+      const v=ts.d;pl={p,i,q,k,def:true,brk:A>v,tDies:A>v,aTxt:`ATK ${A}`,tTxt:`DEF ${v}`};
       if(A>v){txt=`${tname} (${v} DEF) is destroyed. No battle damage.${fd?" It is flipped face-up first.":""}`;eff=()=>{removeMon(q,k);render()}}
       else if(A<v){txt=`${tname} (${v} DEF) holds. ${NAME(p)} takes ${v-A} damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";hit(p,v-A,"battle")}}
       else{txt=`${tname} (${v} DEF) holds. No damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";render()}}
