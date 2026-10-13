@@ -30,7 +30,9 @@ html,body{margin:0;height:100%;background:var(--bg) url(img/bg-embers.jpg) cente
 .emzcell.on{padding:0}.emzcell .slot{width:100%}
 .emzcell.ph{border:1px dashed #6b452488;background:#0006}
 .cb.pend{background:linear-gradient(160deg,#27b58a,#e0414f)}
+.mid.flip{transform:rotate(180deg)}
 .mid button:disabled{opacity:.35}
+dialog.flip{transform:rotate(180deg)}.x.fl{float:left;font-size:20px}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 70px);transform:translateX(-50%);background:#000c;color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
 #toast.on{opacity:1}
 .slot,.fchip{position:relative}.bdg{position:absolute;top:1px;right:3px;font-size:10px;font-weight:800;color:var(--gold);text-shadow:0 1px 2px #000;pointer-events:none}
@@ -72,7 +74,7 @@ button:active{filter:brightness(1.4)}
 .cbw{height:var(--ch);width:100%;display:flex;align-items:center;justify-content:center}
 .sl-lbl{font-size:9px;color:var(--dim);margin:0 2px}
 .st.dim{color:var(--dim)}
-.mid{display:flex;flex-direction:column;gap:4px;padding:4px 0}
+.mid{transition:transform .35s;display:flex;flex-direction:column;gap:4px;padding:4px 0}
 .mid .st1{text-align:center;font-weight:800;font-size:14px;text-shadow:0 1px 4px #000,0 0 8px #000}
 .mid .row1{display:flex;gap:4px;align-items:stretch}
 .side.compact{flex:.6}.side.compact .lp .num{font-size:26px}.side.compact .lpb{padding:5px 3px;font-size:11px}
@@ -283,6 +285,7 @@ function render(){
       <div class="lprow zrow"><button class="zb" data-p="${p}" data-pile="gy">🪦 ${S.n===3?"GY":"Graveyard"} <b>${S.gy[p].length}</b></button><button class="zb" data-p="${p}" data-pile="ban">🌀 ${S.n===3?"Ban.":"Banished"} <b>${S.ban[p].length}</b></button>${S.n===3?`<button class="zb" data-p="${p}" data-skill="1">⚡ Skill ${S.skill[p]?(S.skill[p].uses?"<b>used</b>":"<b>✓</b>"):"+"}</button>`:""}</div>`;
   }
   renderEMZ();
+  document.querySelector(".mid").classList.toggle("flip",S.view==="2p"&&S.turn===1);
   const b0=fieldBg(0),b1=fieldBg(1),fb=$("fbg");
   if(!b0&&!b1)fb.style.display="none";
   else{fb.style.display="block";const two=b0&&b1&&b0!==b1;fb.className=two?"":"one";
@@ -421,8 +424,20 @@ function cardInfo(c){
 
 // ---------- Dialog helper ----------
 const dlg=$("dlg");
-function open(html,after){dlg.innerHTML=html;if(!dlg.open)dlg.showModal();after&&after()}
-function closeX(){return`<button class="x" onclick="dlg.close()">✕</button>`}
+let DLGP=0,FLIP=null; // DLGP = player whose half was tapped last; FLIP = manual flip choice (null = automatic)
+document.addEventListener("click",e=>{
+  if(e.target.closest("dialog"))return;
+  const t=e.target.closest("[data-p],[data-lp]");
+  DLGP=t?(t.dataset.p!==undefined?+t.dataset.p:+t.dataset.lp):S.turn;
+},true);
+dlg.addEventListener("close",()=>{if(dlg.open)return;FLIP=null;dlg.classList.remove("flip")}); // (a dialog re-opened straight away keeps its orientation)
+function open(html,after){
+  dlg.innerHTML=html;
+  const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
+  dlg.classList.toggle("flip",FLIP!==null?FLIP:auto);
+  if(!dlg.open)dlg.showModal();after&&after()
+}
+function closeX(){return`<button class="x" onclick="dlg.close()">✕</button>${S.view==="1p"?"":`<button class="x fl" title="Turn this window around" onclick="FLIP=!dlg.classList.contains('flip');dlg.classList.toggle('flip',FLIP)">⟲</button>`}`}
 
 // ---------- Life points ----------
 function addLog(t){S.log.unshift(t);S.log=S.log.slice(0,40)}
@@ -775,8 +790,17 @@ function summonDialog(p,i,c,opts){
   const lv=extra?0:(c.lvl||0);
   const need=lv>=7?2:lv>=5?1:0;
   const own=S.mon[p].map((m,k)=>m&&k!==i?{m,k}:null).filter(Boolean);
+  // some monsters count as 2 (or 3) Tributes for certain monsters, e.g. Kaiser Sea Horse -> any LIGHT monster
+  const tribVal=m=>{
+    const d=m.desc||"";if(m.pos==="FD"||/toss a coin/i.test(d))return 1;
+    const t=d.match(/can be treated as (\d|two|three) Tributes? for the Tribute Summon of an? (?:(.+?) )?monsters?\b/i);
+    if(!t)return 1;
+    const n={two:2,three:3}[t[1].toLowerCase()]||+t[1];
+    return !t[2]||parseAlts(t[2]).some(a=>altHit(a,c))?n:1;
+  };
+  const noTrib=((c.desc||"").match(/[^.\n]*without Tributing[^.\n]*\./i)||[])[0];
   open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type)}${c.lvl!=null?" • Level/Link "+c.lvl:""} • ATK ${c.atk===-1?"?":c.atk??"-"} / DEF ${c.def===-1?"?":c.def??"-"}</small>
-   ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set – select:</p><div id="trib">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}</label>`).join("")||"<small>You control no other monsters.</small>"}</div>`:""}
+   ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set – select:</p><div id="trib">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}${tribVal(o.m)>1?` <small style="color:var(--gold)">(counts as ${tribVal(o.m)} Tributes)</small>`:""}</label>`).join("")||"<small>You control no other monsters.</small>"}</div>`:""}
    ${S.n===5?`<p>${isLink?"":`<label><input type="checkbox" id="pends" ${opts.ed?"checked":""}> Pendulum Summon (uses your Pendulum Scales)</label>`}${isPend?`<br><label><input type="checkbox" id="fromED" ${opts.ed?"checked":""}> Pendulum Monster summoned face-up from the Extra Deck</label>`:""}</p>`:""}
    ${S.n===5&&(extra||isPend)?`<p><b>Zone</b></p><div id="zsel" class="row" style="gap:4px"></div><small id="zhint"></small>`:""}
    <div class="row"><button id="bn">Normal Summon</button><button id="bs">Set (face-down)</button></div>
@@ -802,7 +826,11 @@ function summonDialog(p,i,c,opts){
       if(S.ns)w.push("You already used your Normal Summon/Set this turn.");
       if(extra)w.push("Extra Deck monsters can't be Normal Summoned or Set.");
       if(noNS)w.push("This card can't be Normal Summoned/Set (it must be Special Summoned).");
-      if(sel.length!==need)w.push(`This monster needs ${need} Tribute(s); you selected ${sel.length}.`);
+      const vals=sel.map(k=>{const o=own.find(x=>x.k===k);return o?tribVal(o.m):1});
+      const total=vals.reduce((a,b)=>a+b,0);
+      if(total<need)w.push(`This monster needs ${need} Tribute(s); you selected ${total}.${noTrib?` Its card text says: “${noTrib.trim()}” — if that applies, continue.`:""}`);
+      else if(sel.length>1&&total-Math.min(...vals)>=need)w.push("You selected more Tributes than needed.");
+      else if(need===0&&sel.length)w.push("This monster needs no Tribute.");
       guard(w,()=>{sel.forEach(k=>removeMon(p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
     $("bn").onclick=()=>go("normal");$("bs").onclick=()=>go("set");
