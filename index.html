@@ -1694,10 +1694,11 @@ function loadZoneDialog(p,i,z){
 function standbyEffects(desc,c,eqTarget){
   const out=[],o=1-c,num=x=>+String(x).replace(/,/g,"");
   for(const sent of (desc||"").split(/(?<=[.;])\s+|\n/)){
-    if(!/Standby Phase/i.test(sent)||/for (?:each|every)|randomly|Detach/i.test(sent))continue;
+    if(!/Standby Phase/i.test(sent)||/for (?:each|every)|randomly|Detach|next Standby/i.test(sent))continue;
     let owner;
-    if(/your opponent'?s (?:each )?Standby|opponent's Standby|of their Standby|your opponent gains/i.test(sent))owner=o;
-    else if(/each player's Standby|the Standby Phase|next Standby|turn player/i.test(sent))owner="turn";
+    if(/controller of this card|controller of the|This card's controller|A player controlling|^The controller|controller must/i.test(sent))owner=c;
+    else if(/your opponent'?s (?:each )?Standby|opponent's Standby|of their Standby|your opponent gains/i.test(sent))owner=o;
+    else if(/each player's Standby|the Standby Phase|each Standby Phase|turn player/i.test(sent))owner="turn";
     else if(/his\/her Standby/i.test(sent))owner=/controller of this card|controller of the spell|player controlling|controller must|^The controller|^A player/i.test(sent)?c:/opponent/i.test(sent)?o:c;
     else owner=c;
     let m,who=null,d=0,kind="";
@@ -1707,7 +1708,7 @@ function standbyEffects(desc,c,eqTarget){
     else if(m=sent.match(/(?:They|Your opponent) gains? (\d[\d,]*) (?:Life Points|LP)/i)){who=owner==="turn"?"turn":owner===c?o:owner;if(/Your opponent gains/i.test(sent))who=o;d=num(m[1]);kind="gain"}
     else if(m=sent.match(/\b(?:you )?gain (\d[\d,]*) (?:Life Points|LP)/i)){who=c;d=num(m[1]);kind="gain"}
     else if(m=sent.match(/inflict (\d[\d,]*) (?:points of )?damage to (the controller of the equipped monster|your opponent)/i)){who=/controller/i.test(m[2])?(eqTarget!=null?eqTarget:o):o;d=-num(m[1]);kind="dmg"}
-    else if(m=sent.match(/(?:The turn player|player controlling this monster|controller of the spell card|The controller of this card|controller must) (?:takes?|loses?|pays?|must pay)(?: |)(\d[\d,]*)/i)){who=/turn player/i.test(sent)?"turn":c;d=-num(m[1]);kind="dmg"}
+    else if(m=sent.match(/(?:The turn player|player controlling this monster|The controller of this card|controller must) (?:takes?|loses?|pays?|must pay)(?: |)(\d[\d,]*)/i)){who=/turn player/i.test(sent)?"turn":c;d=-num(m[1]);kind="dmg"}
     else if(m=sent.match(/\b(?:you |)(?:must |)take (\d[\d,]*) (?:points of )?damage|Take (\d[\d,]*) damage/i)){who=c;d=-num(m[1]||m[2]);kind="dmg"}
     else if(m=sent.match(/\b(?:you must |you can |)pay (\d[\d,]*) (?:Life Points|LP)/i)){who=c;d=-num(m[1]);kind="pay"}
     if(who===null||!d)continue;
@@ -1753,7 +1754,7 @@ function autoText(m){
 }
 // ---------- Effects with numbers, read from the card text (the app never runs card effects: it offers a button, the player decides) ----------
 const sentOf=t=>(t||"").split(/(?<=[.;])\s+|\n/);
-const LEAVE_RX=/\b(?:when|if|each time)\b[^.:;]{0,90}\b(?:this card|it) (?:is |are |was )?(?:sent|destroyed|leaves?|banished)\b|\bis sent from the (?:field|hand or field) to the (?:GY|Graveyard)\b/i;
+const LEAVE_RX=/\b(?:when|if|each time)\b[^.:;]{0,120}\b(?:this (?:[\w-]+ ){0,3}(?:card|monster)|it)(?: on the field)? (?:is |are |was |gets? )?(?:directly )?(?:sent|destroyed|leaves?|banished)\b|\bis sent from the (?:field|hand or field) to the (?:GY|Graveyard)\b/i;
 const NUMV=x=>+String(x).replace(/,/g,"");
 // Life Point effects with a fixed amount: [{who,d,txt,leave,sent}] (p = controller; "you" = p). leave = triggers when the card leaves the field
 function lpEffects(desc,p){
@@ -1761,6 +1762,7 @@ function lpEffects(desc,p){
   const add=(who,d,kind,sent)=>{const leave=LEAVE_RX.test(sent);if(!out.some(o=>o.who===who&&o.d===d&&o.leave===leave))out.push({who,d,leave,sent:sent.trim(),txt:`${who===p?"you":"your opponent"} ${(d>0?"gain":kind==="pay"?"pay":"take")+(who===p?"":"s")} ${Math.abs(d)}${kind==="dmg"?" damage":" LP"}`})};
   for(const sent of sentOf(desc)){
     if(/Standby Phase/i.test(sent))continue; // recurring: see standbyEffects
+    if(/for (?:each|every)|equal to|half your|half of your/i.test(sent))continue; // the amount depends on the field: not a fixed number
     let m;
     const R1=/increase your (?:Life Points|LP) by (\d[\d,]*)/gi;while(m=R1.exec(sent))add(p,NUMV(m[1]),"gain",sent);
     const R2=/(your opponent|you) gains? (\d[\d,]*) (?:Life Points|LP)/gi;let any=false;while(m=R2.exec(sent)){any=true;add(/opponent/i.test(m[1])?q:p,NUMV(m[2]),"gain",sent)}
@@ -1775,7 +1777,7 @@ function tempEffects(desc){
   const out=[];
   for(const sent of sentOf(desc)){
     if(!/until the end of (?:this|the) turn|until the End Phase|until the end of the Damage Step/i.test(sent))continue;
-    if(/for (?:each|every)|equal to|half|double|original|becomes?|Standby Phase/i.test(sent))continue;
+    if(/for (?:each|every)|equal to|half|double|original|becomes?|Standby Phase|\bx its\b|\d x /i.test(sent))continue;
     let m,scope=null,a=0,d=0,sg=1,n=0,stat="";
     if(m=sent.match(/\b(gains?|loses?) (\d[\d,]*) (ATK|DEF)(\/DEF| and DEF| and ATK)?/i)){
       sg=/loses?/i.test(m[1])?-1:1;n=NUMV(m[2]);stat=m[3].toUpperCase()+(m[4]?"+":"");
@@ -1800,7 +1802,7 @@ function tempEffects(desc){
 function selfGain(desc){
   const out=[];
   for(const sent of sentOf(desc)){
-    if(/until the end|this turn|for (?:each|every)|while|as long as|Standby Phase|equal to|Damage Step|is in (?:Attack|Defense) Position|is face-up|you control (?:no|a|another)/i.test(sent))continue;
+    if(/until the end|this turn|for (?:each|every)|while|as long as|Standby Phase|equal to|Damage Step|\bx its\b|\d x |is in (?:Attack|Defense) Position|is face-up|you control (?:no|a|another)/i.test(sent))continue;
     if(!/^(?:when|each time|whenever|if|once per turn|after|at the end|during)\b|:/i.test(sent.trim()))continue;
     const m=sent.match(/(?:^|[:;,]\s*|\bthen\s+|\bif you do,\s*)(?:This card|It) (gains|loses) (\d[\d,]*) (ATK|DEF)(\/DEF| and DEF)?/i);if(!m)continue;
     const sg=/loses/i.test(m[1])?-1:1,n=NUMV(m[2]);let a=0,d=0;
