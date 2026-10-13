@@ -1013,6 +1013,7 @@ function stats(p,i){
   if(m.tm&&m.tm.t===S.tc){a+=m.tm.a;d+=m.tm.d;src.push(`temporary ${fmt(m.tm)}`)}
   for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
   for(const q of[0,1]){const f=S.field[q];if(f&&f.pos==="UP"&&f.auto!==false)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}}
+  for(const q of[0,1])S.st[q].forEach(f=>{if(f&&f.pos==="UP"&&f.auto!==false&&!f.eq&&f.eff)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}});
   return{a:Math.max(0,a),d:Math.max(0,d),src};
 }
 
@@ -1246,6 +1247,31 @@ function summonDialog(p,i,c,opts){
     $("bk").onclick=()=>loadMonDialog(p,i);
   });
 }
+
+// A monster that is treated as a Continuous Spell (Pumprincess, Crystal Beasts...) or equips itself to another monster (Black Metal Dragon, Union monsters)
+function monToSTDialog(p,i){
+  const m=S.mon[p][i];if(!m)return;
+  const free=[...Array(S.n).keys()].filter(k=>!S.st[p][k]);
+  open(`${closeX()}<h2>${esc(m.name)} → Spell &amp; Trap zone</h2><p><small>The monster leaves the Monster Zone without going to the Graveyard. Counters stay on the card.</small></p>
+   ${free.length?"":`<p style="color:var(--red)">Your Spell &amp; Trap Zones are full.</p>`}
+   <div class="row"><button id="mcs"${free.length?"":" disabled"}>As a Continuous Spell/Trap card<br><small>Pumprincess, Crystal Beasts…</small></button></div>
+   <div class="row"><button id="meq"${free.length?"":" disabled"}>As an Equip card on a monster<br><small>Black Metal Dragon, Union monsters…</small></button></div>
+   <div class="row"><button id="bk">← Back</button></div>`,()=>{
+    const slot=()=>{const f=[...Array(S.n).keys()].filter(k=>!S.st[p][k]);return f.find(k=>!isPZ(k))??f[0]};
+    const make=(type,extra)=>Object.assign({name:m.name,kind:"spell",type,pos:"UP",id:m.id,desc:m.desc||"",setT:S.tc,cnt:m.cnt||0,fromMon:true,mon:{atk:m.atk,def:m.def,attr:m.attr,race:m.race,lvl:m.lvl,mtype:m.type}},extra||{});
+    $("mcs").onclick=()=>{const k=slot();if(k===undefined)return;
+      const e=make("Continuous Spell");e.eff=parseField(e.desc);
+      removeMon(p,i,"none");S.st[p][k]=e;addLog(`${m.name} was placed face-up in the Spell & Trap Zone as a Continuous Spell`);render();dlg.close();openZone(p,k,"st")};
+    $("meq").onclick=()=>pickTarget(t=>{
+      const k=slot();if(k===undefined)return;const tm=S.mon[t.p][t.i];
+      if(t.p===p&&t.i===i){toast("A monster can't equip itself");return}
+      const e=make("Equip Spell",{tgt:t});e.eq=parseEquip(e.desc,tm);
+      removeMon(p,i,"none");
+      // the target may have moved zones only if it was this monster; indices of other monsters are unchanged
+      S.st[p][k]=e;addLog(`${m.name} was equipped to ${tm?tm.name:"a monster"}`);render();dlg.close();openZone(p,k,"st")},()=>monToSTDialog(p,i));
+    $("bk").onclick=()=>slotDialog(p,i);
+  });
+}
 function slotDialog(p,i){
   const m=S.mon[p][i];
   if(!m){loadMonDialog(p,i);return}
@@ -1258,12 +1284,13 @@ function slotDialog(p,i){
    <div class="row">${[["ATK","⚔ Attack"],["DEF","🛡 Defense"],["FD","🂠 Face-down DEF"]].filter(x=>!m.lm||x[0]==="ATK").map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${m.pos==="FD"?"":trackerHTML(m)}
-   <div class="row">${m.pos==="ATK"?`<button id="atk" style="background:#8a1424">⚔ Attack…</button>`:""}<button id="info">Card text</button><button id="ctl">⇄ Control${ownerOf(m,p)!==p?" (not yours)":"…"}</button></div>
+   <div class="row">${m.pos==="ATK"?`<button id="atk" style="background:#8a1424">⚔ Attack…</button>`:""}<button id="info">Card text</button><button id="m2st">⬇ To Spell &amp; Trap zone…</button><button id="ctl">⇄ Control${ownerOf(m,p)!==p?" (not yours)":"…"}</button></div>
    ${m.pos!=="FD"&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctle">⇄ Its effect takes control of a monster…</button></div>`:""}
    <div class="row"><button id="clr" style="background:#6b2230">🪦 To Graveyard</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
    ${ownerOf(m,p)!==p?`<p><small>Owned by ${who(ownerOf(m,p))}: if it leaves the field it goes to ${ownerOf(m,p)===0?"your":"your opponent's"} Graveyard / Banished pile.</small></p>`:""}
    `,()=>{
     autoText(m);
+    $("m2st").onclick=()=>monToSTDialog(p,i);
     $("ctl").onclick=()=>ctlDialog(p,i);
     if($("ctle"))$("ctle").onclick=()=>ctlFromCard(p,m,()=>slotDialog(p,i));
     dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=+b.dataset.v;m[k]=v===0?0:m[k]+v;render();slotDialog(p,i)});
@@ -1567,7 +1594,7 @@ const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
-  const done=()=>{e.pos="UP";if(/Field/.test(e.type))e.eff=parseField(e.desc||"");if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
+  const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
   if(/Equip/.test(e.type)){
     pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
       if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
@@ -1630,6 +1657,8 @@ function standbyEffects(desc,c,eqTarget){
     else if(/his\/her Standby/i.test(sent))owner=/controller of this card|controller of the spell|player controlling|controller must|^The controller|^A player/i.test(sent)?c:/opponent/i.test(sent)?o:c;
     else owner=c;
     let m,who=null,d=0,kind="";
+    if(m=sent.match(/Place (\d+|one) (.+?) Counters? on this card/i)){out.push({owner,who:null,kind:"counter",n:/^\d+$/.test(m[1])?+m[1]:1,cname:m[2],txt:sent.trim()});continue}
+    if(m=sent.match(/\b(?:This card|It) gains? (\d[\d,]*) ATK(?:\/| and )DEF/i)){out.push({owner,who:null,kind:"stat",a:num(m[1]),txt:sent.trim()});continue}
     if(m=sent.match(/increase your (?:Life Points|LP) by (\d[\d,]*)/i)){who=c;d=num(m[1]);kind="gain"}
     else if(m=sent.match(/(?:They|Your opponent) gains? (\d[\d,]*) (?:Life Points|LP)/i)){who=owner==="turn"?"turn":owner===c?o:owner;if(/Your opponent gains/i.test(sent))who=o;d=num(m[1]);kind="gain"}
     else if(m=sent.match(/\b(?:you )?gain (\d[\d,]*) (?:Life Points|LP)/i)){who=c;d=num(m[1]);kind="gain"}
@@ -1646,7 +1675,7 @@ function standbyEffects(desc,c,eqTarget){
 function standbyNow(){
   const L=[],T=S.turn;
   const take=(card,c,eqT)=>{if(!card||card.pos==="FD"||!card.desc)return;
-    standbyEffects(card.desc,c,eqT).forEach(e=>{const ow=e.owner==="turn"?T:e.owner;if(ow!==T)return;L.push({name:card.name,c,who:e.who==="turn"?T:e.who,d:e.d,kind:e.kind,destroy:e.destroy,txt:e.txt})})};
+    standbyEffects(card.desc,c,eqT).forEach(e=>{const ow=e.owner==="turn"?T:e.owner;if(ow!==T)return;L.push({name:card.name,c,card,who:e.who==="turn"?T:e.who,d:e.d,kind:e.kind,destroy:e.destroy,txt:e.txt,n:e.n,cname:e.cname,a:e.a})})};
   [0,1].forEach(c=>{
     S.mon[c].forEach(m=>take(m,c));
     S.st[c].forEach(e=>take(e,c,e&&e.tgt?e.tgt.p:null));
@@ -1660,9 +1689,11 @@ function showStandby(){
   const nm=w=>w===0?"You":"Opponent";
   const txt=o=>`${nm(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)}`;
   open(`${closeX()}<h2>Standby Phase</h2><p><small>Cards on the field with a Standby Phase effect on Life Points. Tap to apply, only if the effect really happens.</small></p>
-   ${L.map((o,x)=>`<div style="border-top:1px solid #4a3220;padding:6px 0"><b>${esc(o.name)}</b><br><small>${esc(o.txt)}</small>${o.destroy?`<br><small style="color:var(--gold)">Or destroy this card instead.</small>`:""}<div class="row"><button data-sx="${x}" style="background:${o.d>0?"#1f5a3a":"#6b2230"}">Apply: ${txt(o)} LP</button></div></div>`).join("")}
+   ${L.map((o,x)=>`<div style="border-top:1px solid #4a3220;padding:6px 0"><b>${esc(o.name)}</b><br><small>${esc(o.txt)}</small>${o.destroy?`<br><small style="color:var(--gold)">Or destroy this card instead.</small>`:""}<div class="row"><button data-sx="${x}" style="background:${o.kind==="counter"||o.kind==="stat"||o.d>0?"#1f5a3a":"#6b2230"}">${o.kind==="counter"?`Place ${o.n} ${esc(o.cname)} Counter`:o.kind==="stat"?`${esc(o.name)}: +${o.a} ATK/DEF`:`Apply: ${txt(o)} LP`}</button></div></div>`).join("")}
    <div class="row"><button id="sxall" style="background:#1f5a3a">Apply all</button><button id="sxno">Close</button></div>`,()=>{
-    const ap=x=>{if(done.has(x))return;done.add(x);const o=L[x];S.prev=[...S.lp];S.lp[o.who]=Math.max(0,S.lp[o.who]+o.d);addLog(`${o.name}: ${nm(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)} → ${S.lp[o.who]} (Standby Phase)`);
+    const ap=x=>{if(done.has(x))return;done.add(x);const o=L[x];
+      if(o.kind==="counter"||o.kind==="stat"){if(o.kind==="counter")o.card.cnt=(o.card.cnt||0)+o.n;else{o.card.da=(o.card.da||0)+o.a;o.card.dd=(o.card.dd||0)+o.a}addLog(`${o.name}: ${o.kind==="counter"?"+"+o.n+" "+o.cname+" Counter":"+"+o.a+" ATK/DEF"} (Standby Phase)`);const b=dlg.querySelector(`[data-sx="${x}"]`);if(b){b.disabled=true;b.textContent="✓ Applied"}render();return}
+      S.prev=[...S.lp];S.lp[o.who]=Math.max(0,S.lp[o.who]+o.d);addLog(`${o.name}: ${nm(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)} → ${S.lp[o.who]} (Standby Phase)`);
       const b=dlg.querySelector(`[data-sx="${x}"]`);if(b){b.disabled=true;b.textContent="✓ Applied"}render()};
     dlg.querySelectorAll("[data-sx]").forEach(b=>b.onclick=()=>ap(+b.dataset.sx));
     $("sxall").onclick=()=>{L.forEach((o,x)=>ap(x));setTimeout(()=>dlg.close(),900)};
@@ -1702,7 +1733,7 @@ function cardZoneDialog(p,i,z){
     return`<p><b>Equipped to:</b> ${tg?(tg.pos==="FD"?"Face-down monster":esc(tg.name)):"?"} <button id="chg" style="min-width:0">Change</button></p>
       ${m.eq.per?`<small>Counted automatically: ${fmt({a:m.eq.ua,d:m.eq.ud})} for each ${esc(perLabel(m.eq.per))} (now ${perCount(m.eq.per,p,m,null)}). Use the buttons below for extra corrections.</small><br>`:""}${m.eq.found?"<small>Bonus detected from the card text — correct it if needed.</small>":"<small>No bonus detected in the text — set it manually if this card changes ATK/DEF.</small>"}${m.eq.note?`<br><small>${esc(m.eq.note)}</small>`:(w=>w?`<br><small>${esc(w)}</small>`:"")(statNote(m.desc,p=>parseEquip(p,tg).found))}${adj("ATK","a")}${adj("DEF","d")}`;
   })():"";
-  const fUI=/Field/.test(t)&&m.pos==="UP"?(fieldEffs(m).length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${fieldEffs(m).map(e=>`<li>${e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,p,m,null)})`:""}</li>`).join("")}</ul>
+  const fUI=(/Field/.test(t)||fieldEffs(m).length)&&m.pos==="UP"?(fieldEffs(m).length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${fieldEffs(m).map(e=>`<li>${e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,p,m,null)})`:""}</li>`).join("")}</ul>
       <div class="row"><button id="auto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div><small>Applies to matching face-up monsters. Archetypes match by name — check the card text if unsure.</small>${(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,p=>parseField(p).length>0))}`
       :`<p><small>${esc(statNote(m.desc,p=>parseField(p).length>0)||"No permanent stat bonus detected. Adjust monsters manually if needed.")}</small></p>`):"";
   open(`${closeX()}<h2>${esc(m.name)}</h2><small>${esc(t)}</small><div class="card" id="ct" style="max-height:22dvh;overflow:auto;font-size:13px;margin:6px 0" hidden></div>
