@@ -403,9 +403,13 @@ function fxAdd(cls,r,w,h,html,css){
   $("fx").appendChild(e);return e;
 }
 const fxLife=(e,ms)=>setTimeout(()=>e.remove(),ms);
-function fxScreen(col){ // whole-screen flash (red = a hit, green = Life Points gained)
+let LASTHIT=0;
+function fxScreen(col,p){ // flash over the half of the player it happens to (p: 0 = bottom half, 1 = top half); no p = the whole screen
   if(calmMotion())return;
   const e=document.createElement("div");e.className="fxscreen";
+  const h=innerHeight/2;
+  if(p===0)Object.assign(e.style,{top:h+"px",bottom:"0",height:"auto"});
+  else if(p===1)Object.assign(e.style,{top:"0",height:h+"px",bottom:"auto"});
   e.style.background=`radial-gradient(ellipse at center,${col}22 0%,${col}77 60%,${col}cc 100%)`;
   $("fx").appendChild(e);fxLife(e,650);
 }
@@ -414,7 +418,7 @@ function fxSlash(r,flip,quiet){
   const e=document.createElement("div");e.className="fxslash";
   e.style.cssText=`left:${cx-Math.cos(a)*L/2}px;top:${cy-Math.sin(a)*L/2}px;width:${L}px;--a:${flip?35:-35}deg`;
   $("fx").appendChild(e);fxLife(e,420);
-  if(!quiet)setTimeout(()=>fxScreen("#ff2d3f"),190); // the hit: the whole screen flashes red
+  if(!quiet){const hp=(r.top+r.height/2)<innerHeight/2?1:0;LASTHIT=Date.now();setTimeout(()=>fxScreen("#ff2d3f",hp),190)} // the hit: the half of the player who is hit flashes red
 }
 function fxTomb(el){ // a gravestone rises where a monster was destroyed (turned along with the opponent's half in 2P)
   if(!el)return;const r=el.getBoundingClientRect(),w=Math.min(Math.max(r.width,r.height)*1.3,150);
@@ -586,7 +590,8 @@ function lpAnim(){
     const from=LPD[p],dir=to<from?-1:1,dur=Math.min(1500,Math.max(500,Math.abs(to-from)/4000*1200+400));
     const anim=LPA[p]={to,dir,from,t0:performance.now(),dur};
     const lp=document.querySelector(`#s${p} .lp`);if(lp){lp.classList.remove("dmg","heal");void lp.offsetWidth;lp.classList.add(dir<0?"dmg":"heal")}
-    if(dir>0&&from>0)fxScreen("#3dff8a"); // healing: the whole screen flashes green (not during the count-up at the start of a duel)
+    if(dir>0&&from>0)fxScreen("#3dff8a",p); // healing: the half of the player who gains flashes green (not during the count-up at the start of a duel)
+    if(dir<0&&Date.now()-LASTHIT>1500)fxScreen("#ff2d3f",p); // other Life Point loss (effects, costs, buttons); battle hits flashed already
     const step=now=>{
       if(LPA[p]!==anim)return;
       const k=Math.min(1,(now-anim.t0)/anim.dur),e=1-Math.pow(1-k,3);
