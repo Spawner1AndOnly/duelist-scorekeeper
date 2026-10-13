@@ -84,6 +84,34 @@ button:active{filter:brightness(1.4)}
 .cb.trap{background:linear-gradient(160deg,#c15bb0,#5a1f55)}
 .cb.fdv{background:url(img/cardback-v.jpg) center/cover}
 .cb.fd{background:url(img/cardback-h.jpg) center/cover}
+/* card colours (Yu-Gi-Oh style): the same colour on the field card and in its pop-up */
+[data-th=normal],.th-normal{--c1:#d4ad4a;--c2:#8a6a1a;--fg:#fff}
+[data-th=effect],.th-effect{--c1:#d27a34;--c2:#8a3d12;--fg:#fff}
+[data-th=ritual],.th-ritual{--c1:#4a7fdc;--c2:#1a3a86;--fg:#fff}
+[data-th=fusion],.th-fusion{--c1:#9a5cc4;--c2:#47206b;--fg:#fff}
+[data-th=synchro],.th-synchro{--c1:#ebe7da;--c2:#a29d8a;--fg:#1d1a12}
+[data-th=xyz],.th-xyz{--c1:#4a4a54;--c2:#101014;--fg:#fff}
+[data-th=link],.th-link{--c1:#1b6f9a;--c2:#08324f;--fg:#fff}
+[data-th=token],.th-token{--c1:#9a9a9a;--c2:#555;--fg:#fff}
+[data-th=spell],.th-spell{--c1:#1f9478;--c2:#0a4638;--fg:#fff}
+[data-th=trap],.th-trap{--c1:#d7399f;--c2:#6e0e52;--fg:#fff}
+[data-th=gy]{--c1:#6b7681;--c2:#222930;--fg:#fff}
+[data-th=ban]{--c1:#7a55e0;--c2:#1b1043;--fg:#fff}
+[data-th=pend],.th-pend{--c1:#d9832a;--c2:#1f8f6e;--fg:#fff}
+.cb[class*="th-"]{background:linear-gradient(160deg,var(--c1),var(--c2));border:2px solid #f0d78a;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #0009,0 2px 6px #0008}
+.cb.th-synchro .n{color:#1d1a12;text-shadow:none}
+dialog[data-th]{background:linear-gradient(165deg,var(--c1),var(--c2));color:var(--fg);border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a,inset 0 0 0 4px #120c05;padding:18px}
+dialog[data-th] h2{font-family:"Palatino Linotype",Palatino,Georgia,serif;font-size:20px;letter-spacing:.3px;background:linear-gradient(#ffffff55,#ffffff18);border:2px solid #000a;border-radius:6px;padding:3px 10px;overflow:hidden;text-shadow:0 1px 2px #0008}
+dialog[data-th=gy]{background:linear-gradient(#00000033,#00000073),url(img/gy-portrait.webp) center/cover}
+dialog[data-th=ban]{background:linear-gradient(#00000033,#00000073),url(img/ban-portrait.webp) center/cover}
+dialog[data-th] .res div{background:#0000002e;border:0;border-left:6px solid #ffffff55;border-radius:6px;margin:4px 0}
+dialog[data-th] .res div[class*=th-]{border-left-color:var(--c1);background:linear-gradient(90deg,#0000004a,#00000020)}
+dialog[data-th] .res div small{color:#ffffffcc}
+.zi{height:17px;width:auto;vertical-align:-3px}
+.pilehd{display:flex;align-items:center;gap:8px;margin-bottom:8px}.pilehd img{height:54px;flex:none;filter:drop-shadow(0 2px 3px #000a)}.pilehd .sw{font-size:42px;line-height:54px;flex:none}.pilehd h2{flex:1;margin:0!important}
+dialog[data-th=synchro] h2{text-shadow:none}dialog[data-th=synchro] .x{color:#1d1a12}
+dialog[data-th] #ct{background:linear-gradient(#f4e8c6,#e6d49d);color:#2b1d08;border:2px solid #3a2a0c;border-radius:4px}
+dialog[data-th] #ct hr{border-color:#8a6c2a!important}
 .cbw{height:var(--ch);width:100%;display:flex;align-items:center;justify-content:center}
 .sl-lbl{font-size:9px;color:var(--dim);margin:0 2px}
 .st.dim{color:var(--dim)}
@@ -196,6 +224,8 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 @keyframes fxflash{0%{opacity:0;transform:scale(.7)}25%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
 .fxdust{background:url(img/fx/dust.webp) center/contain no-repeat;animation:fxdust .75s ease-out forwards}
 @keyframes fxdust{0%{transform:translateY(28%) scale(.25);opacity:0}30%{opacity:.95}100%{transform:translateY(-14%) scale(1.3);opacity:0}}
+.fxback{border-radius:4px;z-index:5;transform-origin:center}.fxring{border-radius:50%;z-index:4;animation:fxring .7s ease-out forwards}
+@keyframes fxring{0%{opacity:.95;transform:scale(.3)}100%{opacity:0;transform:scale(1.9)}}
 .fxglow{border-radius:0 0 10px 10px;animation:fxglow 1.3s ease-out forwards;z-index:3}
 @keyframes fxglow{0%{opacity:0;transform:translateY(8px)}25%{opacity:1;transform:translateY(0)}100%{opacity:0}}
 .fxsign{font-weight:900;color:#fff;font-size:20px;line-height:1;text-shadow:0 0 6px var(--g),0 1px 3px #000;z-index:4;opacity:0;animation:fxsign 1.2s ease-out forwards;animation-delay:var(--dl)}
@@ -280,6 +310,7 @@ function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const STEPS=[5,10,50,100,500,1000,2000];
 const NAME=p=>p===0?"You":"Opponent";
+const NAMES=p=>p===0?"Your":"Opponent's"; // possessive
 
 // ---------- Phase stepping ----------
 function stepFrom(st){
@@ -372,7 +403,7 @@ function render(){
       </div></div>
       <div class="slots" style="grid-template-columns:repeat(${S.n},1fr)">${S.mon[p].slice(0,S.n).map((m,i)=>slotHTML(p,i,m)).join("")}</div>
       <div class="slots" style="grid-template-columns:repeat(${S.n},1fr)">${S.st[p].slice(0,S.n).map((m,i)=>stHTML(p,i,m)).join("")}</div>
-      <div class="lprow zrow"><button class="zb" data-p="${p}" data-pile="gy">🪦 ${S.n===3?"GY":"Graveyard"} <b>${S.gy[p].length}</b></button><button class="zb" data-p="${p}" data-pile="ban">🌀 ${S.n===3?"Ban.":"Banished"} <b>${S.ban[p].length}</b></button>${S.n===3?`<button class="zb" data-p="${p}" data-skill="1">⚡ Skill ${S.skill[p]?(S.skill[p].uses?"<b>used</b>":"<b>✓</b>"):"+"}</button>`:""}</div>`;
+      <div class="lprow zrow"><button class="zb" data-p="${p}" data-pile="gy"><img class="zi" src="img/fx/tomb.webp" alt=""> ${S.n===3?"GY":"Graveyard"} <b>${S.gy[p].length}</b></button><button class="zb" data-p="${p}" data-pile="ban"><img class="zi" src="img/fx/banish.webp" alt=""> ${S.n===3?"Ban.":"Banished"} <b>${S.ban[p].length}</b></button>${S.n===3?`<button class="zb" data-p="${p}" data-skill="1">⚡ Skill ${S.skill[p]?(S.skill[p].uses?"<b>used</b>":"<b>✓</b>"):"+"}</button>`:""}</div>`;
   }
   renderEMZ();
   document.querySelector(".mid .row1").classList.toggle("flip",S.view==="2p"&&S.turn===1); // the buttons turn towards the player whose turn it is; both players always read their own status line
@@ -394,7 +425,7 @@ function render(){
   $("rules").textContent=S.paused?"✖ End attack":"Rules";
   lpAnim();
   gameOver();
-  statWatch();
+  statWatch();flipWatch();
   if(FXQ.length)fxFlush();
   undoTrack();
   save();
@@ -439,6 +470,30 @@ function statWatch(){ // compare every face-up monster's ATK/DEF with the previo
   });
   STSNAP=now;
 }
+// a face-down card turns face-up (Flip Summon, a Trap or Spell that is activated, a flipped attack target): the card back shrinks away, the face pops open with a flash
+let FLSNAP={},PENDFL={};
+const flEl=(k,p,i)=>document.querySelector(`.slot[data-p="${p}"][data-i="${i}"][data-row="${k==="m"?"mon":"st"}"] .cb`);
+function fxFlip(el){
+  if(calmMotion()||!el)return;
+  const r=el.getBoundingClientRect();if(!r.width)return;
+  const land=el.classList.contains("land");
+  const back=document.createElement("div");back.className="cb fxback "+(land?"fd":"fdv");
+  back.style.cssText=`position:absolute;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;box-sizing:border-box`;
+  $("fx").appendChild(back);
+  back.animate([{transform:"scaleX(1)"},{transform:"scaleX(0)"}],{duration:260,easing:"ease-in",fill:"forwards"}).onfinish=()=>back.remove();
+  el.animate([{transform:"scaleX(0)",offset:0},{transform:"scaleX(0)",offset:.35},{transform:"scale(1.12)",filter:"brightness(1.8)",offset:.7},{transform:"scale(1)",filter:"brightness(1)",offset:1}],{duration:740,easing:"ease-out"});
+  const ring=fxAdd("fxring",r,r.height*1.5,r.height*1.5,"","background:radial-gradient(circle,#fff8c8dd 0%,#ffd45a88 40%,#ffd45a00 70%);animation-delay:.25s;opacity:0");
+  fxLife(ring,1100);
+}
+function flipWatch(){
+  const now={};
+  for(let p=0;p<2;p++){
+    S.mon[p].forEach((m,i)=>{if(!m)return;const k="m:"+p+":"+i,id=m.name+"|"+m.sumT;now[k]={id,fd:m.pos==="FD"};const pr=FLSNAP[k];if(pr&&pr.id===id&&pr.fd&&!now[k].fd)queueFlip("m",p,i)});
+    S.st[p].forEach((m,i)=>{if(!m)return;const k="s:"+p+":"+i,id=m.name+"|"+m.setT;now[k]={id,fd:m.pos==="FD"};const pr=FLSNAP[k];if(pr&&pr.id===id&&pr.fd&&!now[k].fd)queueFlip("s",p,i)});
+  }
+  FLSNAP=now;
+}
+function queueFlip(k,p,i){setTimeout(()=>{if(dlg.open)PENDFL[k+p+i]={k,p,i};else fxFlip(flEl(k,p,i))},60)}
 function fxScreen(col,p){ // flash over the half of the player it happens to (p: 0 = bottom half, 1 = top half); no p = the whole screen
   if(calmMotion())return;
   const e=document.createElement("div");e.className="fxscreen";
@@ -677,6 +732,15 @@ function fieldChip(p){
   if(!f)return`<span style="color:var(--dim)">+ Field<br>Spell</span>`;
   return`<b>${f.pos==="FD"?"Set Field":esc(f.name)}</b>${f.pos==="FD"?"":badges(f)}`;
 }
+// card colour name for a face-up card (Yu-Gi-Oh style): monsters by their card type, Spell/Trap/Pendulum zone cards by kind; "" = unknown or face-down (never reveals a hidden card)
+function thName(m){
+  if(!m||m.pos==="FD")return"";
+  if(m.kind)return m.kind==="trap"?"trap":m.kind==="pend"?"pend":/Ritual/.test(m.type||"")?"ritual":"spell";
+  const t=m.type||"";if(!t)return"";
+  return m.lm||/Link/.test(t)?"link":/Xyz|XYZ/.test(t)?"xyz":/Synchro/.test(t)?"synchro":/Fusion/.test(t)?"fusion":/Ritual/.test(t)?"ritual":/Token/.test(t)?"token":/Normal/.test(t)?"normal":"effect";
+}
+const thType=t=>{t=t||"";return thName({type:t,kind:/Trap/.test(t)?"trap":/Spell/.test(t)?"spell":undefined})};
+const thCls=m=>{const n=thName(m);return n?" th-"+n:""};
 // level (orange ★), Xyz rank (dark ★) or Link rating (blue L); nothing for custom monsters or when unknown
 function lvlBadge(m){
   if(m.lvl==null||m.lvl<=0)return"";
@@ -697,7 +761,7 @@ function slotHTML(p,i,m){
   const cls=x=>x>0?"up":x<0?"down":"";
   const d=m.pos==="DEF",s=stats(p,i),da=s.a-m.atk,dd=s.d-m.def;
   return`<div class="slot" ${a}>${lvlBadge(m)}${attrIcon(m)}${eqMon(p,i)}${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
-    <div class="cbw"><div class="cb ${d?"land def":"port atk"}"><span class="n">${esc(m.name)}</span></div></div>
+    <div class="cbw"><div class="cb ${d?"land def":"port atk"}${thCls(m)}"><span class="n">${esc(m.name)}</span></div></div>
     <div class="st"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":` / <span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span>`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
 }
 function stHTML(p,i,m){
@@ -706,7 +770,7 @@ function stHTML(p,i,m){
   if(m.pos==="FD")return`<div class="slot" ${a}><div class="cbw"><div class="cb port fdv"></div></div><div class="st dim">Set</div></div>`;
   const tg=m.eq&&m.tgt&&S.mon[m.tgt.p][m.tgt.i];
   const lbl=tg?"→ "+(tg.pos==="FD"?"?":tg.name):m.kind==="pend"?"⚖ Scale "+m.scale:subType(m.type)||(m.kind==="spell"?"Spell":"Trap");
-  return`<div class="slot" ${a}>${eqCard(m)}${attrIcon(m,1)}${badges(m)}<div class="cbw"><div class="cb port ${m.kind}"><span class="n">${esc(m.name)}</span></div></div><div class="st dim" style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(lbl)}</div></div>`;
+  return`<div class="slot" ${a}>${eqCard(m)}${attrIcon(m,1)}${badges(m)}<div class="cbw"><div class="cb port ${m.kind}${thCls(m)}"><span class="n">${esc(m.name)}</span></div></div><div class="st dim" style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(lbl)}</div></div>`;
 }
 
 // ---------- Card data ----------
@@ -738,9 +802,9 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-p],[data-lp]");
   DLGP=t?(t.dataset.p!==undefined?+t.dataset.p:+t.dataset.lp):S.turn;
 },true);
-dlg.addEventListener("close",()=>{if(dlg.open)return;{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
+dlg.addEventListener("close",()=>{if(dlg.open)return;{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)fxFlip(flEl(o.k,o.p,o.i))},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
 function open(html,after){
-  dlg.innerHTML=html;
+  dlg.innerHTML=html;delete dlg.dataset.th;
   const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
   dlg.classList.toggle("flip",FLIP!==null?FLIP:auto);
   if(!dlg.open)dlg.showModal();after&&after()
@@ -756,7 +820,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.d){changeLP(+t.dataset.p,+t.dataset.d)}
   else if(t.dataset.sign){const p=+t.dataset.p;S.sign=S.sign||[-1,-1];S.sign[p]*=-1;render()}
   else if(t.dataset.skill){skillDialog(+t.dataset.p)}
-  else if(t.dataset.pile){pileDialog(+t.dataset.p,t.dataset.pile)}
+  else if(t.dataset.pile){DLGP=S.turn; /* a Graveyard/Banished list faces the player whose turn it is (looking at the other side's pile is normal); the turn-around button still works */pileDialog(+t.dataset.p,t.dataset.pile)}
   else if(t.classList.contains("fchip")){cardZoneDialog(+t.dataset.p,0,"field")}
   else if(t.classList.contains("lp")){lpDialog(+t.dataset.lp)}
   else if(t.classList.contains("slot")){(t.dataset.row==="st"?stDialog:slotDialog)(+t.dataset.p,+t.dataset.i)}
@@ -1304,7 +1368,7 @@ function monToSTDialog(p,i){
    <div class="row"><button id="meq"${free.length?"":" disabled"}>As an Equip card on a monster<br><small>Black Metal Dragon, Union monsters…</small></button></div>
    <div class="row"><button id="bk">← Back</button></div>`,()=>{
     const slot=()=>{const f=[...Array(S.n).keys()].filter(k=>!S.st[p][k]);return f.find(k=>!isPZ(k))??f[0]};
-    const make=(type,extra)=>Object.assign({name:m.name,kind:"spell",type,pos:"UP",id:m.id,desc:m.desc||"",setT:S.tc,cnt:m.cnt||0,fromMon:true,mon:{atk:m.atk,def:m.def,attr:m.attr,race:m.race,lvl:m.lvl,mtype:m.type}},extra||{});
+    const make=(type,extra)=>Object.assign({name:m.name,kind:"spell",type,pos:"UP",id:m.id,desc:m.desc||"",setT:S.tc,cnt:m.cnt||0,fromMon:true,mon:{atk:m.atk,def:m.def,attr:m.attr,race:m.race,lvl:m.lvl,mtype:m.type,lm:m.lm|0}},extra||{});
     $("mcs").onclick=()=>{const k=slot();if(k===undefined)return;
       const e=make("Continuous Spell");e.eff=parseField(e.desc);
       removeMon(p,i,"none");S.st[p][k]=e;addLog(`${m.name} was placed face-up in the Spell & Trap Zone as a Continuous Spell`);render();dlg.close();openZone(p,k,"st")};
@@ -1756,6 +1820,7 @@ function showStandby(){
 }
 // the card text is shown right away in the pop-up of a face-up card (the "Card text" button still toggles it)
 function autoText(m){
+  const th=thName(m);if(th)dlg.dataset.th=th;
   const b=$("ct");if(!b||!m||m.pos==="FD"||!m.desc)return;
   const st=!!m.kind,ic=(st?"":lvlBadge(m))+attrIcon(m,st);
   b.innerHTML=`<div class="cth"><small>${esc(m.type||"")}${m.attr?" • "+esc(m.attr):""}${m.race?" • "+esc(m.race):""}${m.lvl?" • Level/Link "+m.lvl:""}</small>${ic?`<span class="ctb">${ic}</span>`:""}</div><hr style="border-color:#4a3220;margin:4px 0">${esc(m.desc).replace(/\n/g,"<br>")}`;
@@ -1902,6 +1967,7 @@ function cardZoneDialog(p,i,z){
    ${m.pos==="UP"&&!m.eq&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctlc">⇄ Take control of a monster…</button></div>`:""}
    ${m.uid&&S.mon.some(L=>L.some(x=>x&&x.ctl&&x.ctl.src===m.uid))?`<p><small>⇄ The monster taken with this card stays with you while this card is on the field.</small></p>`:""}
    ${z==="field"?`<div class="row"><button id="repl">↻ Replace with another Field Spell (this one goes to the Graveyard)</button></div>`:""}
+   ${m.fromMon&&m.pos==="UP"&&m.mon?`<div class="row"><button id="toMon" style="background:#1f5a3a">⬆ Special Summon back to the Monster Zone</button></div>`:""}
    <div class="row"><button id="clr" style="background:#6b2230">${pend?"⬆ To Extra Deck (face-up)":"🪦 To Graveyard"}</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
    `,()=>{
     autoText(m);
@@ -1924,6 +1990,10 @@ function cardZoneDialog(p,i,z){
     if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
     const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(e)ctlSrcGone(e.uid);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
     if($("res1"))$("res1").onclick=()=>leave("gy");
+    if($("toMon"))$("toMon").onclick=()=>{ // a monster that lay in the Spell & Trap Zone (Continuous Spell / Equip card) comes back: the normal summon pop-up, its Spell/Trap card disappears on confirm
+      const q=m.mon,c={id:m.id,name:m.name,type:q.mtype||"Effect Monster",desc:m.desc||"",atk:q.atk,def:q.def,attr:q.attr,race:q.race,lvl:q.lvl,lm:q.lm|0};
+      const zi=[...Array(S.n).keys()].find(k=>!S.mon[p][k])??0;
+      summonDialog(p,zi,c,{take:()=>{ctlSrcGone(m.uid);setZ(p,i,z,null)}})};
     if($("appl"))$("appl").onclick=()=>{if(m.hold){delete m.hold;render()}dlg.close()}; // closing the pop-up lets the waiting ATK/DEF animation play
     actsBind(acts,oneShot&&m.pos==="UP",leave,()=>cardZoneDialog(p,i,z));
     if($("ctlc"))$("ctlc").onclick=()=>{if(!oneShot)m.uid=m.uid||newUid();ctlFromCard(p,m,()=>cardZoneDialog(p,i,z))};
@@ -1938,9 +2008,10 @@ const pileOf=(p,kind)=>kind==="ban"?S.ban[p]:kind==="ed"?S.edup[p]:S.gy[p];
 const pileName=kind=>kind==="ban"?"Banished":kind==="ed"?"Face-up Extra Deck":"Graveyard";
 function pileDialog(p,kind){
   const L=pileOf(p,kind);
-  open(`${closeX()}<h2>${pileName(kind)} – ${NAME(p)} (${L.length})</h2>
-   <div class="res" id="pl" style="max-height:48dvh">${L.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type||"")}</small></div>`).join("")||"<div><small>Empty. Cards that leave the field land here automatically.</small></div>"}</div>
+  open(`${closeX()}<div class="pilehd">${kind=="ban"?`<img src="img/fx/banish.webp" alt="">`:`<img src="img/fx/tomb.webp" alt="">`}<h2>${pileName(kind)} – ${NAME(p)} (${L.length})</h2></div>
+   <div class="res" id="pl" style="max-height:48dvh">${L.map((c,k)=>`<div data-k="${k}" class="${thType(c.type)?"th-"+thType(c.type):""}"><b>${esc(c.name)}</b><br><small>${esc(c.type||"")}</small></div>`).join("")||"<div><small>Empty. Cards that leave the field land here automatically.</small></div>"}</div>
    <div class="row">${kind==="ed"?"":`<button id="padd">+ Add card</button>`}${L.length?`<button id="pall" style="background:#6b2230">Empty it</button>`:""}${kind==="gy"?`<button id="ped">Face-up Extra Deck (${S.edup[p].length})</button>`:""}</div>${kind==="ed"?`<small>Pendulum Monsters that would go to the Graveyard from the field are placed here face-up. You can Pendulum Summon them again.</small>`:""}`,()=>{
+    dlg.dataset.th=kind==="ban"?"ban":"gy";
     $("pl").onclick=e=>{const d=e.target.closest("[data-k]");if(d)pileEntry(p,kind,+d.dataset.k)};
     if($("padd"))$("padd").onclick=()=>pileAdd(p,kind);
     if($("ped"))$("ped").onclick=()=>pileDialog(p,"ed");
@@ -1951,11 +2022,12 @@ function pileAdd(p,kind){
   open(`${closeX()}<h2>Add to ${pileName(kind)} – ${NAME(p)}</h2><small>For cards that go there straight from your hand or deck (discard, mill, cost…).</small>
    <input type="search" id="q" placeholder="Search by name…" autocomplete="off"><div class="res" id="res"></div>
    <div class="row"><button id="bk">← Back</button></div>`,()=>{
+    dlg.dataset.th=kind==="ban"?"ban":"gy";
     const q=$("q");q.focus();
     q.oninput=async()=>{
       const r=await find(q.value);
       $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
-      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];sendTo(p,kind,c);addLog(`${c.name} → ${NAME(p)}'s ${pileName(kind)}`);render();pileAdd(p,kind)};
+      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];sendTo(p,kind,c);addLog(`${c.name} → ${NAMES(p)} ${pileName(kind)}`);render();pileAdd(p,kind)};
     };
     $("bk").onclick=()=>pileDialog(p,kind);
   });
@@ -1965,9 +2037,10 @@ function pileEntry(p,kind,k){
   const mon=/Monster/.test(c.type||""),isField=/Field/.test(c.type||"");
   const other=kind==="ban"?"gy":"ban";
   if(kind==="ed"){
-    open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAME(p)}'s Face-up Extra Deck</small>
+    open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAMES(p)} Face-up Extra Deck</small>
      <div class="row"><button id="ps" style="background:#8be32a;color:#0b2200;font-weight:800">Pendulum Summon…</button><button id="info">Card text</button><button id="rm">Remove</button></div>
      <div class="card" id="ct" hidden></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
+      if(thType(c.type))dlg.dataset.th=thType(c.type);
       $("ps").onclick=async()=>{const all=await cards();const c0=all.find(x=>x.id===c.id)||{name:c.name,type:c.type,atk:0,def:0,desc:""};const i=freeZones(p).find(z=>z<EMZ0);summonDialog(p,i===undefined?0:i,c0,{ed:true,take:()=>{const j=L.indexOf(c);if(j>=0)L.splice(j,1)}})};
       $("rm").onclick=()=>{L.splice(k,1);render();pileDialog(p,kind)};
       $("info").onclick=async()=>{const all=await cards();const x=all.find(y=>y.id===c.id);$("ct").hidden=false;$("ct").innerHTML=x?cardInfo(x):"No card text."};
@@ -1975,11 +2048,12 @@ function pileEntry(p,kind,k){
     });
     return;
   }
-  open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAME(p)}'s ${pileName(kind)}</small>
+  open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAMES(p)} ${pileName(kind)}</small>
    <div class="row">${mon?`<button id="sa">Special Summon (ATK)</button><button id="sd">Special Summon (DEF)</button>`:`<button id="setf">Set on the field</button>`}</div>
    ${mon?`<p style="margin:6px 0 0"><small>To ${p===0?"your opponent's":"your"} field (e.g. Monster Reborn, Call of the Haunted on this card) – it stays owned by ${who(p)}:</small></p><div class="row"><button id="xa">⇄ Summon there (ATK)</button><button id="xd">⇄ Summon there (DEF)</button></div>`:""}
    <div class="row"><button id="mv">→ ${pileName(other)}</button><button id="rm">Remove (to hand/deck)</button><button id="info">Card text</button></div>
    <div class="card" id="ct" hidden></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
+    if(thType(c.type))dlg.dataset.th=thType(c.type);
     const take=()=>{L.splice(k,1)};
     const warn=t=>open(`${closeX()}<h2>Can't do that</h2><p>${esc(t)}</p><div class="row"><button id="bk2">← Back</button></div>`,()=>{$("bk2").onclick=()=>pileEntry(p,kind,k)});
     const full=async(pos,q=p)=>{
