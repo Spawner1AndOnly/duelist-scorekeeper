@@ -30,7 +30,8 @@ html,body{margin:0;height:100%;background:var(--bg) url(img/bg-embers.jpg) cente
 .emzcell.on{padding:0}.emzcell .slot{width:100%}
 .emzcell.ph{border:1px dashed #6b452488;background:#0006}
 .cb.pend{background:linear-gradient(160deg,#27b58a,#e0414f)}
-.mid.flip{transform:rotate(180deg)}
+.mid .row1{transition:transform .35s}.mid .row1.flip{transform:rotate(180deg)}
+.stopp{transform:rotate(180deg)}.st1.idle{opacity:.5}
 .mid button:disabled{opacity:.35}
 dialog.flip{transform:rotate(180deg)}.x.fl{float:left;font-size:20px}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 70px);transform:translateX(-50%);background:#000c;color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
@@ -222,7 +223,7 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
   <div class="side opp" id="s1"></div>
   <div id="emz" hidden></div>
   <div class="mid">
-    <div class="st1" id="status"></div>
+    <div class="st1 stopp" id="statusOpp" hidden></div>
     <div class="row1">
       <button class="sm" id="btnTools" title="Coin / dice">🎲</button>
       <button class="sm" id="btnUndo" title="Undo last action" disabled>↩</button>
@@ -231,6 +232,7 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
       <button class="sm" id="btnSearch" title="Card search">🔍</button>
       <button class="sm" id="btnMenu" title="Menu">⚙️</button>
     </div>
+    <div class="st1" id="status"></div>
   </div>
   <div class="side" id="s0"></div>
 </div>
@@ -344,17 +346,22 @@ function render(){
       <div class="lprow zrow"><button class="zb" data-p="${p}" data-pile="gy">🪦 ${S.n===3?"GY":"Graveyard"} <b>${S.gy[p].length}</b></button><button class="zb" data-p="${p}" data-pile="ban">🌀 ${S.n===3?"Ban.":"Banished"} <b>${S.ban[p].length}</b></button>${S.n===3?`<button class="zb" data-p="${p}" data-skill="1">⚡ Skill ${S.skill[p]?(S.skill[p].uses?"<b>used</b>":"<b>✓</b>"):"+"}</button>`:""}</div>`;
   }
   renderEMZ();
-  document.querySelector(".mid").classList.toggle("flip",S.view==="2p"&&S.turn===1);
+  document.querySelector(".mid .row1").classList.toggle("flip",S.view==="2p"&&S.turn===1); // the buttons turn towards the player whose turn it is; both players always read their own status line
   const b0=fieldBg(0),b1=fieldBg(1),fb=$("fbg");
   if(!b0&&!b1)fb.style.display="none";
   else{fb.style.display="block";const two=b0&&b1&&b0!==b1;fb.className=two?"":"one";
     $("fb0").style.backgroundImage=b0||b1;$("fb1").style.backgroundImage=b1||b0}
   const ph=PHASES[S.ph];
-  $("status").innerHTML=oppWait()?`Turn ${S.tc} • Opponent's turn`:`Turn ${S.tc} • ${NAME(S.turn)==="You"?"Your turn":"Opponent's turn"} • ${ph.n}${ph.sub?" – "+ph.sub[S.sub]:""} <small style="font-weight:400;color:${S.ns?"var(--red)":"var(--green)"}">• Normal Summon ${S.ns?"used":"available"}</small>${S.tc===1&&S.ph===0?` <small style="color:var(--gold)">• first turn: no draw</small>`:S.tc===1&&/^Main Phase/.test(ph.n)?` <small style="color:var(--gold)">• first turn: no Battle Phase</small>`:""}`;
+  const statusFor=v=>oppWait()?`Turn ${S.tc} • Opponent's turn`:`Turn ${S.tc} • ${S.turn===v?"Your turn":"Opponent's turn"} • ${ph.n}${ph.sub?" – "+ph.sub[S.sub]:""} <small style="font-weight:400;color:${S.ns?"var(--red)":"var(--green)"}">• Normal Summon ${S.ns?"used":"available"}</small>${S.tc===1&&S.ph===0?` <small style="color:var(--gold)">• first turn: no draw</small>`:S.tc===1&&/^Main Phase/.test(ph.n)?` <small style="color:var(--gold)">• first turn: no Battle Phase</small>`:""}`;
+  // 2 players on one phone: each player reads their own status line (the one of the player who is not on turn is dimmed)
+  const two2=S.view==="2p";
+  $("statusOpp").hidden=!two2;
+  $("status").innerHTML=statusFor(0);$("statusOpp").innerHTML=two2?statusFor(1):"";
+  $("status").classList.toggle("idle",two2&&S.turn!==0);$("statusOpp").classList.toggle("idle",S.turn!==1);
   const pb=$("phase");
   pb.className=oppWait()?"wait":"";
   pb.textContent=oppWait()?"Opponent's turn — tap when it's your turn":nextLabel();
-  if(S.paused){const pm=S.mon[S.paused.p][S.paused.i];pb.className="paused";pb.textContent="▶ Continue the paused attack";$("status").innerHTML=`⏸ Attack paused (${esc(pm?pm.name:"?")}) — resolve effects, then continue`}
+  if(S.paused){const pm=S.mon[S.paused.p][S.paused.i];pb.className="paused";pb.textContent="▶ Continue the paused attack";const pt=`⏸ Attack paused (${esc(pm?pm.name:"?")}) — resolve effects, then continue`;$("status").innerHTML=pt;if(two2)$("statusOpp").innerHTML=pt}
   $("rules").textContent=S.paused?"✖ End attack":"Rules";
   lpAnim();
   gameOver();
