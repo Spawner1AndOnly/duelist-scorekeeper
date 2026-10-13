@@ -196,6 +196,7 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 @keyframes fxdust{0%{transform:translateY(28%) scale(.25);opacity:0}30%{opacity:.95}100%{transform:translateY(-14%) scale(1.3);opacity:0}}
 .fxtomb{background:url(img/fx/tomb.webp) center/contain no-repeat;z-index:5;animation:fxtomb 1.5s ease-out forwards}
 @keyframes fxtomb{0%{transform:rotate(var(--rot,0deg)) translateY(45%) scale(.4);opacity:0}20%{transform:rotate(var(--rot,0deg)) translateY(-5%) scale(1.07);opacity:1}30%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}78%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}100%{transform:rotate(var(--rot,0deg)) translateY(10%) scale(.92);opacity:0}}
+.fxskel{background:center/contain no-repeat;z-index:6;filter:drop-shadow(0 4px 8px #000a)}
 .fxshield{background:url(img/fx/shield.webp) center/contain no-repeat;animation:fxshin .22s ease-out forwards}
 .fxshield.hold{animation:fxshin .22s ease-out forwards,fxshake .4s .3s,fxshout .3s 1s forwards}
 @keyframes fxshin{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
@@ -472,6 +473,21 @@ const fieldEl=p=>document.querySelector(`.fchip[data-p="${p}"]`);
 const cardCls=c=>c.pos==="FD"?"fdv":c.kind==="spell"?"spell":c.kind==="trap"?"trap":c.kind==="pend"?"pend":c.pos==="DEF"?"def":"atk";
 function fxFly(fr,to,o){
   if(calmMotion()||!fr||!to||!to.width)return;
+  if(o.skel){ // destroyed Spell/Trap: a skeleton card shows up on its zone for a moment, then flies to the pile
+    const w=Math.min(Math.max(fr.width*1.25,70),96),h=w*1.5,e=document.createElement("div");e.className="fxskel";
+    e.style.cssText=`left:${fr.left+fr.width/2-w/2}px;top:${fr.top+fr.height/2-h/2}px;width:${w}px;height:${h}px;background-image:url(img/fx/skel-${o.skel}.webp)`;
+    $("fx").appendChild(e);
+    const dx=to.left+to.width/2-(fr.left+fr.width/2),dy=to.top+to.height/2-(fr.top+fr.height/2),rot=(dx>=0?1:-1)*(14+Math.random()*12);
+    const tilt=S.view==="2p"&&fr.top+fr.height/2<innerHeight/2?180:0; // on the opponent's half the card is turned along
+    if(!e.animate){e.remove();return}
+    const an=e.animate([
+      {transform:`rotate(${tilt}deg) translate(0,10px) scale(.5)`,opacity:0,offset:0},
+      {transform:`rotate(${tilt}deg) translate(0,0) scale(1.08)`,opacity:1,offset:.18},
+      {transform:`rotate(${tilt}deg) translate(0,0) scale(1)`,opacity:1,offset:.5},
+      {transform:`rotate(${tilt+rot}deg) translate(${dx}px,${dy}px) scale(.28)`,opacity:.3,offset:1}],
+      {duration:1400,easing:"ease-in-out",fill:"forwards"});
+    an.onfinish=()=>e.remove();return;
+  }
   const w=Math.min(fr.width*0.85,64),h=w*1.458;
   const e=document.createElement("div");e.className=`fxcard cb port ${o.cls}`;
   e.innerHTML=o.cls==="fdv"?"":`<span class="n">${esc(o.name)}</span>`;
@@ -502,9 +518,10 @@ function fxMove(fr,el,o){ // control change: the card glides to the other side o
   an.onfinish=()=>{e.remove();el.style.opacity="";fxPulse(el,0)};
 }
 function fxPulse(el,delay){if(calmMotion()||!el||!el.animate)return;el.animate([{transform:"scale(1)",filter:"brightness(1)"},{transform:"scale(1.14)",filter:"brightness(1.8)"},{transform:"scale(1)",filter:"brightness(1)"}],{duration:380,delay:delay||0})}
+const skelOf=c=>c&&(c.kind==="spell"||c.kind==="trap"||/Spell|Trap/.test(c.type||""))&&c.pos!=="FD"?(/Trap/.test(c.type||"")||c.kind==="trap"?"trap":/Ritual/.test(c.type||"")?"ritual":"spell"):null;
 function flyToPile(rect,c,p,kind){ // call BEFORE the card is removed from the board (the rectangle is needed)
   const b=pileBtn(p,kind);if(!rect||!b||!c)return;
-  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c)});fxPulse(b,560);
+  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c)});fxPulse(b,kind==="gy"&&skelOf(c)?1000:560);
 }
 function fxFlush(){
   const q=FXQ;FXQ=[];if(calmMotion())return;
