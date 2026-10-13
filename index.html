@@ -194,6 +194,8 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 @keyframes fxflash{0%{opacity:0;transform:scale(.7)}25%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
 .fxdust{background:url(img/fx/dust.webp) center/contain no-repeat;animation:fxdust .75s ease-out forwards}
 @keyframes fxdust{0%{transform:translateY(28%) scale(.25);opacity:0}30%{opacity:.95}100%{transform:translateY(-14%) scale(1.3);opacity:0}}
+.fxscreen{inset:0;animation:fxscr .55s ease-out forwards;z-index:4}
+@keyframes fxscr{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
 .fxtomb{background:url(img/fx/tomb.webp) center/contain no-repeat;z-index:5;animation:fxtomb 1.5s ease-out forwards}
 @keyframes fxtomb{0%{transform:rotate(var(--rot,0deg)) translateY(45%) scale(.4);opacity:0}20%{transform:rotate(var(--rot,0deg)) translateY(-5%) scale(1.07);opacity:1}30%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}78%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}100%{transform:rotate(var(--rot,0deg)) translateY(10%) scale(.92);opacity:0}}
 .fxskel{background:center/contain no-repeat;z-index:6;filter:drop-shadow(0 4px 8px #000a)}
@@ -401,11 +403,18 @@ function fxAdd(cls,r,w,h,html,css){
   $("fx").appendChild(e);return e;
 }
 const fxLife=(e,ms)=>setTimeout(()=>e.remove(),ms);
-function fxSlash(r,flip){
+function fxScreen(col){ // whole-screen flash (red = a hit, green = Life Points gained)
+  if(calmMotion())return;
+  const e=document.createElement("div");e.className="fxscreen";
+  e.style.background=`radial-gradient(ellipse at center,${col}22 0%,${col}77 60%,${col}cc 100%)`;
+  $("fx").appendChild(e);fxLife(e,650);
+}
+function fxSlash(r,flip,quiet){
   const L=Math.min(Math.max(r.width,r.height)*2.3,380),a=(flip?35:-35)*Math.PI/180,cx=r.left+r.width/2,cy=r.top+r.height/2;
   const e=document.createElement("div");e.className="fxslash";
   e.style.cssText=`left:${cx-Math.cos(a)*L/2}px;top:${cy-Math.sin(a)*L/2}px;width:${L}px;--a:${flip?35:-35}deg`;
   $("fx").appendChild(e);fxLife(e,420);
+  if(!quiet)setTimeout(()=>fxScreen("#ff2d3f"),190); // the hit: the whole screen flashes red
 }
 function fxTomb(el){ // a gravestone rises where a monster was destroyed (turned along with the opponent's half in 2P)
   if(!el)return;const r=el.getBoundingClientRect(),w=Math.min(Math.max(r.width,r.height)*1.3,150);
@@ -459,7 +468,7 @@ async function fxBattle(pl){
       await sleep(300);fxSlash(rt);await sleep(220);
       sh.remove();fxShieldBreak(rt);await sleep(300);
       if(pl.tDies){fxFlash(rt);fxTomb(el)}await sleep(pl.tDies?1350:520)}
-    else{fxShieldHold(rt);await sleep(280);fxSlash(rt);await sleep(900)}
+    else{fxShieldHold(rt);await sleep(280);fxSlash(rt,false,true);await sleep(900)}
   }else{
     fxSlash(rt);await sleep(300);
     if(pl.tDies){fxFlash(rt);fxTomb(el)}if(pl.aDies){fxFlash(ra);fxTomb(monEl(pl.p,pl.i))}
@@ -577,6 +586,7 @@ function lpAnim(){
     const from=LPD[p],dir=to<from?-1:1,dur=Math.min(1500,Math.max(500,Math.abs(to-from)/4000*1200+400));
     const anim=LPA[p]={to,dir,from,t0:performance.now(),dur};
     const lp=document.querySelector(`#s${p} .lp`);if(lp){lp.classList.remove("dmg","heal");void lp.offsetWidth;lp.classList.add(dir<0?"dmg":"heal")}
+    if(dir>0&&from>0)fxScreen("#3dff8a"); // healing: the whole screen flashes green (not during the count-up at the start of a duel)
     const step=now=>{
       if(LPA[p]!==anim)return;
       const k=Math.min(1,(now-anim.t0)/anim.dur),e=1-Math.pow(1-k,3);
@@ -1291,13 +1301,23 @@ function attackWarnings(p,i){
 function attackDialog(p,i){
   const m=S.mon[p][i],q=1-p,s=stats(p,i),w0=attackWarnings(p,i);
   const targets=S.mon[q].map((t,k)=>t?{t,k}:null).filter(Boolean);
-  open(`${closeX()}<h2>⚔ ${esc(m.name)} attacks (${s.a} ATK)</h2>
-   ${w0.length?`<div class="card" style="color:var(--red)">⚠ ${w0.map(esc).join("<br>⚠ ")}</div>`:""}
-   <p>Choose the target:</p><div class="res" id="tl">${targets.map(o=>`<div data-k="${o.k}"><b>${o.t.pos==="FD"?"Face-down monster":esc(o.t.name)}</b><br><small>${o.t.pos==="FD"?slotName(o.k):o.t.pos==="ATK"?"ATK "+stats(q,o.k).a:"DEF "+stats(q,o.k).d}</small></div>`).join("")}<div data-k="-1"><b>Direct attack</b></div></div>
-   <div class="row"><button id="bk">← Back</button></div>`,()=>{
-    $("tl").onclick=e=>{const d=e.target.closest("[data-k]");if(d)battleStart(p,i,+d.dataset.k)};
-    $("bk").onclick=()=>slotDialog(p,i);
-  });
+  if(!targets.length){ // nothing to tap: a direct attack
+    open(`${closeX()}<h2>⚔ ${esc(m.name)} attacks (${s.a} ATK)</h2>${w0.length?`<div class="card" style="color:var(--red)">⚠ ${w0.map(esc).join("<br>⚠ ")}</div>`:""}
+     <p>The opponent controls no monsters.</p><div class="row"><button id="dir">Direct attack</button></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
+      $("dir").onclick=()=>battleStart(p,i,-1);$("bk").onclick=()=>slotDialog(p,i)});
+    return;
+  }
+  // tap the target on the field (the opponent's monsters pulse); "Direct attack" stays available in the bar
+  try{dlg.close()}catch(e){}
+  const bar=document.createElement("div");bar.id="pickbar";
+  bar.innerHTML=`<span>${esc(m.name)} (${s.a} ATK) attacks: tap the target</span><button id="pickd">Direct attack</button><button id="pickx">Cancel</button>`;
+  if(S.view==="2p"&&S.turn===1)bar.classList.add("rot");
+  document.body.appendChild(bar);document.body.classList.add("picking");
+  const pks=targets.map(o=>monEl(q,o.k)).filter(Boolean);pks.forEach(e=>e.classList.add("pk"));
+  const end=()=>{PICK=null;bar.remove();document.body.classList.remove("picking");pks.forEach(e=>e.classList.remove("pk"));DLGP=p};
+  PICK={onPick:(pp,k)=>{if(pp!==q)return;end();battleStart(p,i,k)}};
+  $("pickd").onclick=()=>{end();battleStart(p,i,-1)};
+  $("pickx").onclick=()=>{end();slotDialog(p,i)};
 }
 // the defender gets the chance to respond (Trap, Quick-Play Spell, effect) before the result is calculated
 function battleStart(p,i,k){
