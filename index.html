@@ -1253,7 +1253,7 @@ function slotDialog(p,i){
   const lkTxt=m.lm?`<p><small>Link Monster – arrows: <b>${linkArrows(m)}</b>${isLinked(p,i)?" • this monster is linked (a Link Monster points to it)":""}. ${m.lm?"Link Monsters have no DEF and can't be in Defense Position.":""}</small></p>`:isLinked(p,i)?`<p><small>🔗 Linked: a Link Monster points to this monster.</small></p>`:"";
   const adj=(label,key,eff)=>`<div><b>${label}: ${eff}</b> <small>(base ${m[key==="da"?"atk":"def"]}${m[key]?`, manual ${m[key]>0?"+":""}${m[key]}`:""})</small></div>
    <div class="row">${STEPS.map(v=>`<button data-k="${key}" data-v="${v*sg}" style="min-width:40px;padding:8px 2px">${sg>0?"+":"-"}${v}</button>`).join("")}<button id="sg${key}" style="background:${sg>0?"#1f5a3a":"#6b2230"};flex:0 0 40px">${sg>0?"+":"−"}</button><button data-k="${key}" data-v="0">reset</button></div>`;
-  open(`${closeX()}<h2>${esc(m.name)}</h2>${s.src.length?`<small>From cards: ${s.src.map(esc).join(" • ")}</small>`:""}${lkTxt}
+  open(`${closeX()}<h2>${esc(m.name)}</h2>${s.src.length?`<small>From cards: ${s.src.map(esc).join(" • ")}</small>`:""}${lkTxt}<div class="card" id="ct" style="max-height:22dvh;overflow:auto;font-size:13px;margin:6px 0" hidden></div>
    ${adj("ATK","da",s.a)}${m.lm?"":adj("DEF","dd",s.d)}
    <div class="row">${[["ATK","⚔ Attack"],["DEF","🛡 Defense"],["FD","🂠 Face-down DEF"]].filter(x=>!m.lm||x[0]==="ATK").map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
@@ -1262,7 +1262,8 @@ function slotDialog(p,i){
    ${m.pos!=="FD"&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctle">⇄ Its effect takes control of a monster…</button></div>`:""}
    <div class="row"><button id="clr" style="background:#6b2230">🪦 To Graveyard</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
    ${ownerOf(m,p)!==p?`<p><small>Owned by ${who(ownerOf(m,p))}: if it leaves the field it goes to ${ownerOf(m,p)===0?"your":"your opponent's"} Graveyard / Banished pile.</small></p>`:""}
-   <div class="card" id="ct" hidden></div>`,()=>{
+   `,()=>{
+    autoText(m);
     $("ctl").onclick=()=>ctlDialog(p,i);
     if($("ctle"))$("ctle").onclick=()=>ctlFromCard(p,m,()=>slotDialog(p,i));
     dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=+b.dataset.v;m[k]=v===0?0:m[k]+v;render();slotDialog(p,i)});
@@ -1273,7 +1274,7 @@ function slotDialog(p,i){
     $("clr").onclick=()=>{removeMon(p,i);render();dlg.close()};
     $("ban").onclick=()=>{removeMon(p,i,"ban");render();dlg.close()};
     $("rm").onclick=()=>{removeMon(p,i,"none");render();dlg.close()};
-    $("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id||x.name===m.name);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text (custom monster).";};
+    if(!(m.pos!=="FD"&&m.desc))$("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id||x.name===m.name);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text (custom monster).";};
   });
 }
 function setPos(p,i,np){
@@ -1668,6 +1669,13 @@ function showStandby(){
     $("sxno").onclick=()=>dlg.close();
   });
 }
+// the card text is shown right away in the pop-up of a face-up card (the "Card text" button still toggles it)
+function autoText(m){
+  const b=$("ct");if(!b||!m||m.pos==="FD"||!m.desc)return;
+  b.innerHTML=`<small>${esc(m.type||"")}${m.attr?" • "+esc(m.attr):""}${m.race?" • "+esc(m.race):""}${m.lvl?" • Level/Link "+m.lvl:""}</small><hr style="border-color:#4a3220;margin:4px 0">${esc(m.desc).replace(/\n/g,"<br>")}`;
+  b.hidden=false;
+  const i=$("info");if(i)i.onclick=()=>{b.hidden=!b.hidden};
+}
 // Life Point effects with a fixed amount in the card text: [{who:0|1,d:+n|-n,txt}] (p = the player who controls the card; "you" = p)
 function lpEffects(desc,p){
   const out=[],q=1-p,num=x=>+String(x).replace(/,/g,""),add=(who,d,kind)=>{if(!out.some(o=>o.who===who&&o.d===d))out.push({who,d,txt:`${who===p?"you":"your opponent"} ${(d>0?"gain":kind==="pay"?"pay":"take")+(who===p?"":"s")} ${Math.abs(d)}${kind==="dmg"?" damage":" LP"}`})};
@@ -1697,7 +1705,7 @@ function cardZoneDialog(p,i,z){
   const fUI=/Field/.test(t)&&m.pos==="UP"?(fieldEffs(m).length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${fieldEffs(m).map(e=>`<li>${e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,p,m,null)})`:""}</li>`).join("")}</ul>
       <div class="row"><button id="auto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div><small>Applies to matching face-up monsters. Archetypes match by name — check the card text if unsure.</small>${(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,p=>parseField(p).length>0))}`
       :`<p><small>${esc(statNote(m.desc,p=>parseField(p).length>0)||"No permanent stat bonus detected. Adjust monsters manually if needed.")}</small></p>`):"";
-  open(`${closeX()}<h2>${esc(m.name)}</h2><small>${esc(t)}</small>
+  open(`${closeX()}<h2>${esc(m.name)}</h2><small>${esc(t)}</small><div class="card" id="ct" style="max-height:22dvh;overflow:auto;font-size:13px;margin:6px 0" hidden></div>
    ${pend?"":`<div class="row">${[["UP","Face-up (activated)"],["FD","🂠 Set (face-down)"]].map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>`}
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${pendUI}${eqUI}${fUI}${m.pos==="UP"?trackerHTML(m):""}
@@ -1707,7 +1715,8 @@ function cardZoneDialog(p,i,z){
    ${m.uid&&S.mon.some(L=>L.some(x=>x&&x.ctl&&x.ctl.src===m.uid))?`<p><small>⇄ The monster taken with this card stays with you while this card is on the field.</small></p>`:""}
    ${z==="field"?`<div class="row"><button id="repl">↻ Replace with another Field Spell (this one goes to the Graveyard)</button></div>`:""}
    <div class="row"><button id="clr" style="background:#6b2230">${pend?"⬆ To Extra Deck (face-up)":"🪦 To Graveyard"}</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
-   <div class="card" id="ct" hidden></div>`,()=>{
+   `,()=>{
+    autoText(m);
     const again=()=>{render();cardZoneDialog(p,i,z)};
     trackerBind(m,again);
     if($("repl"))$("repl").onclick=()=>loadZoneDialog(p,0,"field");
@@ -1732,7 +1741,7 @@ function cardZoneDialog(p,i,z){
     if($("lxall"))$("lxall").onclick=()=>{lpf.forEach(applyLP);leave("gy")};
     if($("ctlc"))$("ctlc").onclick=()=>{if(!oneShot)m.uid=m.uid||newUid();ctlFromCard(p,m,()=>cardZoneDialog(p,i,z))};
     $("clr").onclick=()=>leave("gy");$("ban").onclick=()=>leave("ban");$("rm").onclick=()=>leave("none");
-    $("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text.";};
+    if(!(m.pos!=="FD"&&m.desc))$("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text.";};
   });
 }
 function stDialog(p,i){cardZoneDialog(p,i,"st")}
