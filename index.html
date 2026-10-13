@@ -482,10 +482,10 @@ function fxFly(fr,to,o){
     if(!e.animate){e.remove();return}
     const an=e.animate([
       {transform:`rotate(${tilt}deg) translate(0,10px) scale(.5)`,opacity:0,offset:0},
-      {transform:`rotate(${tilt}deg) translate(0,0) scale(1.08)`,opacity:1,offset:.18},
-      {transform:`rotate(${tilt}deg) translate(0,0) scale(1)`,opacity:1,offset:.5},
+      {transform:`rotate(${tilt}deg) translate(0,0) scale(1.08)`,opacity:1,offset:.1},
+      {transform:`rotate(${tilt}deg) translate(0,0) scale(1)`,opacity:1,offset:.6},
       {transform:`rotate(${tilt+rot}deg) translate(${dx}px,${dy}px) scale(.28)`,opacity:.3,offset:1}],
-      {duration:1400,easing:"ease-in-out",fill:"forwards"});
+      {duration:2000,easing:"linear",fill:"forwards"}); // stands still about as long as the gravestone (1.1 s), then flies
     an.onfinish=()=>e.remove();return;
   }
   const w=Math.min(fr.width*0.85,64),h=w*1.458;
@@ -521,7 +521,7 @@ function fxPulse(el,delay){if(calmMotion()||!el||!el.animate)return;el.animate([
 const skelOf=c=>c&&(c.kind==="spell"||c.kind==="trap"||/Spell|Trap/.test(c.type||""))&&c.pos!=="FD"?(/Trap/.test(c.type||"")||c.kind==="trap"?"trap":/Ritual/.test(c.type||"")?"ritual":"spell"):null;
 function flyToPile(rect,c,p,kind){ // call BEFORE the card is removed from the board (the rectangle is needed)
   const b=pileBtn(p,kind);if(!rect||!b||!c)return;
-  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c)});fxPulse(b,kind==="gy"&&skelOf(c)?1000:560);
+  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c)});fxPulse(b,skelOf(c)?1500:560);
 }
 function fxFlush(){
   const q=FXQ;FXQ=[];if(calmMotion())return;
