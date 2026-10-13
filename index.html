@@ -39,7 +39,9 @@ dialog.flip{transform:rotate(180deg)}.x.fl{float:left;font-size:20px}
 .slot,.fchip{position:relative}.bdg{position:absolute;top:1px;right:3px;font-size:10px;font-weight:800;color:var(--gold);text-shadow:0 1px 2px #000;pointer-events:none}
 .lk{font-size:10px;letter-spacing:1px;color:var(--gold);line-height:1;white-space:nowrap}
 #pickbar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;display:flex;align-items:center;gap:10px;background:#1c1109ee;border:2px solid var(--gold);border-radius:14px;padding:8px 12px;font-weight:800;white-space:nowrap;font-size:14px;box-shadow:0 4px 18px #000b}#pickbar.rot{transform:translate(-50%,-50%) rotate(180deg)}
-body.picking .slot[data-row="mon"]:not(.empty){outline:3px solid var(--gold);outline-offset:-2px;animation:pkp .8s infinite alternate}
+body.picking .slot.pk{outline:3px solid var(--gold);outline-offset:-2px;animation:pkp .8s infinite alternate}
+body.picking .slot.picked{outline-color:var(--green);animation:none;background:#1f5a3a88}
+body.picking .slot.picked::after{content:"¹4";position:absolute;right:3px;bottom:2px;font-size:18px;font-weight:900;color:var(--green);text-shadow:0 1px 3px #000}
 @keyframes pkp{to{outline-color:#fff}}
 .lvb{position:absolute;top:2px;left:3px;display:flex;align-items:center;gap:1px;background:#e8731a;color:#fff;border-radius:9px;padding:0 4px 0 2px;font-size:10px;font-weight:800;line-height:14px;box-shadow:0 1px 3px #000a;pointer-events:none;z-index:1}
 .lvb i{font-style:normal;color:#ffe08a;font-size:11px}
@@ -293,6 +295,21 @@ function nextPhase(){
   Object.assign(S,n);if(PHASES[S.ph].n==="End Phase"||n.turn!==S.turn)ctlEndPhase();render();
 }
 function oppWait(){return S.view==="1p"&&S.turn===1}
+// Soul Exchange and similar: "you cannot conduct your Battle Phase the turn you activate this card" -> warn (do not block) when moving on to the Battle Phase
+const NOBP_RX=/cannot conduct your Battle Phase the turn you activate/i;
+function phaseClick(){
+  if(!S.paused&&!oppWait()&&S.nobp===S.tc&&PHASES[stepFrom(S).ph].n==="Battle Phase"&&stepFrom(S).turn===S.turn){
+    open(`${closeX()}<h2>⚠ Battle Phase skipped</h2><p>You activated a card this turn (such as Soul Exchange) that says you cannot conduct your Battle Phase. Moving on will skip your Battle Phase.</p>
+     <div class="row"><button id="bk">Cancel</button><button id="sk" style="background:#1f5a3a">Skip to the End Phase</button></div>
+     <div class="row"><button id="an" style="background:#6b2230">Go to the Battle Phase anyway</button></div>`,()=>{
+      $("bk").onclick=()=>dlg.close();
+      $("sk").onclick=()=>{dlg.close();Object.assign(S,{ph:PHASES.length-1,sub:0});ctlEndPhase();render()};
+      $("an").onclick=()=>{dlg.close();nextPhase()};
+    });
+    return;
+  }
+  nextPhase();
+}
 
 // ---------- Render ----------
 const $=id=>document.getElementById(id);
@@ -1094,7 +1111,7 @@ function loadMonDialog(p,i){
   });
 }
 function summonDialog(p,i,c,opts){
-  opts=opts||{};
+  opts=opts||{};const T=opts.tr=opts.tr||{own:[],opp:[],lava:[]}; // Tributes chosen on the field
   const extra=/Fusion|Synchro|XYZ|Link/i.test(c.type),isLink=/Link/i.test(c.type),isPend=/Pendulum/i.test(c.type);
   if(isLink&&!c.lm)c.lm=c.lm|0;
   const noNS=/(?:cannot|can't) be Normal Summoned/i.test(c.desc);
@@ -1115,9 +1132,9 @@ function summonDialog(p,i,c,opts){
   const lavaM=(c.desc||"").match(/Tributing (\d|two|three) monsters they control/i),lavaN=lavaM?({two:2,three:3}[lavaM[1].toLowerCase()]||+lavaM[1]):0;
   const noTrib=((c.desc||"").match(/[^.\n]*without Tributing[^.\n]*\./i)||[])[0];
   open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type)}${c.lvl!=null?" • Level/Link "+c.lvl:""} • ATK ${c.atk===-1?"?":c.atk??"-"} / DEF ${c.def===-1?"?":c.def??"-"}</small>
-   ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set – select:</p><div id="trib">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}${tribVal(o.m)>1?` <small style="color:var(--gold)">(counts as ${tribVal(o.m)} Tributes)</small>`:""}</label>`).join("")||"<small>You control no other monsters.</small>"}${opp.length?`<details style="margin-top:4px"><summary><small>Opponent's monsters (only with a card like Soul Exchange)</small></summary>${opp.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="o${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)} <small>(opponent)</small></label>`).join("")}</details>`:""}</div>`:""}
+   ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set.</p><div class="row"><button id="trpick">Choose the Tributes on the field</button></div><p id="trsum" style="margin:0"></p>`:""}
    ${ssOpp?`<p><label><input type="checkbox" id="ownx" ${lavaN?"checked":""}> This card belongs to ${who(1-p)} – it is Special Summoned to this side of the field by its own effect (Kaiju, Lava Golem…)</label></p>`:""}
-   ${lavaN?`<p><b>Tribute ${lavaN} monsters on this side</b> <small>(they go to their owner's Graveyard)</small> – select:</p><div id="ltr">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}</label>`).join("")||"<small>No other monsters on this side.</small>"}</div>`:""}
+   ${lavaN?`<p><b>Tribute ${lavaN} monsters on this side</b> <small>(they go to their owner's Graveyard)</small></p><div class="row"><button id="lvpick">Choose the Tributes on the field</button></div><p id="lvsum" style="margin:0"></p>`:""}
    ${S.n===5?`<p>${isLink?"":`<label><input type="checkbox" id="pends" ${opts.ed?"checked":""}> Pendulum Summon (uses your Pendulum Scales)</label>`}${isPend?`<br><label><input type="checkbox" id="fromED" ${opts.ed?"checked":""}> Pendulum Monster summoned face-up from the Extra Deck</label>`:""}</p>`:""}
    ${S.n===5&&(extra||isPend)?`<p><b>Zone</b></p><div id="zsel" class="row" style="gap:4px"></div><small id="zhint"></small>`:""}
    <div class="row"><button id="bn">Normal Summon</button><button id="bs">Set (face-down)</button></div>
@@ -1126,6 +1143,17 @@ function summonDialog(p,i,c,opts){
    <div class="card" style="max-height:22dvh">${esc(c.desc).replace(/\n/g,"<br>")}</div>
    <div class="row"><button id="bk">← Back to search</button></div>`,()=>{
     let zone=i;
+    const nm=(q,k)=>{const m=S.mon[q]&&S.mon[q][k];return m?(m.pos==="FD"?"Face-down monster":m.name)+(q!==p?" (opponent)":""):"?"};
+    const sumTxt=()=>{
+      if($("trsum")){const L=T.own.map(k=>nm(p,k)).concat(T.opp.map(k=>nm(1-p,k)));const tot=T.own.map(k=>{const o=own.find(x=>x.k===k);return o?tribVal(o.m):1}).concat(T.opp.map(k=>{const o=opp.find(x=>x.k===k);return o?tribVal(o.m):1})).reduce((a,b)=>a+b,0);
+        $("trsum").innerHTML=L.length?`<small>Tributes: <b>${L.map(esc).join(", ")}</b> (${tot} of ${need})</small>`:`<small>No Tributes chosen yet.</small>`}
+      if($("lvsum"))$("lvsum").innerHTML=T.lava.length?`<small>Tributes: <b>${T.lava.map(k=>esc(nm(p,k))).join(", ")}</b> (${T.lava.length} of ${lavaN})</small>`:`<small>No Tributes chosen yet.</small>`;
+    };
+    sumTxt();
+    if($("trpick"))$("trpick").onclick=()=>pickMulti({label:"Tap the Tributes",need,cands:own.map(o=>[p,o.k]).concat(opp.map(o=>[1-p,o.k])),sel:T.own.map(k=>[p,k]).concat(T.opp.map(k=>[1-p,k])),
+      onDone:l=>{T.own=l.filter(x=>x[0]===p).map(x=>x[1]);T.opp=l.filter(x=>x[0]!==p).map(x=>x[1]);summonDialog(p,i,c,opts)},onCancel:()=>summonDialog(p,i,c,opts)});
+    if($("lvpick"))$("lvpick").onclick=()=>pickMulti({label:"Tap the Tributes",need:lavaN,cands:own.map(o=>[p,o.k]),sel:T.lava.map(k=>[p,k]),
+      onDone:l=>{T.lava=l.map(x=>x[1]);summonDialog(p,i,c,opts)},onCancel:()=>summonDialog(p,i,c,opts)});
     const ownX=()=>$("ownx")&&$("ownx").checked?1-p:p;
     const fromED=()=>extra||($("fromED")&&$("fromED").checked);
     const drawZones=()=>{
@@ -1137,8 +1165,7 @@ function summonDialog(p,i,c,opts){
     };
     drawZones();if($("fromED"))$("fromED").onchange=drawZones;
     const go=how=>{
-      const selA=[...dlg.querySelectorAll("#trib input:checked")].map(x=>x.value),w=[];
-      const sel=selA.filter(v=>v[0]!=="o").map(Number),selO=selA.filter(v=>v[0]==="o").map(v=>+v.slice(1));
+      const w=[],sel=T.own.filter(k=>S.mon[p][k]),selO=T.opp.filter(k=>S.mon[1-p][k]),selA=sel.map(String).concat(selO.map(k=>"o"+k));
       if(zone>=EMZ0)w.push("Normal Summon/Set is never placed in an Extra Monster Zone (only Special Summons from the Extra Deck).");
       if(p!==S.turn)w.push("Normal Summon/Set is only allowed on your own turn.");
       if(!inMain())w.push(`Normal Summon/Set is only allowed in a Main Phase (now: ${phName()}).`);
@@ -1151,7 +1178,7 @@ function summonDialog(p,i,c,opts){
       if(total<need)w.push(`This monster needs ${need} Tribute(s); you selected ${total}.${noTrib?` Its card text says: “${noTrib.trim()}” — if that applies, continue.`:""}`);
       else if(selA.length>1&&total-Math.min(...vals)>=need)w.push("You selected more Tributes than needed.");
       else if(need===0&&selA.length)w.push("This monster needs no Tribute.");
-      guard(w,()=>{sel.forEach(k=>removeMon(p,k));selO.forEach(k=>removeMon(1-p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      guard(w,()=>{if(selO.length)S.nobp=S.tc;sel.forEach(k=>removeMon(p,k));selO.forEach(k=>removeMon(1-p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
     $("bn").onclick=()=>go("normal");$("bs").onclick=()=>go("set");
     const special=pos=>{
@@ -1165,7 +1192,7 @@ function summonDialog(p,i,c,opts){
         if(p!==S.turn||!inMain())w.push("A Pendulum Summon is done in your own Main Phase.");
       }
       if(S.mon[p][zone])w.push("That zone is occupied.");
-      const ls=lavaN?[...dlg.querySelectorAll("#ltr input:checked")].map(x=>+x.value):[];
+      const ls=lavaN?T.lava.filter(k=>S.mon[p][k]):[];
       if(lavaN&&ls.length!==lavaN)w.push(`This card is Special Summoned by Tributing ${lavaN} monsters that ${NAME(p)} controls; you selected ${ls.length}.`);
       guard(w,()=>{ls.forEach(k=>removeMon(p,k));placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
@@ -1391,7 +1418,7 @@ function chainResolve(){
     for(const e of R.effects)chainApply(e,log);
     if(R.src&&R.src.z==="st"){ // the card is used: it turns face-up, a one-shot card goes to the Graveyard
       const c=S.st[R.r][R.src.i];
-      if(c){c.pos="UP";if(/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(c.type||"")){const se=stEl(R.r,R.src.i);if(se)flyToPile(se.getBoundingClientRect(),c,R.r,"gy");S.st[R.r][R.src.i]=null;sendTo(R.r,"gy",c,true)}}
+      if(c){c.pos="UP";if(NOBP_RX.test(c.desc||""))S.nobp=S.tc;if(/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(c.type||"")){const se=stEl(R.r,R.src.i);if(se)flyToPile(se.getBoundingClientRect(),c,R.r,"gy");S.st[R.r][R.src.i]=null;sendTo(R.r,"gy",c,true)}}
     }
   }
   UNDOMERGE=false;render();
@@ -1454,24 +1481,42 @@ function pickTarget(onPick,back){
   try{dlg.close()}catch(e){}
   const bar=document.createElement("div");bar.id="pickbar";
   bar.innerHTML=`<span>Tap the monster to equip</span><button id="pickx">Cancel</button>`;
-  if(S.view==="2p"&&DLGP===1)bar.classList.add("rot");
+  if(S.view==="2p"&&S.turn===1)bar.classList.add("rot"); // turned towards the player on turn
   document.body.appendChild(bar);document.body.classList.add("picking");
-  const end=()=>{PICK=null;bar.remove();document.body.classList.remove("picking")};
+  const pks=[...document.querySelectorAll('.slot[data-row="mon"]:not(.empty)')];pks.forEach(e=>e.classList.add("pk"));
+  const end=()=>{PICK=null;bar.remove();document.body.classList.remove("picking");pks.forEach(e=>e.classList.remove("pk"))};
   const who=DLGP; // the player who plays the equip: the pop-up that follows must stay turned towards that player, also when the target is on the other half
   PICK={onPick:(p,i)=>{end();DLGP=who;onPick({p,i})}};
   $("pickx").onclick=()=>{end();if(back)back();else render()};
+}
+// pick several monsters on the field (Tributes): tap to toggle, "Done" confirms. o = {label, need, cands:[[p,i]], sel:[[p,i]], onDone(list), onCancel()}
+function pickMulti(o){
+  try{dlg.close()}catch(e){}
+  const who=DLGP,chosen=new Set((o.sel||[]).map(x=>x[0]+":"+x[1]));
+  const bar=document.createElement("div");bar.id="pickbar";
+  bar.innerHTML=`<span></span><button id="pickok" style="background:#1f5a3a">Done</button><button id="pickx">Cancel</button>`;
+  if(S.view==="2p"&&S.turn===1)bar.classList.add("rot"); // turned towards the player on turn
+  const upd=()=>{bar.querySelector("span").textContent=`${o.label} (${chosen.size}${o.need?" / "+o.need:""})`};
+  document.body.appendChild(bar);document.body.classList.add("picking");upd();
+  const els=[];
+  o.cands.forEach(([p,i])=>{const e=monEl(p,i);if(e){e.classList.add("pk");if(chosen.has(p+":"+i))e.classList.add("picked");els.push(e)}});
+  const end=()=>{PICK=null;bar.remove();document.body.classList.remove("picking");els.forEach(e=>e.classList.remove("pk","picked"));DLGP=who};
+  PICK={toggle:(p,i,el)=>{if(!el.classList.contains("pk"))return;const k=p+":"+i;if(chosen.has(k)){chosen.delete(k);el.classList.remove("picked")}else{chosen.add(k);el.classList.add("picked")}upd()}};
+  $("pickok").onclick=()=>{const l=[...chosen].map(k=>k.split(":").map(Number));end();o.onDone(l)};
+  $("pickx").onclick=()=>{end();if(o.onCancel)o.onCancel()};
 }
 document.addEventListener("click",e=>{
   if(!PICK||e.target.closest("#pickbar"))return;
   const sl=e.target.closest('.slot[data-row="mon"]');
   e.stopPropagation();e.preventDefault();
-  if(sl&&!sl.classList.contains("empty"))PICK.onPick(+sl.dataset.p,+sl.dataset.i);
+  if(!sl||sl.classList.contains("empty"))return;
+  if(PICK.toggle)PICK.toggle(+sl.dataset.p,+sl.dataset.i,sl);else PICK.onPick(+sl.dataset.p,+sl.dataset.i);
 },true);
 const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
-  const done=()=>{e.pos="UP";if(/Field/.test(e.type))e.eff=parseField(e.desc||"");render();openZone(p,i,z)};
+  const done=()=>{e.pos="UP";if(/Field/.test(e.type))e.eff=parseField(e.desc||"");if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
   if(/Equip/.test(e.type)){
     pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
       if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
@@ -1714,7 +1759,7 @@ function skillConfirm(p,s){
 }
 
 // ---------- Phase buttons ----------
-$("phase").onclick=nextPhase;
+$("phase").onclick=phaseClick;
 $("btnUndo").onclick=undoStep;
 $("rules").onclick=()=>{
   if(S.paused){endPausedAttack();return}
