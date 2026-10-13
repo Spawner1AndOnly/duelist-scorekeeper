@@ -173,6 +173,27 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 @keyframes ishake{0%,100%{transform:translate(0)}20%{transform:translate(-8px,5px)}40%{transform:translate(7px,-6px)}60%{transform:translate(-5px,-4px)}80%{transform:translate(4px,5px)}}
 /* small phones (e.g. 667px high): tighter layout; must stay last so it wins */
 @media (max-height:700px){.side{gap:1px}.lp .num{font-size:30px}.lpb{padding:5px 1px}.zb{padding:3px 4px}body.emzon{--cw:28px;--ch:calc(28px * 1.458)}.emzrow{--cw:26px;--ch:calc(26px * 1.458)}.emzcell{min-height:0}}
+#fx{position:fixed;inset:0;z-index:120;pointer-events:none;overflow:hidden}
+#fx>*{position:fixed;pointer-events:none}
+.fxslash{height:7px;border-radius:4px;background:linear-gradient(90deg,transparent,#fff 18%,#ffe9a0 62%,transparent);box-shadow:0 0 14px 4px #ffd45acc;transform-origin:0 50%;animation:fxslash .36s ease-out forwards}
+@keyframes fxslash{0%{transform:rotate(var(--a)) scaleX(0);opacity:1}55%{transform:rotate(var(--a)) scaleX(1);opacity:1}100%{transform:rotate(var(--a)) scaleX(1);opacity:0}}
+.fxflash{border-radius:14px;background:radial-gradient(circle,#ff2d3fdd 0%,#ff2d3f88 45%,#ff2d3f00 75%);animation:fxflash .55s ease-out forwards}
+@keyframes fxflash{0%{opacity:0;transform:scale(.7)}25%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
+.fxdust{background:url(img/fx/dust.webp) center/contain no-repeat;animation:fxdust .75s ease-out forwards}
+@keyframes fxdust{0%{transform:scale(.25);opacity:0}30%{opacity:.95}100%{transform:scale(1.3);opacity:0}}
+.fxshield{background:url(img/fx/shield.webp) center/contain no-repeat;animation:fxshin .22s ease-out forwards}
+.fxshield.hold{animation:fxshin .22s ease-out forwards,fxshake .4s .3s,fxshout .3s 1s forwards}
+@keyframes fxshin{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes fxshake{0%,100%{translate:0}20%{translate:-7px 0}45%{translate:7px 0}70%{translate:-4px 0}}
+@keyframes fxshout{to{opacity:0;transform:scale(.9)}}
+.fxshield.half{background-image:url(img/fx/shield.webp);animation:none}
+.fxshield.half.l{clip-path:polygon(0 0,58% 0,42% 100%,0 100%);animation:fxsplitl .55s .12s ease-in forwards}
+.fxshield.half.r{clip-path:polygon(58% 0,100% 0,100% 100%,42% 100%);animation:fxsplitr .55s .12s ease-in forwards}
+@keyframes fxsplitl{to{transform:translate(-34px,18px) rotate(-14deg);opacity:0}}
+@keyframes fxsplitr{to{transform:translate(34px,18px) rotate(14deg);opacity:0}}
+.fxtext{font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 0 12px #000;text-align:center;animation:fxtext 1s ease-out forwards}
+@keyframes fxtext{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.15);opacity:1}80%{opacity:1}100%{transform:translateY(-14px);opacity:0}}
+#phase.paused{background:var(--gold);color:#241a00}
 </style>
 </head>
 <body>
@@ -198,6 +219,7 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 <div id="over" hidden></div>
 <div id="intro" hidden></div>
 <div id="toast"></div>
+<div id="fx"></div>
 <dialog id="dlg"></dialog>
 
 <script>
@@ -206,7 +228,7 @@ const PHASES_MD=[
  {n:"Draw Phase",may:["The turn player draws 1 card (the first player does NOT draw on the very first turn of the duel). A player who cannot draw loses the Duel.","Quick Effects, Quick-Play Spells and Traps can be activated (after the draw)."],cant:["Normal Summon/Set.","Attack."]},
  {n:"Standby Phase",may:["Effects that trigger 'during the Standby Phase' (e.g. upkeep costs).","Quick Effects, Quick-Play Spells and Traps can be activated."],cant:["Normal Summon/Set.","Attack."]},
  {n:"Main Phase 1",may:["1 Normal Summon OR Set per turn (Tribute if needed).","Unlimited Special Summons and Flip Summons.","Activate Spells, Set Spells/Traps.","Change monsters' battle position (once per monster; not if it was just summoned or Set this turn).","Activate monster effects."],cant:["Attack (only in the Battle Phase)."]},
- {n:"Battle Phase",sub:["Start Step","Battle Step","Damage Step","End Step"],may:["Each face-up monster in Attack Position may attack once: declare an attacker and a target, or attack directly if the opponent has no monsters. You do not have to attack (or enter the Battle Phase) at all.","A face-down monster that is attacked is flipped face-up in the Damage Step.","Damage: ATK vs ATK → the difference is taken by the owner of the weaker monster; ATK vs DEF → damage only if ATK > DEF (the difference) — unless an effect says otherwise.","Quick Effects and Traps in the Battle Step."],cant:["Normal Summon/Set.","Change battle position.","In the Damage Step: only Counter Traps and effects that specifically allow it (e.g. ATK/DEF changes).","On the first turn of the duel the starting player has NO Battle Phase."]},
+ {n:"Battle Phase",may:["Officially the Battle Phase has four steps (Start Step, Battle Step, Damage Step, End Step). This app treats it as ONE phase: attack whenever you like while you are in it.","Each face-up monster in Attack Position may attack once: declare an attacker and a target, or attack directly if the opponent has no monsters. You do not have to attack (or enter the Battle Phase) at all.","A face-down monster that is attacked is flipped face-up in the Damage Step.","Damage: ATK vs ATK → the difference is taken by the owner of the weaker monster; ATK vs DEF → damage only if ATK > DEF (the difference) — unless an effect says otherwise.","Quick Effects and Traps in the Battle Step."],cant:["Normal Summon/Set.","Change battle position.","In the Damage Step: only Counter Traps and effects that specifically allow it (e.g. ATK/DEF changes).","On the first turn of the duel the starting player has NO Battle Phase."]},
  {n:"Main Phase 2",may:["Everything from Main Phase 1 (Normal Summon only if you haven't done one yet).","Activate/Set Spells and Traps.","Special Summons."],cant:["Attack.","Change position of monsters that attacked or were summoned this turn."]},
  {n:"End Phase",may:["Effects 'at the end of the turn' / 'during the End Phase'.","Quick Effects and Traps can be activated.","Hand limit: if you hold more than 6 cards, discard down to 6."],cant:["Summon or attack.","After this, the turn ends and the opponent's turn begins."]}
 ];
@@ -244,6 +266,7 @@ function nextLabel(){
   return `Move to ${p.sub?p.sub[n.sub]:p.n}`;
 }
 function nextPhase(){
+  if(S.paused){resumeBattle();return}
   if(oppWait()){Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();return}
   const n=stepFrom(S);if(n.turn!==S.turn)S.ns=false;
   Object.assign(S,n);render();
@@ -295,11 +318,74 @@ function render(){
   const pb=$("phase");
   pb.className=oppWait()?"wait":"";
   pb.textContent=oppWait()?"Opponent's turn — tap when it's your turn":nextLabel();
+  if(S.paused){const pm=S.mon[S.paused.p][S.paused.i];pb.className="paused";pb.textContent="▶ Continue the paused attack";$("status").innerHTML=`⏸ Attack paused (${esc(pm?pm.name:"?")}) — resolve effects, then continue`}
+  $("rules").textContent=S.paused?"✖ End attack":"Rules";
   lpAnim();
   gameOver();
+  if(FXQ.length)fxFlush();
   undoTrack();
   save();
 }
+// ---------- Effects: slash, shield, red flash, dust ----------
+let FXQ=[];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const monEl=(p,i)=>document.querySelector(`.slot[data-p="${p}"][data-i="${i}"][data-row="mon"]`);
+function fxAdd(cls,r,w,h,html,css){
+  const e=document.createElement("div");e.className=cls;
+  const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  e.style.cssText=`left:${cx-w/2}px;top:${cy-h/2}px;width:${w}px;height:${h}px;${css||""}`;
+  if(html)e.innerHTML=html;
+  $("fx").appendChild(e);return e;
+}
+const fxLife=(e,ms)=>setTimeout(()=>e.remove(),ms);
+function fxSlash(r,flip){
+  const L=Math.max(r.width,r.height)*2.3,a=(flip?35:-35)*Math.PI/180,cx=r.left+r.width/2,cy=r.top+r.height/2;
+  const e=document.createElement("div");e.className="fxslash";
+  e.style.cssText=`left:${cx-Math.cos(a)*L/2}px;top:${cy-Math.sin(a)*L/2}px;width:${L}px;--a:${flip?35:-35}deg`;
+  $("fx").appendChild(e);fxLife(e,420);
+}
+function fxFlash(r){const e=fxAdd("fxflash",r,r.width*1.6,r.height*1.6);fxLife(e,600)}
+function fxDust(r){const w=Math.max(r.width,r.height)*1.5;const e=fxAdd("fxdust",r,w,w);fxLife(e,800)}
+function fxShieldHold(r){ // the shield holds: shakes and says BLOCKED
+  const w=Math.max(r.width*1.5,90),h=w*1.21;
+  const e=fxAdd("fxshield hold",r,w,h);fxLife(e,1400);
+  const t=fxAdd("fxtext",{left:r.left,top:r.top-h*0.45,width:r.width,height:r.height},180,40,"BLOCKED","animation-delay:.25s;opacity:0");fxLife(t,1400);
+}
+function fxShieldBreak(r){ // the shield splits in two
+  const w=Math.max(r.width*1.5,90),h=w*1.21;
+  const a=fxAdd("fxshield half l",r,w,h),b=fxAdd("fxshield half r",r,w,h);fxLife(a,900);fxLife(b,900);
+}
+function fxLunge(p,i,toRect){
+  const el=monEl(p,i);if(!el||!toRect||!el.animate)return;
+  const r=el.getBoundingClientRect();let dx=(toRect.left+toRect.width/2-r.left-r.width/2)*0.35,dy=(toRect.top+toRect.height/2-r.top-r.height/2)*0.35;
+  if(el.closest(".side.opp")||el.closest('.emzcell[style*="rotate"]')){dx=-dx;dy=-dy} // those halves are turned upside down
+  el.animate([{transform:"translate(0,0) scale(1)"},{transform:`translate(${dx}px,${dy}px) scale(1.1)`,offset:.5},{transform:"translate(0,0) scale(1)"}],{duration:420,easing:"ease-in-out"});
+}
+// plan: {kind:"direct",p,i,q} | {p,i,q,k,def,brk,tDies,aDies}
+async function fxBattle(pl){
+  if(calmMotion())return;
+  const ra=monEl(pl.p,pl.i)&&monEl(pl.p,pl.i).getBoundingClientRect();
+  if(pl.kind==="direct"){
+    const lp=document.querySelector(`#s${pl.q} .lp`);const rl=lp&&lp.getBoundingClientRect();
+    if(rl){fxLunge(pl.p,pl.i,rl);await sleep(230);fxSlash(rl);await sleep(380)}
+    return;
+  }
+  const el=monEl(pl.q,pl.k),rt=el&&el.getBoundingClientRect();if(!rt||!ra)return;
+  fxLunge(pl.p,pl.i,rt);await sleep(200);
+  if(pl.def){
+    if(pl.brk){fxSlash(rt);await sleep(260);fxShieldBreak(rt);await sleep(280);if(pl.tDies)fxFlash(rt);await sleep(520)}
+    else{fxShieldHold(rt);await sleep(280);fxSlash(rt);await sleep(900)}
+  }else{
+    fxSlash(rt);await sleep(300);
+    if(pl.tDies)fxFlash(rt);if(pl.aDies)fxFlash(ra);
+    await sleep(600);
+  }
+}
+function fxFlush(){
+  const q=FXQ;FXQ=[];if(calmMotion())return;
+  requestAnimationFrame(()=>q.forEach(f=>{if(f.t==="dust"){const el=monEl(f.p,f.i);if(el)fxDust(el.getBoundingClientRect())}}));
+}
+
 // ---------- Undo: every change to the game state can be taken back ----------
 let UNDO=[],LASTSTR=null,UNDOING=false;
 function toast(t){const e=$("toast");if(!e)return;e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),1300)}
@@ -766,6 +852,7 @@ function freeZones(p){ // all empty zones the player could drop a monster into
 
 // ---------- Monster slot ----------
 function placeMon(p,i,c,pos,how){
+  FXQ.push({t:"dust",p,i});
   S.mon[p][i]={name:c.name,atk:Math.max(0,c.atk??0),def:Math.max(0,c.def??0),da:0,dd:0,pos,id:c.id,type:c.type,race:c.race,attr:c.attr,lvl:c.lvl,
     q:(c.atk===-1?"A":"")+(c.def===-1?"D":""),sumT:S.tc,how,lm:c.lm|0,desc:c.desc||""};
 }
@@ -906,7 +993,7 @@ function setPos(p,i,np){
 function attackWarnings(p,i){
   const m=S.mon[p][i],w=[];
   if(p!==S.turn)w.push("Only the turn player can attack.");
-  if(!(S.ph===3&&S.sub===1))w.push(`Attacks are declared in the Battle Step of the Battle Phase (now: ${phName()}).`);
+  if(PHASES[S.ph].n!=="Battle Phase")w.push(`Attacks are made in the Battle Phase (now: ${phName()}).`);
   if(m.attT===S.tc)w.push("This monster already attacked this turn.");
   return w;
 }
@@ -917,26 +1004,55 @@ function attackDialog(p,i){
    ${w0.length?`<div class="card" style="color:var(--red)">⚠ ${w0.map(esc).join("<br>⚠ ")}</div>`:""}
    <p>Choose the target:</p><div class="res" id="tl">${targets.map(o=>`<div data-k="${o.k}"><b>${o.t.pos==="FD"?"Face-down monster":esc(o.t.name)}</b><br><small>${o.t.pos==="FD"?slotName(o.k):o.t.pos==="ATK"?"ATK "+stats(q,o.k).a:"DEF "+stats(q,o.k).d}</small></div>`).join("")}<div data-k="-1"><b>Direct attack</b></div></div>
    <div class="row"><button id="bk">← Back</button></div>`,()=>{
-    $("tl").onclick=e=>{const d=e.target.closest("[data-k]");if(d)battleConfirm(p,i,+d.dataset.k)};
+    $("tl").onclick=e=>{const d=e.target.closest("[data-k]");if(d)battleStart(p,i,+d.dataset.k)};
     $("bk").onclick=()=>slotDialog(p,i);
   });
 }
+// the defender gets the chance to respond (Trap, Quick-Play Spell, effect) before the result is calculated
+function battleStart(p,i,k){
+  if(S.noAsk||attackWarnings(p,i).length){battleConfirm(p,i,k);return}
+  const m=S.mon[p][i],q=1-p,t=k>=0?S.mon[q][k]:null,two=S.view==="2p",A=stats(p,i).a;
+  const tn=k<0?(two?"you directly":"the opponent directly"):t.pos==="FD"?"a face-down monster":esc(t.name);
+  FLIP=two&&q===1?true:(two?false:null);
+  open(`${closeX()}<h2>⚔ ${esc(m.name)} attacks ${tn}</h2><p style="font-size:16px">${esc(m.name)} (${A} ATK) attacks.</p>
+   <p><b>${two?"Do you":"Does the opponent"} want to respond</b> with a Trap, a Quick-Play Spell or an effect?</p>
+   <div class="row"><button id="rno" style="background:#1f5a3a;font-weight:800">No, continue</button><button id="ryes" style="background:#8a5a14;font-weight:800">Yes — pause the attack</button></div>
+   <div class="row"><button id="rbk">← Back</button></div>`,()=>{
+    $("rno").onclick=()=>{FLIP=null;battleConfirm(p,i,k)};
+    $("ryes").onclick=()=>{FLIP=null;dlg.close();S.paused={p,i,k};render();toast("⏸ Attack paused — resolve the effect, then continue")};
+    $("rbk").onclick=()=>{FLIP=null;attackDialog(p,i)};
+  });
+}
+function resumeBattle(){
+  const pz=S.paused;if(!pz)return;S.paused=null;
+  const m=S.mon[pz.p][pz.i];
+  if(!m){render();toast("The attacker left the field — the attack ends");return}
+  render();
+  if(pz.k>=0&&!S.mon[1-pz.p][pz.k]){m.attT=S.tc;toast("The target is gone");attackDialog(pz.p,pz.i);return} // replay: choose a new target
+  battleConfirm(pz.p,pz.i,pz.k);
+}
+function endPausedAttack(){
+  const pz=S.paused;if(!pz)return;S.paused=null;
+  const m=S.mon[pz.p][pz.i];if(m)m.attT=S.tc; // a declared attack counts as the monster's attack even if it is negated
+  render();toast("Attack ended (counts as an attack)");
+}
 function battleConfirm(p,i,k){
-  const m=S.mon[p][i],q=1-p,A=stats(p,i).a,w=attackWarnings(p,i);let txt,eff;
+  const m=S.mon[p][i],q=1-p,A=stats(p,i).a,w=attackWarnings(p,i);let txt,eff,pl;
   const hit=(who,n,why)=>setLP(who,S.lp[who]-n,x=>`${NAME(who)}: −${n} (${why}) → ${x}`);
   if(k<0){
     if(S.mon[q].some(Boolean))w.push("A direct attack is only allowed if the opponent controls no monsters.");
-    txt=`Direct attack: ${NAME(q)} takes ${A} damage.`;eff=()=>hit(q,A,"direct attack");
+    txt=`Direct attack: ${NAME(q)} takes ${A} damage.`;eff=()=>hit(q,A,"direct attack");pl={kind:"direct",p,i,q};
   }else{
     const t=S.mon[q][k],ts=stats(q,k),fd=t.pos==="FD",atkPos=t.pos==="ATK";
     const tname=fd?`Face-down monster (${t.name})`:t.name;
     if(atkPos){
       const v=ts.a;
+      pl={p,i,q,k,def:false,tDies:A>=v,aDies:A<=v};
       if(A>v){txt=`${tname} (${v} ATK) is destroyed. ${NAME(q)} takes ${A-v} damage.`;eff=()=>{removeMon(q,k);hit(q,A-v,"battle")}}
       else if(A<v){txt=`${m.name} (${A}) is destroyed. ${NAME(p)} takes ${v-A} damage.`;eff=()=>{removeMon(p,i);hit(p,v-A,"battle")}}
       else{txt="Both monsters are destroyed. No damage.";eff=()=>{removeMon(q,k);removeMon(p,i);render()}}
     }else{
-      const v=ts.d;
+      const v=ts.d;pl={p,i,q,k,def:true,brk:A>v,tDies:A>v};
       if(A>v){txt=`${tname} (${v} DEF) is destroyed. No battle damage.${fd?" It is flipped face-up first.":""}`;eff=()=>{removeMon(q,k);render()}}
       else if(A<v){txt=`${tname} (${v} DEF) holds. ${NAME(p)} takes ${v-A} damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";hit(p,v-A,"battle")}}
       else{txt=`${tname} (${v} DEF) holds. No damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";render()}}
@@ -946,7 +1062,7 @@ function battleConfirm(p,i,k){
    ${w.length?`<div class="card" style="color:var(--red)">⚠ ${w.map(esc).join("<br>⚠ ")}</div>`:""}
    <p style="font-size:16px">${esc(txt)}</p><small>Card effects (like traps) can change this. Apply only if nothing else happened.</small>
    <div class="row"><button id="ap" style="background:#1f5a3a">Apply result</button><button id="mk">Only mark as attacked</button><button id="bk">Back</button></div>`,()=>{
-    $("ap").onclick=()=>guard(w,()=>{m.attT=S.tc;eff();render();dlg.close()},()=>battleConfirm(p,i,k));
+    $("ap").onclick=()=>guard(w,async()=>{m.attT=S.tc;dlg.close();await fxBattle(pl);eff();render()},()=>battleConfirm(p,i,k));
     $("mk").onclick=()=>{m.attT=S.tc;render();dlg.close()};
     $("bk").onclick=()=>attackDialog(p,i);
   });
@@ -1204,6 +1320,7 @@ function skillConfirm(p,s){
 $("phase").onclick=nextPhase;
 $("btnUndo").onclick=undoStep;
 $("rules").onclick=()=>{
+  if(S.paused){endPausedAttack();return}
   const ph=PHASES[S.ph];const w=oppWait();
   const r=w?OPP_TURN_RULES:ph;
   const cant=[...r.cant];
@@ -1327,6 +1444,7 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <div class="row"><button id="view">View: ${S.view==="2p"?"2 players, 1 phone (switch to 1 player)":"1 player, own phone (switch to 2 players)"}</button></div>
   <div class="row"><button id="n8">New duel (8000 LP, 5 zones)</button><button id="n4">Speed Duel (4000 LP, 3 zones)</button></div>
   <div class="row"><button id="who">Who starts? Now: ${NAME(S.startPlayer)}</button></div>
+  <div class="row"><button id="ask">Ask the defender before each attack: ${S.noAsk?"OFF":"ON"}</button></div>
   <div class="row"><button id="surr" style="background:#6b2230">🏳 Surrender…</button></div>
   <p><small>A new duel resets LP, monsters and the turn counter.</small></p>
   <div class="row"><button id="home">🏠 Back to main menu</button></div>
@@ -1334,6 +1452,7 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <p><small>Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami. Yu-Gi-Oh! and all card names and card text are © Konami. This app shows no card artwork. Card data via YGOPRODeck.</small></p>`,()=>{
   const nd=(lp,n)=>{dlg.close();startDuel(lp,n,S.view)};
   $("home").onclick=()=>{dlg.close();showSplash()};
+  $("ask").onclick=()=>{S.noAsk=!S.noAsk;render();dlg.close()};
   $("surr").onclick=()=>open(`${closeX()}<h2>Surrender?</h2><p>The duel ends and the other player wins.</p><div class="row"><button id="s0" style="background:#6b2230">I surrender</button>${S.view==="1p"?"":`<button id="s1" style="background:#6b2230">Opponent surrenders</button>`}</div><div class="row"><button id="sno">Cancel</button></div>`,()=>{
     const go=p=>{dlg.close();setLP(p,0,()=>`${NAME(p)} surrendered`)};
     $("s0").onclick=()=>go(0);if($("s1"))$("s1").onclick=()=>go(1);$("sno").onclick=()=>dlg.close();
