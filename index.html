@@ -102,6 +102,8 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .oh.rot{transform:rotate(180deg)}.oh.win{color:var(--green)}.oh.lose{color:var(--red)}.oh.draw{color:var(--gold)}
 #over{position:fixed;inset:0;background:#000d;z-index:50;display:flex;flex-direction:column}
 #over[hidden]{display:none}
+.orem{font-size:15px;font-weight:600;color:#ffd27a;margin-top:10px;line-height:1.45;padding:0 14px}
+.ctlb{position:absolute;top:1px;left:3px;font-size:11px;font-weight:900;color:#0b2200;background:#8be32a;border-radius:6px;padding:0 3px;line-height:14px;pointer-events:none;box-shadow:0 1px 3px #000a;z-index:2}
 .omid{display:flex;gap:8px;justify-content:center;padding:8px}.omid button{padding:12px 16px;font-weight:700}
 #splash{position:fixed;inset:0;z-index:100;background:var(--bg) url(img/bg-embers.jpg) center/cover;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;overflow:auto}
 #splash[hidden]{display:none}
@@ -276,9 +278,9 @@ function nextLabel(){
 }
 function nextPhase(){
   if(S.paused){resumeBattle();return}
-  if(oppWait()){Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();return}
+  if(oppWait()){ctlEndPhase();Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();return}
   const n=stepFrom(S);if(n.turn!==S.turn)S.ns=false;
-  Object.assign(S,n);render();
+  Object.assign(S,n);if(PHASES[S.ph].n==="End Phase"||n.turn!==S.turn)ctlEndPhase();render();
 }
 function oppWait(){return S.view==="1p"&&S.turn===1}
 
@@ -428,6 +430,21 @@ function fxFly(fr,to,o){
     {duration:720,easing:"cubic-bezier(.45,0,.75,.5)",fill:"forwards"});
   an.onfinish=()=>e.remove();
 }
+function fxMove(fr,el,o){ // control change: the card glides to the other side of the field and turns around
+  const to=el.getBoundingClientRect();if(!to.width||!el.animate)return;
+  const fd=o.cls==="fd",land=o.cls!=="atk",w=Math.min((land?to.height:to.width)*0.8,64),h=w*1.458;
+  const e=document.createElement("div");e.className=`fxcard cb port ${fd?"fdv":o.cls}`;
+  e.innerHTML=fd?"":`<span class="n">${esc(o.name)}</span>`;
+  e.style.cssText=`left:${fr.left+fr.width/2-w/2}px;top:${fr.top+fr.height/2-h/2}px;width:${w}px;height:${h}px;z-index:6`;
+  $("fx").appendChild(e);el.style.opacity="0";
+  const dx=to.left+to.width/2-(fr.left+fr.width/2),dy=to.top+to.height/2-(fr.top+fr.height/2),r0=land?90:0,sp=S.view==="1p"?360:180;
+  const an=e.animate([
+    {transform:`translate(0,0) scale(1) rotate(${r0}deg)`,boxShadow:"0 0 0 #8be32a00"},
+    {transform:`translate(${dx*0.5}px,${dy*0.5}px) scale(1.35) rotate(${r0+sp/2}deg)`,boxShadow:"0 0 22px #8be32a",offset:.5},
+    {transform:`translate(${dx}px,${dy}px) scale(1) rotate(${r0+sp}deg)`,boxShadow:"0 0 0 #8be32a00"}],
+    {duration:900,easing:"cubic-bezier(.5,0,.3,1)",fill:"forwards"});
+  an.onfinish=()=>{e.remove();el.style.opacity="";fxPulse(el,0)};
+}
 function fxPulse(el,delay){if(calmMotion()||!el||!el.animate)return;el.animate([{transform:"scale(1)",filter:"brightness(1)"},{transform:"scale(1.14)",filter:"brightness(1.8)"},{transform:"scale(1)",filter:"brightness(1)"}],{duration:380,delay:delay||0})}
 function flyToPile(rect,c,p,kind){ // call BEFORE the card is removed from the board (the rectangle is needed)
   const b=pileBtn(p,kind);if(!rect||!b||!c)return;
@@ -437,6 +454,7 @@ function fxFlush(){
   const q=FXQ;FXQ=[];if(calmMotion())return;
   requestAnimationFrame(()=>q.forEach(f=>{
     if(f.t==="dust"){const el=monEl(f.p,f.i);if(el)fxDust(el.getBoundingClientRect())}
+    if(f.t==="move"){const el=monEl(f.p,f.i);if(el&&f.fr)fxMove(f.fr,el,f)}
     if(f.t==="flyin"){
       const b=pileBtn(f.p,f.pile),el=f.k==="mon"?monEl(f.p,f.i):f.k==="field"?fieldEl(f.p):stEl(f.p,f.i);
       if(b&&el){fxPulse(b,0);fxFly(b.getBoundingClientRect(),el.getBoundingClientRect(),{name:f.name,cls:f.cls})}
@@ -519,7 +537,14 @@ function gameOver(){
   const m=(x,y)=>x===0&&y===0?["DRAW","draw"]:x===0?["YOU LOST","lose"]:["YOU WIN","win"];
   const [t0,c0]=m(a,b),[t1,c1]=m(b,a);
   const two=S.view!=="1p";
-  o.innerHTML=(two?`<div class="oh rot ${c1}">${t1}</div>`:"")+`<div class="omid"><button id="ovU">↩ Undo last change</button><button id="ovN" style="background:var(--gold);color:#241a00">New duel</button></div><div class="oh ${c0}">${t0}</div>`;
+  // cards on the field that belong to the other player go back to their owner after the duel
+  const rem=ctlReminders(),remFor=q=>{
+    const ask=rem.filter(r=>r.o===q).map(r=>`Don't forget to ask for your <b>${esc(r.name)}</b> back!`);
+    const give=rem.filter(r=>r.by===q).map(r=>`Give <b>${esc(r.name)}</b> back to ${two?"its owner":"your opponent"}.`);
+    const L=two?ask.concat(give):ask.concat(rem.filter(r=>r.o===1).map(r=>`Give <b>${esc(r.name)}</b> back to your opponent.`));
+    return L.length?`<div class="orem">⇄ ${L.join("<br>⇄ ")}</div>`:"";
+  };
+  o.innerHTML=(two?`<div class="oh rot ${c1}"><div>${t1}${remFor(1)}</div></div>`:"")+`<div class="omid"><button id="ovU">↩ Undo last change</button><button id="ovN" style="background:var(--gold);color:#241a00">New duel</button></div><div class="oh ${c0}"><div>${t0}${remFor(0)}</div></div>`;
   o.hidden=false;
   $("ovU").onclick=()=>undoStep();
   $("ovN").onclick=()=>{const v=S.view,n=S.n;startDuel(n===3?4000:8000,n,v)};
@@ -532,10 +557,10 @@ function fieldChip(p){
 function slotHTML(p,i,m){
   const a=`data-p="${p}" data-i="${i}" data-row="mon"`;
   if(!m)return`<div class="slot empty" ${a}>+<br><span class="sl-lbl">monster</span></div>`;
-  if(m.pos==="FD")return`<div class="slot" ${a}><div class="cbw"><div class="cb land fd"></div></div><div class="st dim">? / ?</div></div>`;
+  if(m.pos==="FD")return`<div class="slot" ${a}>${ownerOf(m,p)!==p?`<span class="ctlb">⇄</span>`:""}<div class="cbw"><div class="cb land fd"></div></div><div class="st dim">? / ?</div></div>`;
   const cls=x=>x>0?"up":x<0?"down":"";
   const d=m.pos==="DEF",s=stats(p,i),da=s.a-m.atk,dd=s.d-m.def;
-  return`<div class="slot" ${a}>${badges(m)}
+  return`<div class="slot" ${a}>${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
     <div class="cbw"><div class="cb ${d?"land def":"port atk"}"><span class="n">${esc(m.name)}</span></div></div>
     <div class="st"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":` / <span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span>`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
 }
@@ -630,12 +655,90 @@ function sendTo(p,kind,c,fromField){
   if(fromField&&kind==="gy"&&/Pendulum/.test(c.type||"")){S.edup[p].unshift(e);addLog(`${c.name} (Pendulum) went to the Extra Deck face-up instead of the Graveyard`);return}
   (kind==="ban"?S.ban:S.gy)[p].unshift(e);
 }
+// a card always goes to its OWNER's Graveyard / Banished pile, also when the other player controls it
+const ownerOf=(m,p)=>m&&m.own!==undefined?m.own:p;
 function removeMon(p,i,dest="gy"){
-  const m=S.mon[p][i],el=monEl(p,i);
+  const m=S.mon[p][i],el=monEl(p,i),o=ownerOf(m,p);
   S.mon[p][i]=null;
-  if(dest!=="none"&&m&&m.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),m,p,dest);
-  if(dest!=="none")sendTo(p,dest,m,true);
+  if(dest!=="none"&&m&&m.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),m,o,dest);
+  if(dest!=="none")sendTo(o,dest,m,true);
+  if(dest!=="none"&&m&&o!==p)addLog(`${m.name} went to its owner's ${dest==="ban"?"Banished pile":"Graveyard"} (${NAME(o)})`);
   [0,1].forEach(q=>S.st[q].forEach((e,k)=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const se=stEl(q,k);if(se)flyToPile(se.getBoundingClientRect(),e,q,"gy");S.st[q][k]=null;sendTo(q,"gy",e);addLog(`${e.name} went to the Graveyard (equipped monster left the field)`)}}));
+}
+
+// ---------- Control: a monster can be controlled by the player who does not own it ----------
+// m.ctl = {ep: returns in the End Phase, t: turn it was taken, src: uid of the card that keeps control (Snatch Steal...)}
+const who=p=>p===0?"you":"your opponent";
+const CTL_RX=/take control|gain control|switch control|control of (?:1|one|that|the|all)/i;
+function ctlZone(q,i){ // free zone on the side of player q: same Extra Monster Zone, else same column, else first free
+  if(i>=EMZ0)return S.mon[q][i]?-1:i;
+  if(!S.mon[q][i]&&i<S.n)return i;
+  return S.mon[q].slice(0,S.n).findIndex(x=>!x);
+}
+function moveCtl(p,i,q,opt){ // returns the new zone or -1
+  const m=S.mon[p][i];if(!m)return -1;
+  const j=ctlZone(q,i);if(j<0)return -1;
+  const el=monEl(p,i);
+  S.mon[p][i]=null;S.mon[q][j]=m;
+  if(m.own===undefined)m.own=p;
+  if(m.own===q)delete m.ctl;else m.ctl=Object.assign({t:S.tc},opt||{});
+  [0,1].forEach(r=>S.st[r].forEach(e=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i)e.tgt={p:q,i:j}}));
+  FXQ.push({t:"move",p:q,i:j,fr:el&&el.getBoundingClientRect(),name:m.pos==="FD"?"":m.name,cls:m.pos==="FD"?"fd":m.pos==="DEF"?"def":"atk"});
+  return j;
+}
+function returnCtl(p,i,why){ // back to the owner; no free zone = it goes to the owner's Graveyard (official rule)
+  const m=S.mon[p][i];if(!m)return;
+  const o=ownerOf(m,p);if(o===p){delete m.ctl;return}
+  if(moveCtl(p,i,o)<0){removeMon(p,i);addLog(`${m.name} could not return to ${NAME(o)} (no free zone) and was sent to the Graveyard`);return}
+  addLog(`${m.name} returned to its owner (${NAME(o)})${why?" – "+why:""}`);
+}
+function ctlEndPhase(){ // "until the End Phase" (Change of Heart, Brain Control...)
+  const back=[];
+  [0,1].forEach(p=>S.mon[p].forEach((m,i)=>{if(m&&m.ctl&&m.ctl.ep){back.push(m.name);returnCtl(p,i,"End Phase")}}));
+  if(back.length)toast(`⇄ ${back.join(", ")} returned to ${back.length>1?"their owners":"its owner"}`);
+}
+function ctlSrcGone(uid){ // the card that kept control left the field (Snatch Steal destroyed...)
+  if(!uid)return;
+  [0,1].forEach(p=>S.mon[p].forEach((m,i)=>{if(m&&m.ctl&&m.ctl.src===uid)returnCtl(p,i,"the card that took control left the field")}));
+}
+function ctlDialog(p,i){
+  const m=S.mon[p][i];if(!m)return;
+  const o=ownerOf(m,p),q=1-p,nm=m.pos==="FD"?"this face-down monster":esc(m.name);
+  const stolen=o!==p;
+  open(`${closeX()}<h2>⇄ Control – ${nm}</h2>
+   <p><small>Owner: <b>${NAME(o)}</b> • controlled by: <b>${NAME(p)}</b>${stolen?(m.ctl&&m.ctl.ep?" • returns in the End Phase":m.ctl&&m.ctl.src?" • as long as the card that took it stays on the field":" • until a card effect returns it"):""}</small></p>
+   ${stolen?`<div class="row"><button id="cb" style="background:#1f5a3a">↩ Return it to ${NAME(o)} now</button></div>`:""}
+   <p><b>${q===0?"You take":"Your opponent takes"} control</b></p>
+   <div class="row"><button id="ce">Until the End Phase<br><small>Change of Heart, Brain Control…</small></button><button id="cl">Until a card returns it<br><small>Mind Control, Creature Swap…</small></button></div>
+   <p><small>Rules: a card always goes to its owner's Graveyard (also when the other player controls it, e.g. after a Tribute for Soul Exchange). At the end of the duel every card goes back to its owner.</small></p>
+   <div class="row"><button id="co">${stolen?`It really belongs to ${who(p)}`:`It belongs to ${who(q)}`}<br><small>e.g. a Kaiju or Lava Golem summoned to this side</small></button></div>
+   <div class="row"><button id="bk">← Back</button></div>`,()=>{
+    const take=ep=>{const j=moveCtl(p,i,q,{ep});if(j<0){toast(q===0?"You have no free monster zone":"Your opponent has no free monster zone");return}addLog(`${NAME(q)} took control of ${m.name}${ep?" until the End Phase":""}`);render();dlg.close()};
+    $("ce").onclick=()=>take(true);$("cl").onclick=()=>take(false);
+    if($("cb"))$("cb").onclick=()=>{returnCtl(p,i);render();dlg.close()};
+    $("co").onclick=()=>{m.own=stolen?p:q;if(m.own===p)delete m.ctl;else m.ctl={t:S.tc};render();ctlDialog(p,i)};
+    $("bk").onclick=()=>slotDialog(p,i);
+  });
+}
+// a Spell/Trap/monster whose text takes control: pick an opponent's monster
+function ctlFromCard(p,src,back){
+  const q=1-p,list=S.mon[q].map((m,k)=>m?{m,k}:null).filter(Boolean),d=src.desc||"";
+  const ep=/until the End Phase/i.test(d),keep=src.uid&&!ep;
+  open(`${closeX()}<h2>⇄ Take control with ${esc(src.name)}</h2>
+   <p><small>${ep?"The card text says: until the End Phase. The app gives it back automatically.":keep?"While this card stays on the field, you keep the monster. If it leaves the field, the monster goes back automatically.":"It stays with you until a card returns it (⇄ Control on the monster)."}</small></p>
+   <div class="res" id="tl">${list.map((o,x)=>`<div data-x="${x}"><b>${o.m.pos==="FD"?"Face-down monster":esc(o.m.name)}</b><br><small>${NAME(q)} • ${slotName(o.k)}</small></div>`).join("")||"<div><small>Your opponent controls no monsters.</small></div>"}</div>
+   <div class="row"><button id="bk">Cancel</button></div>`,()=>{
+    $("tl").onclick=e=>{const dv=e.target.closest("[data-x]");if(!dv)return;const o=list[+dv.dataset.x];
+      const j=moveCtl(q,o.k,p,{ep,src:keep?src.uid:undefined});if(j<0){toast("You have no free monster zone");return}
+      addLog(`${NAME(p)} took control of ${o.m.name} with ${src.name}${ep?" until the End Phase":""}`);render();dlg.close()};
+    $("bk").onclick=()=>back?back():dlg.close();
+  });
+}
+// end of the duel: who still has whose cards?
+function ctlReminders(){
+  const out=[];
+  [0,1].forEach(p=>S.mon[p].forEach(m=>{if(m&&ownerOf(m,p)!==p)out.push({o:m.own,name:m.name,by:p})}));
+  return out;
 }
 
 // ---------- Stat bonuses (equip / field) ----------
@@ -912,9 +1015,9 @@ function freeZones(p){ // all empty zones the player could drop a monster into
 }
 
 // ---------- Monster slot ----------
-function placeMon(p,i,c,pos,how){
+function placeMon(p,i,c,pos,how,own){
   FXQ.push({t:"dust",p,i});
-  S.mon[p][i]={name:c.name,atk:Math.max(0,c.atk??0),def:Math.max(0,c.def??0),da:0,dd:0,pos,id:c.id,type:c.type,race:c.race,attr:c.attr,lvl:c.lvl,
+  S.mon[p][i]={own:own??p,name:c.name,atk:Math.max(0,c.atk??0),def:Math.max(0,c.def??0),da:0,dd:0,pos,id:c.id,type:c.type,race:c.race,attr:c.attr,lvl:c.lvl,
     q:(c.atk===-1?"A":"")+(c.def===-1?"D":""),sumT:S.tc,how,lm:c.lm|0,desc:c.desc||""};
 }
 function loadMonDialog(p,i){
@@ -938,6 +1041,8 @@ function summonDialog(p,i,c,opts){
   const lv=extra?0:(c.lvl||0);
   const need=lv>=7?2:lv>=5?1:0;
   const own=S.mon[p].map((m,k)=>m&&k!==i?{m,k}:null).filter(Boolean);
+  const opp=S.mon[1-p].map((m,k)=>m?{m,k}:null).filter(Boolean); // only with a card like Soul Exchange
+  const ssOpp=/Special Summon[^.]{0,80}(?:to|on|in) (?:your )?opponent'?s? (?:side of the )?field/i.test(c.desc||"");
   // some monsters count as 2 (or 3) Tributes for certain monsters, e.g. Kaiser Sea Horse -> any LIGHT monster
   const tribVal=m=>{
     const d=m.desc||"";if(m.pos==="FD"||/toss a coin/i.test(d))return 1;
@@ -948,7 +1053,8 @@ function summonDialog(p,i,c,opts){
   };
   const noTrib=((c.desc||"").match(/[^.\n]*without Tributing[^.\n]*\./i)||[])[0];
   open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type)}${c.lvl!=null?" • Level/Link "+c.lvl:""} • ATK ${c.atk===-1?"?":c.atk??"-"} / DEF ${c.def===-1?"?":c.def??"-"}</small>
-   ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set – select:</p><div id="trib">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}${tribVal(o.m)>1?` <small style="color:var(--gold)">(counts as ${tribVal(o.m)} Tributes)</small>`:""}</label>`).join("")||"<small>You control no other monsters.</small>"}</div>`:""}
+   ${need?`<p><b>Needs ${need} Tribute${need>1?"s":""}</b> for a Normal Summon/Set – select:</p><div id="trib">${own.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)}${tribVal(o.m)>1?` <small style="color:var(--gold)">(counts as ${tribVal(o.m)} Tributes)</small>`:""}</label>`).join("")||"<small>You control no other monsters.</small>"}${opp.length?`<details style="margin-top:4px"><summary><small>Opponent's monsters (only with a card like Soul Exchange)</small></summary>${opp.map(o=>`<label style="display:block;padding:4px 0"><input type="checkbox" value="o${o.k}"> ${o.m.pos==="FD"?"Face-down monster ("+slotName(o.k)+")":esc(o.m.name)} <small>(opponent)</small></label>`).join("")}</details>`:""}</div>`:""}
+   ${ssOpp?`<p><label><input type="checkbox" id="ownx"> This card belongs to ${who(1-p)} – it is Special Summoned to this side of the field by its own effect (Kaiju, Lava Golem…)</label></p>`:""}
    ${S.n===5?`<p>${isLink?"":`<label><input type="checkbox" id="pends" ${opts.ed?"checked":""}> Pendulum Summon (uses your Pendulum Scales)</label>`}${isPend?`<br><label><input type="checkbox" id="fromED" ${opts.ed?"checked":""}> Pendulum Monster summoned face-up from the Extra Deck</label>`:""}</p>`:""}
    ${S.n===5&&(extra||isPend)?`<p><b>Zone</b></p><div id="zsel" class="row" style="gap:4px"></div><small id="zhint"></small>`:""}
    <div class="row"><button id="bn">Normal Summon</button><button id="bs">Set (face-down)</button></div>
@@ -957,6 +1063,7 @@ function summonDialog(p,i,c,opts){
    <div class="card" style="max-height:22dvh">${esc(c.desc).replace(/\n/g,"<br>")}</div>
    <div class="row"><button id="bk">← Back to search</button></div>`,()=>{
     let zone=i;
+    const ownX=()=>$("ownx")&&$("ownx").checked?1-p:p;
     const fromED=()=>extra||($("fromED")&&$("fromED").checked);
     const drawZones=()=>{
       if(!$("zsel"))return;
@@ -967,19 +1074,21 @@ function summonDialog(p,i,c,opts){
     };
     drawZones();if($("fromED"))$("fromED").onchange=drawZones;
     const go=how=>{
-      const sel=[...dlg.querySelectorAll("#trib input:checked")].map(x=>+x.value);const w=[];
+      const selA=[...dlg.querySelectorAll("#trib input:checked")].map(x=>x.value),w=[];
+      const sel=selA.filter(v=>v[0]!=="o").map(Number),selO=selA.filter(v=>v[0]==="o").map(v=>+v.slice(1));
       if(zone>=EMZ0)w.push("Normal Summon/Set is never placed in an Extra Monster Zone (only Special Summons from the Extra Deck).");
       if(p!==S.turn)w.push("Normal Summon/Set is only allowed on your own turn.");
       if(!inMain())w.push(`Normal Summon/Set is only allowed in a Main Phase (now: ${phName()}).`);
       if(S.ns)w.push("You already used your Normal Summon/Set this turn.");
       if(extra)w.push("Extra Deck monsters can't be Normal Summoned or Set.");
       if(noNS)w.push("This card can't be Normal Summoned/Set (it must be Special Summoned).");
-      const vals=sel.map(k=>{const o=own.find(x=>x.k===k);return o?tribVal(o.m):1});
+      const vals=sel.map(k=>{const o=own.find(x=>x.k===k);return o?tribVal(o.m):1}).concat(selO.map(k=>{const o=opp.find(x=>x.k===k);return o?tribVal(o.m):1}));
+      if(selO.length)w.push("Tributing a monster your opponent controls needs a card effect (e.g. Soul Exchange: you then can't conduct your Battle Phase this turn). That monster goes to its owner's Graveyard.");
       const total=vals.reduce((a,b)=>a+b,0);
       if(total<need)w.push(`This monster needs ${need} Tribute(s); you selected ${total}.${noTrib?` Its card text says: “${noTrib.trim()}” — if that applies, continue.`:""}`);
-      else if(sel.length>1&&total-Math.min(...vals)>=need)w.push("You selected more Tributes than needed.");
-      else if(need===0&&sel.length)w.push("This monster needs no Tribute.");
-      guard(w,()=>{sel.forEach(k=>removeMon(p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      else if(selA.length>1&&total-Math.min(...vals)>=need)w.push("You selected more Tributes than needed.");
+      else if(need===0&&selA.length)w.push("This monster needs no Tribute.");
+      guard(w,()=>{sel.forEach(k=>removeMon(p,k));selO.forEach(k=>removeMon(1-p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
     $("bn").onclick=()=>go("normal");$("bs").onclick=()=>go("set");
     const special=pos=>{
@@ -993,14 +1102,14 @@ function summonDialog(p,i,c,opts){
         if(p!==S.turn||!inMain())w.push("A Pendulum Summon is done in your own Main Phase.");
       }
       if(S.mon[p][zone])w.push("That zone is occupied.");
-      guard(w,()=>{placeMon(p,zone,c,pos,"special");if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      guard(w,()=>{placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
     $("sa").onclick=()=>special("ATK");
     if($("sd"))$("sd").onclick=()=>special("DEF");
     if($("fd"))$("fd").onclick=()=>{
       const w=zoneWarnings(p,zone,c,"special",fromED());
       if(S.mon[p][zone])w.push("That zone is occupied.");
-      guard(w,()=>{placeMon(p,zone,c,"FD","special");render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      guard(w,()=>{placeMon(p,zone,c,"FD","special",ownX());render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
     $("bk").onclick=()=>loadMonDialog(p,i);
   });
@@ -1017,9 +1126,13 @@ function slotDialog(p,i){
    <div class="row">${[["ATK","⚔ Attack"],["DEF","🛡 Defense"],["FD","🂠 Face-down DEF"]].filter(x=>!m.lm||x[0]==="ATK").map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${m.pos==="FD"?"":trackerHTML(m)}
-   <div class="row">${m.pos==="ATK"?`<button id="atk" style="background:#8a1424">⚔ Attack…</button>`:""}<button id="info">Card text</button></div>
+   <div class="row">${m.pos==="ATK"?`<button id="atk" style="background:#8a1424">⚔ Attack…</button>`:""}<button id="info">Card text</button><button id="ctl">⇄ Control${ownerOf(m,p)!==p?" (not yours)":"…"}</button></div>
+   ${m.pos!=="FD"&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctle">⇄ Its effect takes control of a monster…</button></div>`:""}
    <div class="row"><button id="clr" style="background:#6b2230">🪦 To Graveyard</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
+   ${ownerOf(m,p)!==p?`<p><small>Owned by ${who(ownerOf(m,p))}: if it leaves the field it goes to ${ownerOf(m,p)===0?"your":"your opponent's"} Graveyard / Banished pile.</small></p>`:""}
    <div class="card" id="ct" hidden></div>`,()=>{
+    $("ctl").onclick=()=>ctlDialog(p,i);
+    if($("ctle"))$("ctle").onclick=()=>ctlFromCard(p,m,()=>slotDialog(p,i));
     dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=+b.dataset.v;m[k]=v===0?0:m[k]+v;render();slotDialog(p,i)});
     ["da","dd"].forEach(k=>{if($("sg"+k))$("sg"+k).onclick=()=>{m.sg=-(m.sg||-1);slotDialog(p,i)}});
     dlg.querySelectorAll("[data-pos]").forEach(b=>b.onclick=()=>setPos(p,i,b.dataset.pos));
@@ -1278,12 +1391,15 @@ function pickTarget(onPick,back){
     $("bk").onclick=()=>back?back():dlg.close();
   });
 }
+const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
   const done=()=>{e.pos="UP";if(/Field/.test(e.type))e.eff=parseField(e.desc||"");render();openZone(p,i,z)};
   if(/Equip/.test(e.type)){
-    pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);done()},back);
+    pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
+      if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
+      done()},back);
   }else done();
 }
 function stPlace(p,i,c,z){
@@ -1350,6 +1466,8 @@ function cardZoneDialog(p,i,z){
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${pendUI}${eqUI}${fUI}${m.pos==="UP"?trackerHTML(m):""}
    <div class="row">${oneShot&&m.pos==="UP"?`<button id="res1" style="background:#1f5a3a">Resolved → Graveyard</button>`:""}<button id="info">Card text</button></div>
+   ${m.pos==="UP"&&!m.eq&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctlc">⇄ Take control of a monster…</button></div>`:""}
+   ${m.uid&&S.mon.some(L=>L.some(x=>x&&x.ctl&&x.ctl.src===m.uid))?`<p><small>⇄ The monster taken with this card stays with you while this card is on the field.</small></p>`:""}
    ${z==="field"?`<div class="row"><button id="repl">↻ Replace with another Field Spell (this one goes to the Graveyard)</button></div>`:""}
    <div class="row"><button id="clr" style="background:#6b2230">${pend?"⬆ To Extra Deck (face-up)":"🪦 To Graveyard"}</button><button id="ban" style="background:#3a2f66">🌀 Banish</button><button id="rm">Remove (hand/deck)</button></div>
    <div class="card" id="ct" hidden></div>`,()=>{
@@ -1370,8 +1488,9 @@ function cardZoneDialog(p,i,z){
     ["a","d"].forEach(k=>{const b=$("esg"+k);if(b)b.onclick=()=>{m.sg=-(m.sg||-1);cardZoneDialog(p,i,z)}});
     if($("chg"))$("chg").onclick=()=>pickTarget(tg=>{m.tgt=tg;if(m.eq&&m.eq.lvx)m.eq=parseEquip(m.desc||"",S.mon[tg.p][tg.i]);again()},()=>cardZoneDialog(p,i,z));
     if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
-    const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
+    const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(e)ctlSrcGone(e.uid);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
     if($("res1"))$("res1").onclick=()=>leave("gy");
+    if($("ctlc"))$("ctlc").onclick=()=>{if(!oneShot)m.uid=m.uid||newUid();ctlFromCard(p,m,()=>cardZoneDialog(p,i,z))};
     $("clr").onclick=()=>leave("gy");$("ban").onclick=()=>leave("ban");$("rm").onclick=()=>leave("none");
     $("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text.";};
   });
