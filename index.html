@@ -387,9 +387,10 @@ function fxFlush(){
 }
 
 // ---------- Undo: every change to the game state can be taken back ----------
-let UNDO=[],LASTSTR=null,UNDOING=false;
+let UNDO=[],LASTSTR=null,UNDOING=false,UNDOMERGE=false; // UNDOMERGE: several changes count as one undo step
 function toast(t){const e=$("toast");if(!e)return;e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),1300)}
 function undoTrack(){
+  if(UNDOMERGE)return;
   const cur=JSON.stringify(S);
   if(LASTSTR!==null&&cur!==LASTSTR&&!UNDOING){UNDO.push(LASTSTR);if(UNDO.length>60)UNDO.shift()}
   LASTSTR=cur;UNDOING=false;
@@ -731,6 +732,7 @@ function fieldHits(e,owner,p,m){
 function stats(p,i){
   const m=S.mon[p][i];if(!m)return null;
   let a=m.atk+m.da,d=m.def+m.dd;const src=[];
+  if(m.tm&&m.tm.t===S.tc){a+=m.tm.a;d+=m.tm.d;src.push(`temporary ${fmt(m.tm)}`)}
   for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
   for(const q of[0,1]){const f=S.field[q];if(f&&f.pos==="UP"&&f.auto!==false)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}}
   return{a:Math.max(0,a),d:Math.max(0,d),src};
@@ -1016,20 +1018,154 @@ function battleStart(p,i,k){
   FLIP=two&&q===1?true:(two?false:null);
   open(`${closeX()}<h2>⚔ ${esc(m.name)} attacks ${tn}</h2><p style="font-size:16px">${esc(m.name)} (${A} ATK) attacks.</p>
    <p><b>${two?"Do you":"Does the opponent"} want to respond</b> with a Trap, a Quick-Play Spell or an effect?</p>
-   <div class="row"><button id="rno" style="background:#1f5a3a;font-weight:800">No, continue</button><button id="ryes" style="background:#8a5a14;font-weight:800">Yes — pause the attack</button></div>
+   <div class="row"><button id="rno" style="background:#1f5a3a;font-weight:800">No, continue</button></div>
+   <div class="row"><button id="rbuild" style="background:#8a5a14;font-weight:800">Yes — activate (effect builder)</button></div>
+   <div class="row"><button id="ryes">Yes — pause, I'll do it by hand</button></div>
    <div class="row"><button id="rbk">← Back</button></div>`,()=>{
     $("rno").onclick=()=>{FLIP=null;battleConfirm(p,i,k)};
+    $("rbuild").onclick=()=>{CH={ctx:{p,i,k},stack:[],negated:false};chainBuild(q)};
     $("ryes").onclick=()=>{FLIP=null;dlg.close();S.paused={p,i,k};render();toast("⏸ Attack paused — resolve the effect, then continue")};
     $("rbk").onclick=()=>{FLIP=null;attackDialog(p,i)};
   });
 }
+function continueBattle(c){
+  const m=S.mon[c.p][c.i];
+  if(!m){if(dlg.open)dlg.close();render();toast("The attacker left the field — the attack ends");return}
+  render();
+  if(c.k>=0&&!S.mon[1-c.p][c.k]){toast("The target is gone — choose a new target");attackDialog(c.p,c.i);return} // replay
+  battleConfirm(c.p,c.i,c.k);
+}
 function resumeBattle(){
   const pz=S.paused;if(!pz)return;S.paused=null;
-  const m=S.mon[pz.p][pz.i];
-  if(!m){render();toast("The attacker left the field — the attack ends");return}
-  render();
-  if(pz.k>=0&&!S.mon[1-pz.p][pz.k]){m.attT=S.tc;toast("The target is gone");attackDialog(pz.p,pz.i);return} // replay: choose a new target
-  battleConfirm(pz.p,pz.i,pz.k);
+  continueBattle(pz);
+}
+
+// ---------- Responding to an attack: effect builder + a simple chain (last activated resolves first) ----------
+let CH=null; // {ctx:{p,i,k},stack:[response],negated}
+const sideName=(r,p)=>p===r?"your":"opponent's";
+const youOr=r=>(S.view==="2p"||r===0)?"you":"the opponent";
+function chainOpen(r,html,after){FLIP=S.view==="2p"?r===1:null;open(html,after)}
+function chainAsk(r){ // r = the player who may respond now
+  const last=CH.stack[CH.stack.length-1];
+  chainOpen(r,`${closeX()}<h2>Respond?</h2><p style="font-size:16px">${esc(last.who)} activated: <b>${esc(last.summary)}</b></p>
+   <p><b>${S.view==="2p"?"Do you":"Does the opponent"} want to respond</b> to that?</p>
+   <div class="row"><button id="cno" style="background:#1f5a3a;font-weight:800">No — resolve it</button><button id="cyes" style="background:#8a5a14;font-weight:800">Yes — activate something</button></div>`,()=>{
+    $("cno").onclick=()=>chainResolve();
+    $("cyes").onclick=()=>chainBuild(r);
+  });
+}
+// every monster on the field, attacker and target first
+function chainMons(r){
+  const c=CH.ctx,out=[];
+  for(const q of[0,1])S.mon[q].forEach((m,i)=>{if(m){const tag=(q===c.p&&i===c.i)?"attacker":(q===1-c.p&&i===c.k)?"attack target":"";out.push({p:q,i,m,tag,w:tag==="attacker"?0:tag?1:q===r?2:3})}});
+  return out.sort((a,b)=>a.w-b.w);
+}
+const monLabel=(o,r)=>`${esc(o.m.pos==="FD"?"Face-down monster ("+o.m.name+")":o.m.name)} <small>— ${sideName(r,o.p)} monster${o.tag?" • "+o.tag:""}</small>`;
+const monRadios=(r,pre)=>{const L=chainMons(r),pi=pre==="own"?Math.max(0,L.findIndex(o=>o.p===r)):0;return L.map((o,n)=>`<label style="display:block;padding:6px 0"><input type="radio" name="tg" value="${o.p}:${o.i}" ${n===pi?"checked":""}> ${monLabel(o,r)}</label>`).join("")||"<small>There are no monsters on the field.</small>"};
+const pickedMon=()=>{const v=(dlg.querySelector('input[name="tg"]:checked')||{}).value;if(!v)return null;const[p,i]=v.split(":").map(Number);const m=S.mon[p][i];return m?{p,i,nm:m.name}:null};
+function chainBuild(r){
+  const R={p:r,who:r===0?"You":"Opponent",kind:"",src:null,srcName:"",effects:[]};
+  const kinds=[["Trap Card","trap"],["Quick-Play Spell","spell"],["Monster effect","mon"],["Another effect","other"]];
+  const stepKind=()=>chainOpen(r,`${closeX()}<h2>${S.view==="2p"?"What are you activating?":"What is the opponent activating?"}</h2>
+    ${kinds.map(([l,k])=>`<div class="row"><button data-k="${k}">${l}</button></div>`).join("")}
+    <div class="row"><button id="cx">Cancel</button></div>`,()=>{
+    dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{R.kind=b.dataset.k;stepSrc()});
+    $("cx").onclick=()=>CH.stack.length?chainAsk(1-CH.stack[CH.stack.length-1].r):(FLIP=null,battleStart(CH.ctx.p,CH.ctx.i,CH.ctx.k));
+  });
+  const stepSrc=()=>{
+    const items=[];
+    if(R.kind==="mon")S.mon[r].forEach((m,i)=>{if(m)items.push({key:"mon:"+i,label:m.pos==="FD"?"Face-down monster ("+m.name+")":m.name})});
+    else S.st[r].forEach((c,i)=>{if(c)items.push({key:"st:"+i,label:`${c.name} <small>(${c.pos==="FD"?"Set":"face-up"})</small>`})});
+    chainOpen(r,`${closeX()}<h2>Which card?</h2><div class="res" id="sl">${items.map(o=>`<div data-s="${o.key}">${o.label}</div>`).join("")}<div data-s="none"><b>A card from my hand / Graveyard</b><br><small>not on the field</small></div></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
+      $("sl").onclick=e=>{const d=e.target.closest("[data-s]");if(!d)return;const v=d.dataset.s;
+        if(v==="none"){R.src=null;R.srcName=""}else{const[z,i]=v.split(":");R.src={z,i:+i};const c=z==="mon"?S.mon[r][+i]:S.st[r][+i];R.srcName=c?c.name:""}
+        stepEffects()};
+      $("bk").onclick=stepKind;
+    });
+  };
+  const sum=e=>e.text;
+  const stepEffects=()=>{
+    chainOpen(r,`${closeX()}<h2>What does it do?</h2><small>${esc(R.srcName||"A card")} (${kinds.find(x=>x[1]===R.kind)[0]})</small>
+     <div class="card" id="el">${R.effects.length?R.effects.map((e,n)=>`<div>• ${esc(sum(e))} <button data-rm="${n}" style="min-width:0;padding:2px 8px">✕</button></div>`).join(""):"<small>Nothing added yet. Add the effects of your card:</small>"}</div>
+     <div class="row"><button id="e1">ATK / DEF change</button><button id="e2">Destroy a monster</button></div>
+     <div class="row"><button id="e3">Negate the attack</button><button id="e4">Life Points</button></div>
+     <div class="row"><button id="e5">Other (just note it)</button></div>
+     <div class="row"><button id="ebk">← Back</button><button id="edone" style="background:#8be32a;color:#0b2200;font-weight:800">Activate</button></div>
+     ${R.src===null?`<small>If the card came from your hand, add it to your Graveyard afterwards (Graveyard list → + Add card).</small>`:""}`,()=>{
+      dlg.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{R.effects.splice(+b.dataset.rm,1);stepEffects()});
+      $("e1").onclick=()=>chainOpen(r,`${closeX()}<h2>ATK / DEF change</h2><p>Which monster?</p>${monRadios(r,"own")}
+        <div class="row" style="align-items:center"><label style="flex:1">ATK change<input type="number" id="ea" value="0"></label><label style="flex:1">DEF change<input type="number" id="ed" value="0"></label></div>
+        <label style="display:block;padding:6px 0"><input type="checkbox" id="eu" checked> Until the end of this turn</label>
+        <small>Use a minus sign for a decrease (for example −500).</small>
+        <div class="row"><button id="b1">← Back</button><button id="o1" style="background:#1f5a3a">Add</button></div>`,()=>{
+          $("b1").onclick=stepEffects;
+          $("o1").onclick=()=>{const t=pickedMon();if(!t)return;const a=parseInt($("ea").value)||0,d=parseInt($("ed").value)||0,u=$("eu").checked;
+            if(!a&&!d)return stepEffects();
+            R.effects.push({t:"stat",p:t.p,i:t.i,nm:t.nm,a,d,u,text:`${t.nm}: ${a>=0?"+":""}${a} ATK / ${d>=0?"+":""}${d} DEF${u?" until the end of the turn":""}`});stepEffects()};
+        });
+      $("e2").onclick=()=>chainOpen(r,`${closeX()}<h2>Destroy which monster?</h2>${monRadios(r,"attacker")}
+        <label style="display:block;padding:6px 0"><input type="checkbox" id="eb"> Banish it instead</label>
+        <div class="row"><button id="b2">← Back</button><button id="o2" style="background:#1f5a3a">Add</button></div>`,()=>{
+          $("b2").onclick=stepEffects;
+          $("o2").onclick=()=>{const t=pickedMon();if(!t)return;const b=$("eb").checked;R.effects.push({t:"kill",p:t.p,i:t.i,nm:t.nm,ban:b,text:`${b?"Banish":"Destroy"} ${t.nm}`});stepEffects()};
+        });
+      $("e3").onclick=()=>{if(!R.effects.some(e=>e.t==="neg"))R.effects.push({t:"neg",text:"Negate the attack"});stepEffects()};
+      $("e4").onclick=()=>chainOpen(r,`${closeX()}<h2>Life Points</h2>
+        <label style="display:block;padding:6px 0"><input type="radio" name="lw" value="${r}" checked> ${S.view==="2p"?"My":"The responder's"} Life Points</label>
+        <label style="display:block;padding:6px 0"><input type="radio" name="lw" value="${1-r}"> The opponent's Life Points</label>
+        <label>Change<input type="number" id="el1" value="0"></label><small>Positive = gain, negative = lose (for example −800).</small>
+        <div class="row"><button id="b4">← Back</button><button id="o4" style="background:#1f5a3a">Add</button></div>`,()=>{
+          $("b4").onclick=stepEffects;
+          $("o4").onclick=()=>{const n=parseInt($("el1").value)||0;if(!n)return stepEffects();const who=+(dlg.querySelector('input[name="lw"]:checked')||{}).value;
+            R.effects.push({t:"lp",who,n,text:`${NAME(who)}: ${n>=0?"+":""}${n} LP`});stepEffects()};
+        });
+      $("e5").onclick=()=>chainOpen(r,`${closeX()}<h2>Other effect</h2><p>Describe it (optional) — nothing on the board changes, you do it by hand.</p><input type="text" id="en" placeholder="e.g. draw 2 cards" autocomplete="off">
+        <div class="row"><button id="b5">← Back</button><button id="o5" style="background:#1f5a3a">Add</button></div>`,()=>{
+          $("b5").onclick=stepEffects;
+          $("o5").onclick=()=>{const t=($("en").value||"").trim()||"Another effect";R.effects.push({t:"note",text:t});stepEffects()};
+        });
+      $("ebk").onclick=stepSrc;
+      $("edone").onclick=()=>{
+        R.summary=`${R.srcName||"a card"} — ${R.effects.length?R.effects.map(sum).join("; "):"no board change"}`;
+        R.r=r;CH.stack.push(R);addLog(`${R.who} activated ${R.summary}`);
+        chainAsk(1-r);
+      };
+    });
+  };
+  stepKind();
+}
+function chainApply(e,log){
+  if(e.t==="neg"){CH.negated=true;log.push("The attack is negated.");return}
+  if(e.t==="note"){log.push(`Note: ${e.text} (do it by hand)`);return}
+  if(e.t==="lp"){setLP(e.who,S.lp[e.who]+e.n,x=>`${NAME(e.who)}: ${e.n>=0?"+":""}${e.n} (effect) → ${x}`);log.push(e.text);return}
+  const m=S.mon[e.p][e.i];
+  if(!m||m.name!==e.nm){log.push(`${e.nm} is no longer on the field — its effect is skipped.`);return}
+  if(e.t==="stat"){
+    if(e.u){const t=m.tm&&m.tm.t===S.tc?m.tm:{a:0,d:0,t:S.tc};t.a+=e.a;t.d+=e.d;m.tm=t}else{m.da+=e.a;m.dd+=e.d}
+    log.push(e.text);return;
+  }
+  if(e.t==="kill"){removeMon(e.p,e.i,e.ban?"ban":"gy");log.push(e.text)}
+}
+function chainResolve(){
+  const ctx=CH.ctx,log=[];UNDOMERGE=true;
+  for(const R of CH.stack.slice().reverse()){ // the last activated resolves first
+    log.push(`${R.who}: ${R.srcName||"a card"}`);
+    for(const e of R.effects)chainApply(e,log);
+    if(R.src&&R.src.z==="st"){ // the card is used: it turns face-up, a one-shot card goes to the Graveyard
+      const c=S.st[R.r][R.src.i];
+      if(c){c.pos="UP";if(/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(c.type||"")){S.st[R.r][R.src.i]=null;sendTo(R.r,"gy",c,true)}}
+    }
+  }
+  UNDOMERGE=false;render();
+  const neg=CH.negated;CH=null;
+  chainOpen(0,`${closeX()}<h2>Resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
+    <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">${neg?"OK — the attack ends":"Continue the battle"}</button></div>`,()=>{
+    FLIP=null;dlg.classList.remove("flip");
+    $("cok").onclick=()=>{
+      if(neg){const m=S.mon[ctx.p][ctx.i];if(m)m.attT=S.tc;render();dlg.close();toast("Attack negated");return}
+      continueBattle(ctx);
+    };
+  });
 }
 function endPausedAttack(){
   const pz=S.paused;if(!pz)return;S.paused=null;
