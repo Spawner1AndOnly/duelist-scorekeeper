@@ -43,6 +43,8 @@ body.picking .slot.pk{outline:3px solid var(--gold);outline-offset:-2px;animatio
 body.picking .slot.picked{outline-color:var(--green);animation:none;background:#1f5a3a88}
 body.picking .slot.picked::after{content:"¹4";position:absolute;right:3px;bottom:2px;font-size:18px;font-weight:900;color:var(--green);text-shadow:0 1px 3px #000}
 @keyframes pkp{to{outline-color:#fff}}
+.cth{display:flex;align-items:center;justify-content:space-between;gap:8px}.ctb{display:flex;align-items:center;gap:5px;flex:none}.ctb .lvb,.ctb .ai{position:static;font-size:13px;line-height:20px;padding:0 6px 0 3px}.ctb .ai{width:24px;height:24px;padding:0}.ctb .lvb i{font-size:14px}
+.ai{position:absolute;top:2px;right:3px;width:17px;height:17px;border-radius:50%;box-shadow:0 1px 3px #000a;pointer-events:none;z-index:1}.ai~.bdg{top:21px}
 .lvb{position:absolute;top:2px;left:3px;display:flex;align-items:center;gap:1px;background:#e8731a;color:#fff;border-radius:9px;padding:0 4px 0 2px;font-size:10px;font-weight:800;line-height:14px;box-shadow:0 1px 3px #000a;pointer-events:none;z-index:1}
 .lvb i{font-style:normal;color:#ffe08a;font-size:11px}
 .lvb.rk{background:#23232b;border:1px solid #ffe08a;line-height:12px}.lvb.lkn{background:#1f5fd0}
@@ -682,13 +684,19 @@ function lvlBadge(m){
   if(/XYZ|Xyz/.test(m.type||""))return`<span class="lvb rk" title="Rank ${m.lvl}"><i>★</i>${m.lvl}</span>`;
   return`<span class="lvb" title="Level ${m.lvl}"><i>★</i>${m.lvl}</span>`;
 }
+// attribute icon (top right): monsters show their attribute, Spell/Trap cards show Spell or Trap
+function attrIcon(m,st){
+  let k=st?(m.kind==="trap"?"trap":"spell"):String(m.attr||"").toLowerCase();
+  if(!["wind","water","earth","fire","dark","light","divine","spell","trap"].includes(k))return"";
+  return`<img class="ai" src="img/attr/${k}.webp" alt="${k}" title="${k.toUpperCase()}">`;
+}
 function slotHTML(p,i,m){
   const a=`data-p="${p}" data-i="${i}" data-row="mon"`;
   if(!m)return`<div class="slot empty" ${a}>+<br><span class="sl-lbl">monster</span></div>`;
   if(m.pos==="FD")return`<div class="slot" ${a}>${ownerOf(m,p)!==p?`<span class="ctlb">⇄</span>`:""}<div class="cbw"><div class="cb land fd"></div></div><div class="st dim">? / ?</div></div>`;
   const cls=x=>x>0?"up":x<0?"down":"";
   const d=m.pos==="DEF",s=stats(p,i),da=s.a-m.atk,dd=s.d-m.def;
-  return`<div class="slot" ${a}>${lvlBadge(m)}${eqMon(p,i)}${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
+  return`<div class="slot" ${a}>${lvlBadge(m)}${attrIcon(m)}${eqMon(p,i)}${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
     <div class="cbw"><div class="cb ${d?"land def":"port atk"}"><span class="n">${esc(m.name)}</span></div></div>
     <div class="st"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":` / <span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span>`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
 }
@@ -698,7 +706,7 @@ function stHTML(p,i,m){
   if(m.pos==="FD")return`<div class="slot" ${a}><div class="cbw"><div class="cb port fdv"></div></div><div class="st dim">Set</div></div>`;
   const tg=m.eq&&m.tgt&&S.mon[m.tgt.p][m.tgt.i];
   const lbl=tg?"→ "+(tg.pos==="FD"?"?":tg.name):m.kind==="pend"?"⚖ Scale "+m.scale:subType(m.type)||(m.kind==="spell"?"Spell":"Trap");
-  return`<div class="slot" ${a}>${eqCard(m)}${badges(m)}<div class="cbw"><div class="cb port ${m.kind}"><span class="n">${esc(m.name)}</span></div></div><div class="st dim" style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(lbl)}</div></div>`;
+  return`<div class="slot" ${a}>${eqCard(m)}${attrIcon(m,1)}${badges(m)}<div class="cbw"><div class="cb port ${m.kind}"><span class="n">${esc(m.name)}</span></div></div><div class="st dim" style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(lbl)}</div></div>`;
 }
 
 // ---------- Card data ----------
@@ -730,7 +738,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-p],[data-lp]");
   DLGP=t?(t.dataset.p!==undefined?+t.dataset.p:+t.dataset.lp):S.turn;
 },true);
-dlg.addEventListener("close",()=>{if(dlg.open)return;FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
+dlg.addEventListener("close",()=>{if(dlg.open)return;{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
 function open(html,after){
   dlg.innerHTML=html;
   const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
@@ -1045,11 +1053,11 @@ function stats(p,i){
   const m=S.mon[p][i];if(!m)return null;
   let a=m.atk+m.da,d=m.def+m.dd;const src=[];
   if(m.tm&&m.tm.t===S.tc){a+=m.tm.a;d+=m.tm.d;src.push(`temporary ${fmt(m.tm)}`)}
-  for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
+  for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&!e.hold&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
   for(const q of[0,1]){const f=S.field[q];if(f&&f.pos==="UP"&&f.auto!==false)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}}
   for(const q of[0,1])S.mon[q].forEach(f=>{if(f&&f.pos!=="FD"&&f.auto!==false&&f.eff&&f.eff.length)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}});
   if(m.pos!=="FD"&&m.auto!==false&&m.self)for(const e of m.self){const k=perCount(e.per,p,m,m);if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${m.name} ${fmt({a:e.a*k,d:e.d*k})}`)}
-  for(const q of[0,1])S.st[q].forEach(f=>{if(f&&f.pos==="UP"&&f.auto!==false&&!f.eq&&f.eff)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}});
+  for(const q of[0,1])S.st[q].forEach(f=>{if(f&&f.pos==="UP"&&!f.hold&&f.auto!==false&&!f.eq&&f.eff)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}});
   return{a:Math.max(0,a),d:Math.max(0,d),src};
 }
 
@@ -1639,7 +1647,7 @@ const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
-  const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
+  const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(e.eq||(e.eff&&e.eff.length))e.hold=true; /* bonus waits for 'Apply' so its animation always shows */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
   if(/Equip/.test(e.type)){
     pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
       if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
@@ -1749,7 +1757,8 @@ function showStandby(){
 // the card text is shown right away in the pop-up of a face-up card (the "Card text" button still toggles it)
 function autoText(m){
   const b=$("ct");if(!b||!m||m.pos==="FD"||!m.desc)return;
-  b.innerHTML=`<small>${esc(m.type||"")}${m.attr?" • "+esc(m.attr):""}${m.race?" • "+esc(m.race):""}${m.lvl?" • Level/Link "+m.lvl:""}</small><hr style="border-color:#4a3220;margin:4px 0">${esc(m.desc).replace(/\n/g,"<br>")}`;
+  const st=!!m.kind,ic=(st?"":lvlBadge(m))+attrIcon(m,st);
+  b.innerHTML=`<div class="cth"><small>${esc(m.type||"")}${m.attr?" • "+esc(m.attr):""}${m.race?" • "+esc(m.race):""}${m.lvl?" • Level/Link "+m.lvl:""}</small>${ic?`<span class="ctb">${ic}</span>`:""}</div><hr style="border-color:#4a3220;margin:4px 0">${esc(m.desc).replace(/\n/g,"<br>")}`;
   b.hidden=false;
   const i=$("info");if(i)i.onclick=()=>{b.hidden=!b.hidden};
 }
@@ -1886,6 +1895,7 @@ function cardZoneDialog(p,i,z){
   open(`${closeX()}<h2>${esc(m.name)}</h2><small>${esc(t)}</small><div class="card" id="ct" style="max-height:22dvh;overflow:auto;font-size:13px;margin:6px 0" hidden></div>
    ${pend?"":`<div class="row">${[["UP","Face-up (activated)"],["FD","🂠 Set (face-down)"]].map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>`}
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
+   ${m.pos==="UP"&&(m.eq||fieldEffs(m).length)?`<div class="row"><button id="appl" style="background:#1f5a3a;font-weight:800">✔ ${m.eq?"Apply equip card":"Apply card"}</button></div>`:""}
    ${pendUI}${eqUI}${fUI}${m.pos==="UP"?trackerHTML(m):""}
    ${actsHTML(acts,oneShot&&m.pos==="UP")}
    <div class="row">${oneShot&&m.pos==="UP"?`<button id="res1" style="background:#1f5a3a">Resolved → Graveyard</button>`:""}<button id="info">Card text</button></div>
@@ -1914,6 +1924,7 @@ function cardZoneDialog(p,i,z){
     if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
     const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(e)ctlSrcGone(e.uid);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
     if($("res1"))$("res1").onclick=()=>leave("gy");
+    if($("appl"))$("appl").onclick=()=>{if(m.hold){delete m.hold;render()}dlg.close()}; // closing the pop-up lets the waiting ATK/DEF animation play
     actsBind(acts,oneShot&&m.pos==="UP",leave,()=>cardZoneDialog(p,i,z));
     if($("ctlc"))$("ctlc").onclick=()=>{if(!oneShot)m.uid=m.uid||newUid();ctlFromCard(p,m,()=>cardZoneDialog(p,i,z))};
     $("clr").onclick=()=>leave("gy");$("ban").onclick=()=>leave("ban");$("rm").onclick=()=>leave("none");

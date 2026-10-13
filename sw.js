@@ -1,5 +1,5 @@
-const C="ygoref-v31";
-const FILES=["./","index.html","manifest.json","icon.svg","icon-192.png","icon-512.png","apple-touch-icon.png","favicon-32.png","data/cards.json","data/skills.json","img/field/map.json","img/cardback-h.jpg","img/cardback-v.jpg","img/logo.png","img/fx/shield.webp","img/fx/dust.webp","img/fx/tomb.webp","img/fx/skel-spell.webp","img/fx/skel-trap.webp","img/fx/skel-ritual.webp","img/bg-embers.jpg"];
+const C="ygoref-v35";
+const FILES=["./","index.html","manifest.json","icon.svg","icon-192.png","icon-512.png","apple-touch-icon.png","favicon-32.png","data/cards.json","data/skills.json","img/field/map.json","img/cardback-h.jpg","img/cardback-v.jpg","img/logo.png","img/fx/shield.webp","img/fx/dust.webp","img/fx/tomb.webp","img/fx/skel-spell.webp","img/fx/skel-trap.webp","img/fx/skel-ritual.webp","img/bg-embers.jpg","img/attr/wind.webp","img/attr/water.webp","img/attr/earth.webp","img/attr/fire.webp","img/attr/dark.webp","img/attr/light.webp","img/attr/divine.webp","img/attr/spell.webp","img/attr/trap.webp"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))))});
 self.addEventListener("fetch",e=>{e.respondWith(fetch(e.request).then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request)))});
