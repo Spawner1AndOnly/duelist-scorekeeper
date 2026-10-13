@@ -194,6 +194,8 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 @keyframes fxflash{0%{opacity:0;transform:scale(.7)}25%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
 .fxdust{background:url(img/fx/dust.webp) center/contain no-repeat;animation:fxdust .75s ease-out forwards}
 @keyframes fxdust{0%{transform:translateY(28%) scale(.25);opacity:0}30%{opacity:.95}100%{transform:translateY(-14%) scale(1.3);opacity:0}}
+.fxtomb{background:url(img/fx/tomb.webp) center/contain no-repeat;z-index:5;animation:fxtomb 1.5s ease-out forwards}
+@keyframes fxtomb{0%{transform:rotate(var(--rot,0deg)) translateY(45%) scale(.4);opacity:0}20%{transform:rotate(var(--rot,0deg)) translateY(-5%) scale(1.07);opacity:1}30%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}78%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}100%{transform:rotate(var(--rot,0deg)) translateY(10%) scale(.92);opacity:0}}
 .fxshield{background:url(img/fx/shield.webp) center/contain no-repeat;animation:fxshin .22s ease-out forwards}
 .fxshield.hold{animation:fxshin .22s ease-out forwards,fxshake .4s .3s,fxshout .3s 1s forwards}
 @keyframes fxshin{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
@@ -404,6 +406,11 @@ function fxSlash(r,flip){
   e.style.cssText=`left:${cx-Math.cos(a)*L/2}px;top:${cy-Math.sin(a)*L/2}px;width:${L}px;--a:${flip?35:-35}deg`;
   $("fx").appendChild(e);fxLife(e,420);
 }
+function fxTomb(el){ // a gravestone rises where a monster was destroyed (turned along with the opponent's half in 2P)
+  if(!el)return;const r=el.getBoundingClientRect(),w=Math.min(Math.max(r.width,r.height)*1.3,150);
+  const rot=el.closest(".side.opp")||el.closest('.emzcell[style*="rotate"]')?180:0;
+  const e=fxAdd("fxtomb",r,w,w*1.02,"",`--rot:${rot}deg`);fxLife(e,1600);
+}
 function fxFlash(r){const e=fxAdd("fxflash",r,Math.min(r.width*1.6,240),Math.min(r.height*1.6,300));fxLife(e,600)}
 function fxDust(r){const w=Math.min(Math.max(r.width,r.height)*1.5,230);const e=fxAdd("fxdust",r,w,w);fxLife(e,800)}
 const shieldW=r=>Math.min(Math.max(r.width*1.5,90),190);
@@ -450,12 +457,12 @@ async function fxBattle(pl){
       const w=shieldW(rt),sh=fxAdd("fxshield",rt,w,w*1.21);
       await sleep(300);fxSlash(rt);await sleep(220);
       sh.remove();fxShieldBreak(rt);await sleep(300);
-      if(pl.tDies)fxFlash(rt);await sleep(520)}
+      if(pl.tDies){fxFlash(rt);fxTomb(el)}await sleep(pl.tDies?1350:520)}
     else{fxShieldHold(rt);await sleep(280);fxSlash(rt);await sleep(900)}
   }else{
     fxSlash(rt);await sleep(300);
-    if(pl.tDies)fxFlash(rt);if(pl.aDies)fxFlash(ra);
-    await sleep(600);
+    if(pl.tDies){fxFlash(rt);fxTomb(el)}if(pl.aDies){fxFlash(ra);fxTomb(monEl(pl.p,pl.i))}
+    await sleep(pl.tDies||pl.aDies?1350:600);
   }
 }
 // a card flies to the Graveyard / Banished pile (or back out of it onto the field)
