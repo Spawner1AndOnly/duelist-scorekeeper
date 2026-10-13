@@ -193,6 +193,7 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 @keyframes fxsplitr{to{transform:translate(34px,18px) rotate(14deg);opacity:0}}
 .fxtext{font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 0 12px #000;text-align:center;animation:fxtext 1s ease-out forwards}
 @keyframes fxtext{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.15);opacity:1}80%{opacity:1}100%{transform:translateY(-14px);opacity:0}}
+.fxcard{pointer-events:none;box-shadow:0 6px 16px #000b}
 #phase.paused{background:var(--gold);color:#241a00}
 .fxring{border-radius:12px;border:4px solid var(--c);box-shadow:0 0 16px 5px var(--c),inset 0 0 12px var(--c);animation:fxring .9s ease-out forwards}
 @keyframes fxring{0%{opacity:0;transform:scale(1.25)}20%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0}}
@@ -406,9 +407,41 @@ async function fxBattle(pl){
     await sleep(600);
   }
 }
+// a card flies to the Graveyard / Banished pile (or back out of it onto the field)
+const pileBtn=(p,kind)=>document.querySelector(`.zb[data-p="${p}"][data-pile="${kind}"]`);
+const stEl=(p,i)=>document.querySelector(`.slot[data-p="${p}"][data-i="${i}"][data-row="st"]`);
+const fieldEl=p=>document.querySelector(`.fchip[data-p="${p}"]`);
+const cardCls=c=>c.pos==="FD"?"fdv":c.kind==="spell"?"spell":c.kind==="trap"?"trap":c.kind==="pend"?"pend":c.pos==="DEF"?"def":"atk";
+function fxFly(fr,to,o){
+  if(calmMotion()||!fr||!to||!to.width)return;
+  const w=Math.min(fr.width*0.85,64),h=w*1.458;
+  const e=document.createElement("div");e.className=`fxcard cb port ${o.cls}`;
+  e.innerHTML=o.cls==="fdv"?"":`<span class="n">${esc(o.name)}</span>`;
+  e.style.cssText=`left:${fr.left+fr.width/2-w/2}px;top:${fr.top+fr.height/2-h/2}px;width:${w}px;height:${h}px;z-index:6`;
+  $("fx").appendChild(e);
+  const dx=to.left+to.width/2-(fr.left+fr.width/2),dy=to.top+to.height/2-(fr.top+fr.height/2),rot=(dx>=0?1:-1)*(16+Math.random()*16);
+  if(!e.animate){e.remove();return}
+  const an=e.animate([
+    {transform:"translate(0,0) scale(1) rotate(0deg)",opacity:1},
+    {transform:`translate(${dx*0.12}px,${dy*0.12-16}px) scale(1.12) rotate(${rot*0.25}deg)`,opacity:1,offset:.2},
+    {transform:`translate(${dx}px,${dy}px) scale(.3) rotate(${rot}deg)`,opacity:.3}],
+    {duration:720,easing:"cubic-bezier(.45,0,.75,.5)",fill:"forwards"});
+  an.onfinish=()=>e.remove();
+}
+function fxPulse(el,delay){if(calmMotion()||!el||!el.animate)return;el.animate([{transform:"scale(1)",filter:"brightness(1)"},{transform:"scale(1.14)",filter:"brightness(1.8)"},{transform:"scale(1)",filter:"brightness(1)"}],{duration:380,delay:delay||0})}
+function flyToPile(rect,c,p,kind){ // call BEFORE the card is removed from the board (the rectangle is needed)
+  const b=pileBtn(p,kind);if(!rect||!b||!c)return;
+  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c)});fxPulse(b,560);
+}
 function fxFlush(){
   const q=FXQ;FXQ=[];if(calmMotion())return;
-  requestAnimationFrame(()=>q.forEach(f=>{if(f.t==="dust"){const el=monEl(f.p,f.i);if(el)fxDust(el.getBoundingClientRect())}}));
+  requestAnimationFrame(()=>q.forEach(f=>{
+    if(f.t==="dust"){const el=monEl(f.p,f.i);if(el)fxDust(el.getBoundingClientRect())}
+    if(f.t==="flyin"){
+      const b=pileBtn(f.p,f.pile),el=f.k==="mon"?monEl(f.p,f.i):f.k==="field"?fieldEl(f.p):stEl(f.p,f.i);
+      if(b&&el){fxPulse(b,0);fxFly(b.getBoundingClientRect(),el.getBoundingClientRect(),{name:f.name,cls:f.cls})}
+    }
+  }));
 }
 
 // ---------- Undo: every change to the game state can be taken back ----------
@@ -598,10 +631,11 @@ function sendTo(p,kind,c,fromField){
   (kind==="ban"?S.ban:S.gy)[p].unshift(e);
 }
 function removeMon(p,i,dest="gy"){
-  const m=S.mon[p][i];
+  const m=S.mon[p][i],el=monEl(p,i);
   S.mon[p][i]=null;
+  if(dest!=="none"&&m&&m.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),m,p,dest);
   if(dest!=="none")sendTo(p,dest,m,true);
-  [0,1].forEach(q=>S.st[q].forEach((e,k)=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){S.st[q][k]=null;sendTo(q,"gy",e);addLog(`${e.name} went to the Graveyard (equipped monster left the field)`)}}));
+  [0,1].forEach(q=>S.st[q].forEach((e,k)=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const se=stEl(q,k);if(se)flyToPile(se.getBoundingClientRect(),e,q,"gy");S.st[q][k]=null;sendTo(q,"gy",e);addLog(`${e.name} went to the Graveyard (equipped monster left the field)`)}}));
 }
 
 // ---------- Stat bonuses (equip / field) ----------
@@ -1178,7 +1212,7 @@ function chainResolve(){
     for(const e of R.effects)chainApply(e,log);
     if(R.src&&R.src.z==="st"){ // the card is used: it turns face-up, a one-shot card goes to the Graveyard
       const c=S.st[R.r][R.src.i];
-      if(c){c.pos="UP";if(/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(c.type||"")){S.st[R.r][R.src.i]=null;sendTo(R.r,"gy",c,true)}}
+      if(c){c.pos="UP";if(/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(c.type||"")){const se=stEl(R.r,R.src.i);if(se)flyToPile(se.getBoundingClientRect(),c,R.r,"gy");S.st[R.r][R.src.i]=null;sendTo(R.r,"gy",c,true)}}
     }
   }
   UNDOMERGE=false;render();
@@ -1336,7 +1370,7 @@ function cardZoneDialog(p,i,z){
     ["a","d"].forEach(k=>{const b=$("esg"+k);if(b)b.onclick=()=>{m.sg=-(m.sg||-1);cardZoneDialog(p,i,z)}});
     if($("chg"))$("chg").onclick=()=>pickTarget(tg=>{m.tgt=tg;if(m.eq&&m.eq.lvx)m.eq=parseEquip(m.desc||"",S.mon[tg.p][tg.i]);again()},()=>cardZoneDialog(p,i,z));
     if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
-    const leave=dest=>{const e=getZ(p,i,z);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
+    const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
     if($("res1"))$("res1").onclick=()=>leave("gy");
     $("clr").onclick=()=>leave("gy");$("ban").onclick=()=>leave("ban");$("rm").onclick=()=>leave("none");
     $("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text.";};
@@ -1396,14 +1430,16 @@ function pileEntry(p,kind,k){
       const all=await cards();const c0=all.find(x=>x.id===c.id)||{name:c.name,type:c.type,atk:0,def:0};
       const i=S.mon[p].slice(0,S.n).findIndex(x=>!x);
       if(i<0)return warn("You have no free monster zone.");
-      take();placeMon(p,i,c0,pos,"special");render();dlg.close();
+      take();placeMon(p,i,c0,pos,"special");FXQ.push({t:"flyin",p,i,k:"mon",pile:kind,name:c.name,cls:pos==="DEF"?"def":"atk"});render();dlg.close();
     };
     if($("sa")){$("sa").onclick=()=>full("ATK");$("sd").onclick=()=>full("DEF")}
     if($("setf"))$("setf").onclick=async()=>{
       const all=await cards();const c0=all.find(x=>x.id===c.id)||{};
       const e={name:c.name,kind:/Spell/.test(c.type||"")?"spell":"trap",type:c.type,pos:"FD",id:c.id,desc:c0.desc||"",setT:S.tc};
+      let zi=0;
       if(isField){if(S.field[p])return warn("Your Field Zone is occupied. Send that Field Spell away first.");take();S.field[p]=e}
-      else{const i=S.st[p].slice(0,S.n).findIndex(x=>!x);if(i<0)return warn("You have no free Spell/Trap zone.");take();S.st[p][i]=e}
+      else{const i=S.st[p].slice(0,S.n).findIndex(x=>!x);if(i<0)return warn("You have no free Spell/Trap zone.");take();S.st[p][i]=e;zi=i}
+      FXQ.push({t:"flyin",p,i:zi,k:isField?"field":"st",pile:kind,name:c.name,cls:"fdv"});
       render();dlg.close();
     };
     $("mv").onclick=()=>{take();pileOf(p,other).unshift(c);render();pileDialog(p,kind)};
