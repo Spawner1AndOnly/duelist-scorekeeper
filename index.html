@@ -978,12 +978,12 @@ function setPos(p,i,np){
   const turnMain=()=>{if(p!==S.turn)w.push("This is only allowed on your own turn.");if(!inMain())w.push(`Only allowed in a Main Phase (now: ${phName()}).`)};
   if(old==="FD"&&np==="ATK"){
     turnMain();
-    if(m.how==="set"&&m.sumT===S.tc)w.push("A monster can't be flipped face-up (Flip Summon) on the turn it was Set.");
+    if(m.sumT===S.tc)w.push("A monster can't be flipped face-up (Flip Summon) on the turn it was Set (also when it was Set by an effect).");
   }else if(np==="FD"){w.push("A face-up monster is only turned face-down by a card effect.")}
   else if(old==="FD"&&np==="DEF"){w.push("A face-down monster is flipped face-up in Attack Position (Flip Summon). Defense only by an effect.")}
   else{
     turnMain();
-    if((m.how==="normal"||m.how==="set")&&m.sumT===S.tc)w.push("A Normal Summoned/Set monster can't change position the turn it was summoned.");
+    if(m.sumT===S.tc)w.push("A monster can't change its battle position on the turn it was Summoned or Set (Special Summons included), unless a card effect allows it.");
     if(m.flipT===S.tc)w.push("A Flip Summoned monster can't change position the turn it was flipped.");
     if(m.posT===S.tc)w.push("This monster already changed position this turn.");
     if(m.attT===S.tc)w.push("This monster attacked this turn, so it can't change position.");
