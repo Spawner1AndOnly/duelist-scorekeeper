@@ -373,7 +373,11 @@ async function fxBattle(pl){
   const el=monEl(pl.q,pl.k),rt=el&&el.getBoundingClientRect();if(!rt||!ra)return;
   fxLunge(pl.p,pl.i,rt);await sleep(200);
   if(pl.def){
-    if(pl.brk){fxSlash(rt);await sleep(260);fxShieldBreak(rt);await sleep(280);if(pl.tDies)fxFlash(rt);await sleep(520)}
+    if(pl.brk){ // the shield appears, the slash hits it, it splits in two, the monster is destroyed
+      const w=Math.max(rt.width*1.5,90),sh=fxAdd("fxshield",rt,w,w*1.21);
+      await sleep(300);fxSlash(rt);await sleep(220);
+      sh.remove();fxShieldBreak(rt);await sleep(300);
+      if(pl.tDies)fxFlash(rt);await sleep(520)}
     else{fxShieldHold(rt);await sleep(280);fxSlash(rt);await sleep(900)}
   }else{
     fxSlash(rt);await sleep(300);
