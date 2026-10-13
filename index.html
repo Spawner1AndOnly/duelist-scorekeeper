@@ -1197,25 +1197,26 @@ function endPausedAttack(){
   const m=S.mon[pz.p][pz.i];if(m)m.attT=S.tc; // a declared attack counts as the monster's attack even if it is negated
   render();toast("Attack ended (counts as an attack)");
 }
+const takes=p=>`${NAME(p)} ${p===0?"take":"takes"}`; // "You take" / "Opponent takes"
 function battleConfirm(p,i,k){
   const m=S.mon[p][i],q=1-p,A=stats(p,i).a,w=attackWarnings(p,i);let txt,eff,pl;
   const hit=(who,n,why)=>setLP(who,S.lp[who]-n,x=>`${NAME(who)}: −${n} (${why}) → ${x}`);
   if(k<0){
     if(S.mon[q].some(Boolean))w.push("A direct attack is only allowed if the opponent controls no monsters.");
-    txt=`Direct attack: ${NAME(q)} takes ${A} damage.`;eff=()=>hit(q,A,"direct attack");pl={kind:"direct",p,i,q,aTxt:`ATK ${A}`};
+    txt=`Direct attack: ${takes(q)} ${A} damage.`;eff=()=>hit(q,A,"direct attack");pl={kind:"direct",p,i,q,aTxt:`ATK ${A}`};
   }else{
     const t=S.mon[q][k],ts=stats(q,k),fd=t.pos==="FD",atkPos=t.pos==="ATK";
     const tname=fd?`Face-down monster (${t.name})`:t.name;
     if(atkPos){
       const v=ts.a;
       pl={p,i,q,k,def:false,tDies:A>=v,aDies:A<=v,aTxt:`ATK ${A}`,tTxt:fd?"face-down":`ATK ${v}`};
-      if(A>v){txt=`${tname} (${v} ATK) is destroyed. ${NAME(q)} takes ${A-v} damage.`;eff=()=>{removeMon(q,k);hit(q,A-v,"battle")}}
-      else if(A<v){txt=`${m.name} (${A}) is destroyed. ${NAME(p)} takes ${v-A} damage.`;eff=()=>{removeMon(p,i);hit(p,v-A,"battle")}}
+      if(A>v){txt=`${tname} (${v} ATK) is destroyed. ${takes(q)} ${A-v} damage.`;eff=()=>{removeMon(q,k);hit(q,A-v,"battle")}}
+      else if(A<v){txt=`${m.name} (${A}) is destroyed. ${takes(p)} ${v-A} damage.`;eff=()=>{removeMon(p,i);hit(p,v-A,"battle")}}
       else{txt="Both monsters are destroyed. No damage.";eff=()=>{removeMon(q,k);removeMon(p,i);render()}}
     }else{
       const v=ts.d;pl={p,i,q,k,def:true,brk:A>v,tDies:A>v,aTxt:`ATK ${A}`,tTxt:`DEF ${v}`};
       if(A>v){txt=`${tname} (${v} DEF) is destroyed. No battle damage.${fd?" It is flipped face-up first.":""}`;eff=()=>{removeMon(q,k);render()}}
-      else if(A<v){txt=`${tname} (${v} DEF) holds. ${NAME(p)} takes ${v-A} damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";hit(p,v-A,"battle")}}
+      else if(A<v){txt=`${tname} (${v} DEF) holds. ${takes(p)} ${v-A} damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";hit(p,v-A,"battle")}}
       else{txt=`${tname} (${v} DEF) holds. No damage.${fd?" It is flipped face-up.":""}`;eff=()=>{if(fd)t.pos="DEF";render()}}
     }
   }
