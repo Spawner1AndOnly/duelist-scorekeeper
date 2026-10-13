@@ -1615,12 +1615,25 @@ function loadZoneDialog(p,i,z){
     };
   });
 }
+// Life Point effects with a fixed amount in the card text: [{who:0|1,d:+n|-n,txt}] (p = the player who controls the card; "you" = p)
+function lpEffects(desc,p){
+  const out=[],q=1-p,num=x=>+String(x).replace(/,/g,""),add=(who,d,kind)=>{if(!out.some(o=>o.who===who&&o.d===d))out.push({who,d,txt:`${who===p?"you":"your opponent"} ${(d>0?"gain":kind==="pay"?"pay":"take")+(who===p?"":"s")} ${Math.abs(d)}${kind==="dmg"?" damage":" LP"}`})};
+  // recurring Standby Phase effects (Snatch Steal, Cure Mermaid, Lava Golem) are not "apply now" effects: skip those sentences
+  const t=(desc||"").split(/(?<=[.;])\s+|\n/).filter(x=>!/Standby Phase/i.test(x)).join(" ");let m;
+  const R1=/increase your (?:Life Points|LP) by (\d[\d,]*)/gi;while(m=R1.exec(t))add(p,num(m[1]),"gain");
+  const R2=/(your opponent|you) gains? (\d[\d,]*) (?:Life Points|LP)/gi;let any=false;while(m=R2.exec(t)){any=true;add(/opponent/i.test(m[1])?q:p,num(m[2]),"gain")}
+  if(!any){const R3=/\bgain (\d[\d,]*) (?:Life Points|LP)/gi;while(m=R3.exec(t))add(p,num(m[1]),"gain")}
+  const R4=/inflict (\d[\d,]*) (?:points of )?damage to (your opponent|you)\b/gi;while(m=R4.exec(t))add(/opponent/i.test(m[2])?q:p,-num(m[1]),"dmg");
+  const R5=/\bpay (\d[\d,]*) (?:Life Points|LP)/gi;while(m=R5.exec(t))add(p,-num(m[1]),"pay");
+  return out;
+}
 function cardZoneDialog(p,i,z){
   const m=getZ(p,i,z);
   if(!m){loadZoneDialog(p,i,z);return}
   const t=m.type||(m.kind==="spell"?"Normal Spell":"Normal Trap"),spell=m.kind==="spell",quick=/Quick-Play/.test(t);
   const oneShot=/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(t);
   const sg=m.sg||-1,pend=m.kind==="pend";
+  const lpf=m.pos==="UP"&&!pend?lpEffects(m.desc,p):[];
   const pendUI=pend?`<p><b>⚖ Pendulum Scale ${m.scale}</b><br><small>${esc(pendText(p))}</small></p>`:"";
   const eqUI=m.eq&&m.pos==="UP"?(()=>{
     const tg=m.tgt&&S.mon[m.tgt.p][m.tgt.i];
@@ -1635,6 +1648,7 @@ function cardZoneDialog(p,i,z){
    ${pend?"":`<div class="row">${[["UP","Face-up (activated)"],["FD","🂠 Set (face-down)"]].map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>`}
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${pendUI}${eqUI}${fUI}${m.pos==="UP"?trackerHTML(m):""}
+   ${lpf.length?`<p style="margin:6px 0 2px"><b>Life Points</b> <small>(from the card text — only apply if the effect really happens)</small></p><div class="row">${lpf.map((o,x)=>`<button data-lx="${x}" style="background:${o.d>0?"#1f5a3a":"#6b2230"}">Apply: ${esc(o.txt)}${oneShot&&lpf.length===1?" → Graveyard":""}</button>`).join("")}${oneShot&&lpf.length>1?`<button id="lxall" style="background:#1f5a3a">Apply all → Graveyard</button>`:""}</div>`:""}
    <div class="row">${oneShot&&m.pos==="UP"?`<button id="res1" style="background:#1f5a3a">Resolved → Graveyard</button>`:""}<button id="info">Card text</button></div>
    ${m.pos==="UP"&&!m.eq&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctlc">⇄ Take control of a monster…</button></div>`:""}
    ${m.uid&&S.mon.some(L=>L.some(x=>x&&x.ctl&&x.ctl.src===m.uid))?`<p><small>⇄ The monster taken with this card stays with you while this card is on the field.</small></p>`:""}
@@ -1660,6 +1674,9 @@ function cardZoneDialog(p,i,z){
     if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
     const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(e)ctlSrcGone(e.uid);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
     if($("res1"))$("res1").onclick=()=>leave("gy");
+    const applyLP=o=>{S.prev=[...S.lp];S.lp[o.who]=Math.max(0,S.lp[o.who]+o.d);addLog(`${m.name}: ${NAME(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)} → ${S.lp[o.who]}`)};
+    dlg.querySelectorAll("[data-lx]").forEach(b=>b.onclick=()=>{applyLP(lpf[+b.dataset.lx]);if(oneShot&&lpf.length===1)leave("gy");else{render();dlg.close()}});
+    if($("lxall"))$("lxall").onclick=()=>{lpf.forEach(applyLP);leave("gy")};
     if($("ctlc"))$("ctlc").onclick=()=>{if(!oneShot)m.uid=m.uid||newUid();ctlFromCard(p,m,()=>cardZoneDialog(p,i,z))};
     $("clr").onclick=()=>leave("gy");$("ban").onclick=()=>leave("ban");$("rm").onclick=()=>leave("none");
     $("info").onclick=async()=>{const all=await cards();const c=all.find(x=>x.id===m.id);$("ct").hidden=false;$("ct").innerHTML=c?cardInfo(c):"No card text.";};
