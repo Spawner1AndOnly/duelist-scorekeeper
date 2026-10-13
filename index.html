@@ -934,6 +934,7 @@ function parseEquip(desc,m){
 const ATTRS=["EARTH","WATER","FIRE","WIND","LIGHT","DARK","DIVINE"];
 // warning for ATK/DEF changes in the card text that the app could not apply (so the player knows to adjust manually)
 function whyUnapplied(s){
+  if(/becomes?\b|halved|doubled|\bdouble\b|\bhalve\b|original (?:ATK|DEF)|\bchange[sd]? (?:this card's |its )?(?:ATK|DEF)/i.test(s))return"sets the ATK/DEF to a specific value (use the ATK/DEF buttons)";
   if(/for (?:each|every)|\bx its\b|\bequal to\b/i.test(s))return"depends on a count (counters, monsters or cards)";
   if(/your turn only|opponent's turn only/i.test(s))return"only applies on one player's turn";
   if(/damage calculation|\bbattl/i.test(s))return"only applies in battle";
@@ -945,8 +946,8 @@ function statNote(desc,covered){
   const rs=new Set();
   for(const s of sentences(desc||"")){
     const p=s.replace(/\([^)]*\)/g,"");
-    if(!/\b(gain|lose|increase|decrease)s?\b[^.]*\b(ATK|DEF)\b|\b(ATK|DEF)\b[^.]*\b(increased|decreased)\b/i.test(p))continue;
-    if(!/\d|equal to|for (?:each|every)/i.test(p))continue;
+    if(!/\b(gain|lose|increase|decrease)s?\b[^.]*\b(ATK|DEF)\b|\b(ATK|DEF)\b[^.]*\b(increased|decreased|becomes?|halved|doubled)\b|\b(becomes?|change[sd]?|double|halve)\b[^.]*\b(ATK|DEF)\b/i.test(p))continue;
+    if(!/\d|equal to|for (?:each|every)|double|halve|becomes?/i.test(p))continue;
     if(covered(p))continue;
     rs.add(whyUnapplied(p));
   }

@@ -56,6 +56,14 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 - Monster Reborn op een kaart in de Graveyard van de tegenstander zet die aan jouw kant.
 - Op het einde van het duel herinnert de app je aan welke kaarten je moet teruggeven aan hun eigenaar.
 
+**Helpt bij effecten die getallen veranderen (voert de rest nooit uit)**
+- Het venster van elk open monster, elke open Spell en Trap toont **meteen de kaarttekst**, zodat je de echte kaart niet nodig hebt.
+- Effecten die **levenspunten of ATK/DEF met een vast bedrag** veranderen, worden knoppen op basis van de kaarttekst, bijvoorbeeld *Apply: you gain 1000 LP*, *This turn: +1000 ATK (this card)* of *choose a monster*. Eenmalige kaarten gaan naar de Graveyard als je ze toepast. Jij beslist of het effect echt gebeurt; de app doet het nooit voor je.
+- Effecten die afgaan **als een kaart het veld verlaat** hebben een eigen deel, en **Standby Phase**-effecten (Snatch Steal, Lava Golem, Cure Mermaid, onderhoudskosten, tellers) komen in een herinnering als de Standby Phase begint.
+- Een monster kan als **Continuous Spell** (Pumprincess) of als **Equip-kaart** (Black Metal Dragon, Union-monsters) in de Spell & Trap-zone worden gelegd, en de stats volgen.
+- Een **waarschuwing** verschijnt bij ATK/DEF-wijzigingen die de app niet kan uitrekenen (een voorwaarde, "wordt", "verdubbelt"), en dan pas je het zelf aan.
+- Verandert ATK/DEF, dan gloeit het monster **groen met witte plusjes** of **rood met witte minnetjes**; levenspunten en treffers laten de helft van de betrokken speler flitsen.
+
 **Rekent mee met ATK/DEF-wijzigingen**
 - Equip Spells en Field Spells die ATK/DEF verhogen of verlagen worden automatisch toegepast als de kaarttekst dat toelaat, ook bonussen die groeien met tellers of het aantal monsters.
 - Verandert een kaart ATK/DEF op een manier die de app niet kan uitrekenen (een voorwaarde, een effect voor één beurt), dan meldt de app dat en pas je het zelf aan.
@@ -69,7 +77,7 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 ## Wat de app niet doet
 
 - **Het is geen kaartspel.** Er is geen deck, geen hand en geen kaarten trekken. Je echte kaarten (of hoe je ook speelt) blijven in je eigen handen.
-- **Hij leest of voert geen kaarteffecten uit.** Geen echte kettingen, geen kosten, geen "vernietig die kaart" (de effectbouwer bij een aanval is een eenvoudige hulp, geen regelmotor). Je past effecten zelf toe met de LP-knoppen en door kaarten naar de Graveyard te verplaatsen, en de app helpt waar het kan.
+- **Hij voert geen kaarteffecten uit.** Hij biedt enkel knoppen voor effecten met een vast getal. Geen echte kettingen, geen kosten, geen "vernietig die kaart" (de effectbouwer bij een aanval is een eenvoudige hulp, geen regelmotor). Je past effecten zelf toe met de LP-knoppen en door kaarten naar de Graveyard te verplaatsen, en de app helpt waar het kan.
 - **Hij houdt niet bij:** Xyz-materialen, Fusion-/Link-materialen en tokens als echte kaarten, en "banished instead"-effecten worden niet automatisch toegepast.
 - **Hij controleert je deck niet:** geen decksgrootte, geen verboden-/beperkt-lijst.
 - **Hij is geen scheidsrechter.** Hij volgt de officiële regels voor zover de maker ze kon opzoeken, maar je kunt hem altijd overrulen en hij kan fout zijn. Zegt een kaart of een uitspraak iets anders, dan wint de kaart en het regelboek.

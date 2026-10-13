@@ -56,6 +56,14 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 - Monster Reborn on a card in the opponent's Graveyard puts it on your side.
 - At the end of the duel the app reminds you which cards to give back to their owner.
 
+**Helps with effects that change numbers (never runs the rest)**
+- The pop-up of every face-up monster, Spell and Trap shows the **card text straight away**, so you do not need the real card.
+- Effects that change **Life Points or ATK/DEF by a fixed amount** become buttons built from the card text, for example *Apply: you gain 1000 LP*, *This turn: +1000 ATK (this card)* or *choose a monster*. One-shot cards go to the Graveyard when you apply them. You decide whether the effect really happens; the app never does it for you.
+- Effects that trigger **when a card leaves the field** have their own section, and **Standby Phase** effects (Snatch Steal, Lava Golem, Cure Mermaid, upkeep costs, counters) appear in a reminder when the Standby Phase starts.
+- A monster can be placed in the Spell & Trap Zone as a **Continuous Spell** (Pumprincess) or as an **Equip card** (Black Metal Dragon, Union monsters), and the stats follow.
+- A **warning** appears for ATK/DEF changes the app cannot work out (a condition, "becomes", "double"), and you adjust by hand.
+- When ATK/DEF change, the monster glows **green with white plusses** or **red with white minuses**; LP changes and hits flash the half of the player they happen to.
+
 **Does the maths for stat changes**
 - Equip Spells and Field Spells that raise or lower ATK/DEF are applied automatically when the card text allows it, including bonuses that grow with counters or the number of monsters.
 - When a card changes ATK/DEF in a way the app cannot work out (a condition, a one-turn effect), it says so and you adjust by hand.
@@ -69,7 +77,7 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 ## What it does not do
 
 - **It is not a card game.** There is no deck, no hand and no drawing. Your real cards (or any other way you play) stay in your hands.
-- **It does not read or run card effects.** No real chains, no costs, no "destroy that card" (the effect builder at an attack is a simple helper, not a rules engine). You apply effects yourself with the life-point buttons and by moving cards to the Graveyard, and the app helps where it can.
+- **It does not run card effects.** It only offers buttons for effects with a fixed number. No real chains, no costs, no "destroy that card" (the effect builder at an attack is a simple helper, not a rules engine). You apply effects yourself with the life-point buttons and by moving cards to the Graveyard, and the app helps where it can.
 - **It does not track** Xyz materials, Fusion/Link materials or tokens as real cards, and "banished instead" effects are not applied automatically.
 - **It does not check your deck**: no deck size, no forbidden/limited list.
 - **It is not a judge.** It follows the official rules as far as they were available to the author, but you can always override it, and it can be wrong. If a card or a ruling says otherwise, the card and the rulebook win.
