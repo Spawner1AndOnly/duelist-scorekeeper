@@ -456,7 +456,7 @@ function fxFlush(){
     if(f.t==="dust"){const el=monEl(f.p,f.i);if(el)fxDust(el.getBoundingClientRect())}
     if(f.t==="move"){const el=monEl(f.p,f.i);if(el&&f.fr)fxMove(f.fr,el,f)}
     if(f.t==="flyin"){
-      const b=pileBtn(f.p,f.pile),el=f.k==="mon"?monEl(f.p,f.i):f.k==="field"?fieldEl(f.p):stEl(f.p,f.i);
+      const b=pileBtn(f.pp??f.p,f.pile),el=f.k==="mon"?monEl(f.p,f.i):f.k==="field"?fieldEl(f.p):stEl(f.p,f.i);
       if(b&&el){fxPulse(b,0);fxFly(b.getBoundingClientRect(),el.getBoundingClientRect(),{name:f.name,cls:f.cls})}
     }
   }));
@@ -1541,17 +1541,21 @@ function pileEntry(p,kind,k){
   }
   open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAME(p)}'s ${pileName(kind)}</small>
    <div class="row">${mon?`<button id="sa">Special Summon (ATK)</button><button id="sd">Special Summon (DEF)</button>`:`<button id="setf">Set on the field</button>`}</div>
+   ${mon?`<p style="margin:6px 0 0"><small>To ${p===0?"your opponent's":"your"} field (e.g. Monster Reborn, Call of the Haunted on this card) – it stays owned by ${who(p)}:</small></p><div class="row"><button id="xa">⇄ Summon there (ATK)</button><button id="xd">⇄ Summon there (DEF)</button></div>`:""}
    <div class="row"><button id="mv">→ ${pileName(other)}</button><button id="rm">Remove (to hand/deck)</button><button id="info">Card text</button></div>
    <div class="card" id="ct" hidden></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
     const take=()=>{L.splice(k,1)};
     const warn=t=>open(`${closeX()}<h2>Can't do that</h2><p>${esc(t)}</p><div class="row"><button id="bk2">← Back</button></div>`,()=>{$("bk2").onclick=()=>pileEntry(p,kind,k)});
-    const full=async pos=>{
+    const full=async(pos,q=p)=>{
       const all=await cards();const c0=all.find(x=>x.id===c.id)||{name:c.name,type:c.type,atk:0,def:0};
-      const i=S.mon[p].slice(0,S.n).findIndex(x=>!x);
-      if(i<0)return warn("You have no free monster zone.");
-      take();placeMon(p,i,c0,pos,"special");FXQ.push({t:"flyin",p,i,k:"mon",pile:kind,name:c.name,cls:pos==="DEF"?"def":"atk"});render();dlg.close();
+      const i=S.mon[q].slice(0,S.n).findIndex(x=>!x);
+      if(i<0)return warn(q===0?"You have no free monster zone.":"Your opponent has no free monster zone.");
+      take();placeMon(q,i,c0,pos,"special",p);FXQ.push({t:"flyin",p:q,pp:p,i,k:"mon",pile:kind,name:c.name,cls:pos==="DEF"?"def":"atk"});
+      if(q!==p)addLog(`${c.name} was Special Summoned from ${p===0?"your":"your opponent's"} ${pileName(kind)} to the other side of the field (owner: ${who(p)})`);
+      render();dlg.close();
     };
     if($("sa")){$("sa").onclick=()=>full("ATK");$("sd").onclick=()=>full("DEF")}
+    if($("xa")){$("xa").onclick=()=>full("ATK",1-p);$("xd").onclick=()=>full("DEF",1-p)}
     if($("setf"))$("setf").onclick=async()=>{
       const all=await cards();const c0=all.find(x=>x.id===c.id)||{};
       const e={name:c.name,kind:/Spell/.test(c.type||"")?"spell":"trap",type:c.type,pos:"FD",id:c.id,desc:c0.desc||"",setT:S.tc};
