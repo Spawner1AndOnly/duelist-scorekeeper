@@ -298,6 +298,7 @@ function nextPhase(){
   if(oppWait()){ctlEndPhase();Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();return}
   const n=stepFrom(S);if(n.turn!==S.turn)S.ns=false;
   Object.assign(S,n);if(PHASES[S.ph].n==="End Phase"||n.turn!==S.turn)ctlEndPhase();render();
+  if(PHASES[S.ph].n==="Standby Phase")setTimeout(showStandby,350);
 }
 function oppWait(){return S.view==="1p"&&S.turn===1}
 // Soul Exchange and similar: "you cannot conduct your Battle Phase the turn you activate this card" -> warn (do not block) when moving on to the Battle Phase
@@ -1613,6 +1614,58 @@ function loadZoneDialog(p,i,z){
       $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
       $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];if(/Monster/.test(c.type))pendPlace(p,i,c);else stPlace(p,i,c,z)};
     };
+  });
+}
+
+// Standby Phase effects on Life Points (Snatch Steal, Cure Mermaid, Lava Golem, ...): who is affected, whose Standby Phase it is
+// returns [{owner,who,d,txt}] for a face-up card controlled by c; owner = the player whose Standby Phase triggers it, who = the player whose LP change
+function standbyEffects(desc,c,eqTarget){
+  const out=[],o=1-c,num=x=>+String(x).replace(/,/g,"");
+  for(const sent of (desc||"").split(/(?<=[.;])\s+|\n/)){
+    if(!/Standby Phase/i.test(sent)||/for each|randomly|Detach/i.test(sent))continue;
+    let owner;
+    if(/your opponent'?s (?:each )?Standby|opponent's Standby|of their Standby|your opponent gains/i.test(sent))owner=o;
+    else if(/each player's Standby|the Standby Phase|next Standby|turn player/i.test(sent))owner="turn";
+    else if(/his\/her Standby/i.test(sent))owner=/controller of this card|controller of the spell|player controlling|controller must|^The controller|^A player/i.test(sent)?c:/opponent/i.test(sent)?o:c;
+    else owner=c;
+    let m,who=null,d=0,kind="";
+    if(m=sent.match(/increase your (?:Life Points|LP) by (\d[\d,]*)/i)){who=c;d=num(m[1]);kind="gain"}
+    else if(m=sent.match(/(?:They|Your opponent) gains? (\d[\d,]*) (?:Life Points|LP)/i)){who=owner==="turn"?"turn":owner===c?o:owner;if(/Your opponent gains/i.test(sent))who=o;d=num(m[1]);kind="gain"}
+    else if(m=sent.match(/\b(?:you )?gain (\d[\d,]*) (?:Life Points|LP)/i)){who=c;d=num(m[1]);kind="gain"}
+    else if(m=sent.match(/inflict (\d[\d,]*) (?:points of )?damage to (the controller of the equipped monster|your opponent)/i)){who=/controller/i.test(m[2])?(eqTarget!=null?eqTarget:o):o;d=-num(m[1]);kind="dmg"}
+    else if(m=sent.match(/(?:The turn player|player controlling this monster|controller of the spell card|The controller of this card|controller must) (?:takes?|loses?|pays?|must pay)(?: |)(\d[\d,]*)/i)){who=/turn player/i.test(sent)?"turn":c;d=-num(m[1]);kind="dmg"}
+    else if(m=sent.match(/\b(?:you |)(?:must |)take (\d[\d,]*) (?:points of )?damage|Take (\d[\d,]*) damage/i)){who=c;d=-num(m[1]||m[2]);kind="dmg"}
+    else if(m=sent.match(/\b(?:you must |you can |)pay (\d[\d,]*) (?:Life Points|LP)/i)){who=c;d=-num(m[1]);kind="pay"}
+    if(who===null||!d)continue;
+    out.push({owner,who,d,kind,destroy:/or destroy/i.test(sent),txt:sent.trim()});
+  }
+  return out;
+}
+// all Standby effects that trigger now (turn player = S.turn)
+function standbyNow(){
+  const L=[],T=S.turn;
+  const take=(card,c,eqT)=>{if(!card||card.pos==="FD"||!card.desc)return;
+    standbyEffects(card.desc,c,eqT).forEach(e=>{const ow=e.owner==="turn"?T:e.owner;if(ow!==T)return;L.push({name:card.name,c,who:e.who==="turn"?T:e.who,d:e.d,kind:e.kind,destroy:e.destroy,txt:e.txt})})};
+  [0,1].forEach(c=>{
+    S.mon[c].forEach(m=>take(m,c));
+    S.st[c].forEach(e=>take(e,c,e&&e.tgt?e.tgt.p:null));
+    take(S.field[c],c);
+  });
+  return L;
+}
+function showStandby(){
+  const L=standbyNow();if(!L.length)return;
+  DLGP=S.turn;const done=new Set();
+  const nm=w=>w===0?"You":"Opponent";
+  const txt=o=>`${nm(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)}`;
+  open(`${closeX()}<h2>Standby Phase</h2><p><small>Cards on the field with a Standby Phase effect on Life Points. Tap to apply, only if the effect really happens.</small></p>
+   ${L.map((o,x)=>`<div style="border-top:1px solid #4a3220;padding:6px 0"><b>${esc(o.name)}</b><br><small>${esc(o.txt)}</small>${o.destroy?`<br><small style="color:var(--gold)">Or destroy this card instead.</small>`:""}<div class="row"><button data-sx="${x}" style="background:${o.d>0?"#1f5a3a":"#6b2230"}">Apply: ${txt(o)} LP</button></div></div>`).join("")}
+   <div class="row"><button id="sxall" style="background:#1f5a3a">Apply all</button><button id="sxno">Close</button></div>`,()=>{
+    const ap=x=>{if(done.has(x))return;done.add(x);const o=L[x];S.prev=[...S.lp];S.lp[o.who]=Math.max(0,S.lp[o.who]+o.d);addLog(`${o.name}: ${nm(o.who)} ${o.d>0?"+":"−"}${Math.abs(o.d)} → ${S.lp[o.who]} (Standby Phase)`);
+      const b=dlg.querySelector(`[data-sx="${x}"]`);if(b){b.disabled=true;b.textContent="✓ Applied"}render()};
+    dlg.querySelectorAll("[data-sx]").forEach(b=>b.onclick=()=>ap(+b.dataset.sx));
+    $("sxall").onclick=()=>{L.forEach((o,x)=>ap(x));setTimeout(()=>dlg.close(),900)};
+    $("sxno").onclick=()=>dlg.close();
   });
 }
 // Life Point effects with a fixed amount in the card text: [{who:0|1,d:+n|-n,txt}] (p = the player who controls the card; "you" = p)
