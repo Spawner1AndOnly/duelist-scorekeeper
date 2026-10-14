@@ -1719,7 +1719,7 @@ function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
   const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(e.eq||(e.eff&&e.eff.length))e.hold=true; /* bonus waits for 'Apply' so its animation always shows */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
-  if(/Equip/.test(e.type)){
+  if(/Equip/.test(e.type)||(/Trap/.test(e.type)&&/equip this card to/i.test(e.desc||""))){ // Equip Spells, and Normal Traps that equip themselves (Metalmorph, Amaze Attraction...)
     pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
       if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
       done()},back);
