@@ -2621,7 +2621,7 @@ function showSplash(){
     sp.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{view=b.dataset.v;draw()});
     sp.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{mode=b.dataset.m;draw()});
     $("spGo").onclick=()=>startDuel(mode==="speed"?4000:8000,mode==="speed"?3:5,view);
-    const c=$("spCont");if(c)c.onclick=()=>{S.view=view;render();sp.hidden=true};
+    const c=$("spCont");if(c)c.onclick=()=>{S.view=view;FBS.on=false;FBS.a=FBS.b="";render();sp.hidden=true}; // the field pictures fade in again when the duel continues
   }
   draw();sp.hidden=false;sp.scrollTop=0;
 }
