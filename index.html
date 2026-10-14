@@ -1678,11 +1678,11 @@ const setZ=(p,i,z,v)=>{if(z==="field")S.field[p]=v;else S.st[p][i]=v};
 const putZone=(p,i,z,e)=>{if(z==="field"&&S.field[p]&&S.field[p]!==e){sendTo(p,"gy",S.field[p],true);addLog(`${S.field[p].name} was replaced by a new Field Spell`)}setZ(p,i,z,e)};
 const subType=t=>(t||"").replace(/ (Spell|Trap)$/,"");
 let PICK=null; // while set: the next tap on a monster on the field is the chosen target
-function pickTarget(onPick,back){
-  if(![0,1].some(q=>S.mon[q].some(Boolean))){toast("There are no monsters on the field.");if(back)back();else dlg.close();return}
+function pickTarget(onPick,back,skip){ // skip (optional): a card that equips by its own text may also be activated without a target (condition not met / the monster does not exist yet)
+  if(![0,1].some(q=>S.mon[q].some(Boolean))){if(skip){toast("There are no monsters on the field – activated without a target.");skip();return}toast("There are no monsters on the field.");if(back)back();else dlg.close();return}
   try{dlg.close()}catch(e){}
   const bar=document.createElement("div");bar.id="pickbar";
-  bar.innerHTML=`<span>Tap the monster to equip</span><button id="pickx">Cancel</button>`;
+  bar.innerHTML=`<span>Tap the monster to equip</span>${skip?`<button id="picks">No target</button>`:""}<button id="pickx">Cancel</button>`;
   if(S.view==="2p"&&S.turn===1)bar.classList.add("rot"); // turned towards the player on turn
   document.body.appendChild(bar);document.body.classList.add("picking");
   const pks=[...document.querySelectorAll('.slot[data-row="mon"]:not(.empty)')];pks.forEach(e=>e.classList.add("pk"));
@@ -1690,6 +1690,7 @@ function pickTarget(onPick,back){
   const who=DLGP; // the player who plays the equip: the pop-up that follows must stay turned towards that player, also when the target is on the other half
   PICK={onPick:(p,i)=>{end();DLGP=who;onPick({p,i})}};
   $("pickx").onclick=()=>{end();if(back)back();else render()};
+  if(skip)$("picks").onclick=()=>{end();DLGP=who;skip()};
 }
 // pick several monsters on the field (Tributes): tap to toggle, "Done" confirms. o = {label, need, cands:[[p,i]], sel:[[p,i]], onDone(list), onCancel()}
 function pickMulti(o){
@@ -1714,15 +1715,33 @@ document.addEventListener("click",e=>{
   if(!sl||sl.classList.contains("empty"))return;
   if(PICK.toggle)PICK.toggle(+sl.dataset.p,+sl.dataset.i,sl);else PICK.onPick(+sl.dataset.p,+sl.dataset.i);
 },true);
+// Trap Monsters ("Special Summon this card as an Effect Monster (Rock-Type/EARTH/Level 4/ATK 1800/DEF 1000)"): stats from the card text; null if the text gives no fixed ATK/DEF
+function parseTrapMon(desc){
+  const m=(desc||"").match(/Special Summon this card as (?:an? )?(Normal|Effect) Monster[^(]{0,40}\(([^)]*ATK[^)]*)\)/i);
+  if(!m)return null;
+  const parts=m[2].split("/").map(x=>x.trim()),o={mtype:m[1][0].toUpperCase()+m[1].slice(1).toLowerCase()+" Monster",tuner:false};
+  for(const x of parts){let q;
+    if(/^Tuner$/i.test(x))o.tuner=true;
+    else if((q=x.match(/^Level (\d+)$/i)))o.lvl=+q[1];
+    else if((q=x.match(/^ATK (\?|\d+)$/i)))o.atk=q[1]==="?"?-1:+q[1];
+    else if((q=x.match(/^DEF (\?|\d+)$/i)))o.def=q[1]==="?"?-1:+q[1];
+    else if(/^(DARK|LIGHT|EARTH|WATER|FIRE|WIND|DIVINE)$/i.test(x))o.attr=x.toUpperCase();
+    else if(/Type$|^[A-Z][a-z-]+$/.test(x))o.race=x.replace(/-Type$/i,"");
+  }
+  if(o.atk===undefined||o.def===undefined)return null;
+  if(o.tuner)o.mtype=o.mtype.replace(" Monster"," Tuner Monster");
+  return o;
+}
 const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
   const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(e.eq||(e.eff&&e.eff.length))e.hold=true; /* bonus waits for 'Apply' so its animation always shows */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
-  if(/Equip/.test(e.type)||(/Trap/.test(e.type)&&/equip this card to/i.test(e.desc||""))){ // Equip Spells, and Normal Traps that equip themselves (Metalmorph, Amaze Attraction...)
+  const selfEq=!/Equip/.test(e.type)&&/Trap/.test(e.type)&&/equip this card to|treat this card as an Equip Card|equip it to (a|1) /i.test(e.desc||"");
+  if(/Equip/.test(e.type)||selfEq){ // Equip Spells, and Traps that equip themselves (Metalmorph, Amaze Attraction...: 'No target' button)
     pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
       if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
-      done()},back);
+      done()},back,selfEq?done:null);
   }else done();
 }
 function stPlace(p,i,c,z){
@@ -1975,6 +1994,7 @@ function cardZoneDialog(p,i,z){
    ${m.uid&&S.mon.some(L=>L.some(x=>x&&x.ctl&&x.ctl.src===m.uid))?`<p><small>⇄ The monster taken with this card stays with you while this card is on the field.</small></p>`:""}
    ${z==="field"?`<div class="row"><button id="repl">↻ Replace with another Field Spell (this one goes to the Graveyard)</button></div>`:""}
    ${m.fromMon&&m.pos==="UP"&&m.mon?`<div class="row"><button id="toMon" style="background:#1f5a3a">⬆ Special Summon back to the Monster Zone</button></div>`:""}
+   ${!m.fromMon&&m.pos==="UP"&&/Trap/.test(m.type||"")&&parseTrapMon(m.desc)?(q=>`<div class="row"><button id="trapMon" style="background:#1f5a3a">⬆ Special Summon as a monster (ATK ${q.atk<0?"?":q.atk} / DEF ${q.def<0?"?":q.def})<br><small>Trap Monster – it leaves the Spell &amp; Trap Zone</small></button></div>`)(parseTrapMon(m.desc)):""}
    <div class="row"><button id="clr" style="background:#6b2230">${pend?"⬆ To Extra Deck (face-up)":'<img class="zi" src="img/fx/tomb.webp" alt=""> To Graveyard'}</button><button id="ban" style="background:#3a2f66"><img class="zi" src="img/fx/banish.webp" alt=""> Banish</button><button id="rm">Remove (hand/deck)</button></div>
    `,()=>{
     autoText(m);
@@ -1999,6 +2019,10 @@ function cardZoneDialog(p,i,z){
     if($("res1"))$("res1").onclick=()=>leave("gy");
     if($("toMon"))$("toMon").onclick=()=>{ // a monster that lay in the Spell & Trap Zone (Continuous Spell / Equip card) comes back: the normal summon pop-up, its Spell/Trap card disappears on confirm
       const q=m.mon,c={id:m.id,name:m.name,type:q.mtype||"Effect Monster",desc:m.desc||"",atk:q.atk,def:q.def,attr:q.attr,race:q.race,lvl:q.lvl,lm:q.lm|0};
+      const zi=[...Array(S.n).keys()].find(k=>!S.mon[p][k])??0;
+      summonDialog(p,zi,c,{take:()=>{ctlSrcGone(m.uid);setZ(p,i,z,null)}})};
+    if($("trapMon"))$("trapMon").onclick=()=>{ // Trap Monster: summon pop-up with the stats from the card text; its Trap card leaves the Spell & Trap Zone on confirm
+      const q=parseTrapMon(m.desc),c={id:m.id,name:m.name,type:q.mtype,desc:m.desc||"",atk:q.atk,def:q.def,attr:q.attr,race:q.race,lvl:q.lvl,lm:0};
       const zi=[...Array(S.n).keys()].find(k=>!S.mon[p][k])??0;
       summonDialog(p,zi,c,{take:()=>{ctlSrcGone(m.uid);setZ(p,i,z,null)}})};
     if($("appl"))$("appl").onclick=()=>{if(m.hold){delete m.hold;render()}dlg.close()}; // closing the pop-up lets the waiting ATK/DEF animation play
@@ -2057,7 +2081,8 @@ function pileEntry(p,kind,k){
   }
   open(`${closeX()}<h2>${esc(c.name)}</h2><small>${esc(c.type||"")} • ${NAMES(p)} ${pileName(kind)}</small>
    <div class="row">${mon?`<button id="sa">Special Summon (ATK)</button><button id="sd">Special Summon (DEF)</button>`:`<button id="setf">Set on the field</button>`}</div>
-   ${mon?`<p style="margin:6px 0 0"><small>To ${p===0?"your opponent's":"your"} field (e.g. Monster Reborn, Call of the Haunted on this card) – it stays owned by ${who(p)}:</small></p><div class="row"><button id="xa">⇄ Summon there (ATK)</button><button id="xd">⇄ Summon there (DEF)</button></div>`:""}
+   ${mon?`<p style="margin:6px 0 0"><small>To ${p===0?"your opponent's":"your"} field (e.g. Monster Reborn, Call of the Haunted on this card) – it stays owned by ${who(p)}:</small></p><div class="row"><button id="xa">⇄ Summon there (ATK)</button><button id="xd">⇄ Summon there (DEF)</button></div>
+   <div class="row"><button id="eqp">⬇ Equip to a monster…<br><small>Armored Xyz, Cyberdark Invasion, Union… (as an Equip card)</small></button></div>`:""}
    <div class="row"><button id="mv">→ ${pileName(other)}</button><button id="rm">Remove (to hand/deck)</button><button id="info">Card text</button></div>
    <div class="card" id="ct" hidden></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
     if(thType(c.type))dlg.dataset.th=thType(c.type);
@@ -2072,6 +2097,15 @@ function pileEntry(p,kind,k){
       render();dlg.close();
     };
     if($("sa")){$("sa").onclick=()=>full("ATK");$("sd").onclick=()=>full("DEF")}
+    if($("eqp"))$("eqp").onclick=async()=>{ // a monster from the Graveyard/Banished list becomes an Equip card on a monster (Armored Xyz, Cyberdark Invasion...): same card in the Spell & Trap Zone as 'Monster -> Equip card'
+      const all=await cards();const c0=all.find(x=>x.id===c.id)||{id:c.id,name:c.name,type:c.type,atk:0,def:0,desc:""};
+      const f=[...Array(S.n).keys()].filter(z=>!S.st[p][z]);
+      if(!f.length)return warn("Your Spell & Trap Zones are full.");
+      const slot=f.find(z=>!isPZ(z))??f[0];
+      pickTarget(t=>{const tm=S.mon[t.p][t.i];if(!tm)return;
+        const e={name:c0.name,kind:"spell",type:"Equip Spell",pos:"UP",id:c0.id,desc:c0.desc||"",setT:S.tc,cnt:0,fromMon:true,mon:{atk:c0.atk,def:c0.def,attr:c0.attr,race:c0.race,lvl:c0.lvl,mtype:c0.type,lm:c0.lm|0},tgt:t};
+        e.eq=parseEquip(e.desc,tm);e.hold=true;
+        take();S.st[p][slot]=e;addLog(`${c0.name} was equipped to ${tm.name} from the ${pileName(kind)}`);render();openZone(p,slot,"st")},()=>pileEntry(p,kind,k))};
     if($("xa")){$("xa").onclick=()=>full("ATK",1-p);$("xd").onclick=()=>full("DEF",1-p)}
     if($("setf"))$("setf").onclick=async()=>{
       const all=await cards();const c0=all.find(x=>x.id===c.id)||{};
