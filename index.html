@@ -48,6 +48,7 @@ body.picking .slot.picked::after{content:"¹4";position:absolute;right:3px;botto
 .lvb{position:absolute;top:2px;left:3px;display:flex;align-items:center;gap:1px;background:#e8731a;color:#fff;border-radius:9px;padding:0 4px 0 2px;font-size:10px;font-weight:800;line-height:14px;box-shadow:0 1px 3px #000a;pointer-events:none;z-index:1}
 .lvb i{font-style:normal;color:#ffe08a;font-size:11px}
 .lvb.rk{background:#23232b;border:1px solid #ffe08a;line-height:12px}.lvb.lkn{background:#1f5fd0}
+.oub{position:absolute;right:3px;top:58px;z-index:3;min-width:26px;padding:1px 5px;border-radius:9px;background:#0b0a16;border:1.5px solid #6aa8ff;color:#cfe3ff;font-size:11px;font-weight:800;text-align:center;box-shadow:0 0 6px #6aa8ff99;pointer-events:auto;cursor:pointer;line-height:15px}
 .atkx{font-size:9px;line-height:11px;color:#ffd45a;font-weight:800;white-space:nowrap;display:flex;align-items:center;gap:1px}.atkx img{height:13px;width:auto}
 .sti{height:12px;width:auto;vertical-align:-2px;margin-right:1px}.sti.sd{margin-left:1px;margin-right:0}.slot .st:has(.sti){font-size:10.5px;letter-spacing:-.6px;white-space:nowrap}.st .sl{margin:0 1px;opacity:.8}
 .eqs{position:absolute;top:22px;left:3px;display:flex;flex-direction:column;gap:0;font-size:14px;line-height:13px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;z-index:1}
@@ -849,7 +850,7 @@ function slotHTML(p,i,m){
   if(m.pos==="FD")return`<div class="slot" ${a}>${ownerOf(m,p)!==p?`<span class="ctlb">⇄</span>`:""}<div class="cbw"><div class="cb land fd"></div></div><div class="st dim">? / ?</div></div>`;
   const cls=x=>x>0?"up":x<0?"down":"";
   const d=m.pos==="DEF",s=stats(p,i),da=s.a-m.atk,dd=s.d-m.def;
-  return`<div class="slot" ${a}>${lvlBadge(m)}${attrIcon(m)}${eqMon(p,i)}${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
+  return`<div class="slot" ${a}>${lvlBadge(m)}${attrIcon(m)}${eqMon(p,i)}${badges(m)}${m.ou&&m.ou.length?`<span class="oub" data-p="${p}" data-i="${i}" title="Overlay Units: tap to see them">◎ ${m.ou.length}</span>`:""}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
     <div class="cbw"><div class="cb ${d?"land def":"port atk"}${thCls(m)}"><span class="n">${esc(m.name)}</span></div></div>
     <div class="st"><img class="sti" src="img/attr/atk.webp" alt="ATK"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":`<span class="sl">/</span><span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span><img class="sti sd" src="img/attr/def.webp" alt="DEF">`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
 }
@@ -905,6 +906,7 @@ function addLog(t){S.log.unshift(t);S.log=S.log.slice(0,40)}
 function setLP(p,v,txt){S.prev=[...S.lp];S.lp[p]=Math.max(0,v);addLog(txt(S.lp[p]));render()}
 function changeLP(p,d){setLP(p,S.lp[p]+d,n=>`${NAME(p)}: ${d>0?"+":""}${d} → ${n}`)}
 document.addEventListener("click",e=>{
+  const ob=e.target.closest(".oub");if(ob&&!ob.closest("dialog")){ouDialog(+ob.dataset.p,+ob.dataset.i);return}
   const t=e.target.closest("button,.slot,.lp");if(!t||t.closest("dialog"))return;
   if(t.dataset.d){changeLP(+t.dataset.p,+t.dataset.d)}
   else if(t.dataset.sign){const p=+t.dataset.p;S.sign=S.sign||[-1,-1];S.sign[p]*=-1;render()}
@@ -914,6 +916,25 @@ document.addEventListener("click",e=>{
   else if(t.classList.contains("lp")){lpDialog(+t.dataset.lp)}
   else if(t.classList.contains("slot")){(t.dataset.row==="st"?stDialog:slotDialog)(+t.dataset.p,+t.dataset.i)}
 });
+// Xyz Overlay Units: tap the ◎ badge on the monster
+function detachOU(p,i,k){
+  const m=S.mon[p][i];if(!m||!m.ou||!m.ou[k])return;
+  const u=m.ou.splice(k,1)[0];
+  if(u&&u.id!==undefined){const el=monEl(p,i);flyToPile(el&&el.getBoundingClientRect(),{name:u.name,type:u.type,id:u.id,pos:"UP"},ownerOf(m,p),"gy");sendTo(ownerOf(m,p),"gy",u,true)}
+  addLog(`${m.name} detached ${u.name}${u.id!==undefined?" (Graveyard)":""}`);
+  if(!m.ou.length)delete m.ou;
+}
+function ouDialog(p,i){
+  const m=S.mon[p][i];if(!m)return;
+  if(!m.ou||!m.ou.length){slotDialog(p,i);return}
+  open(`${closeX()}<h2>◎ Overlay Units</h2><small>${esc(m.name)} • ${m.ou.length} Overlay Unit${m.ou.length>1?"s":""}</small>
+   <div class="res">${m.ou.map((o,k)=>`<div style="display:flex;align-items:center;gap:8px"><span style="flex:1">${esc(o.name)}</span><button data-k="${k}" style="flex:0 0 auto;padding:6px 10px">Detach → Graveyard</button></div>`).join("")}</div>
+   <div class="row"><button id="ouback">← Monster</button></div>`,()=>{
+    dlg.dataset.th="xyz";
+    dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{detachOU(p,i,+b.dataset.k);render();if(S.mon[p][i]&&S.mon[p][i].ou)ouDialog(p,i);else dlg.close()});
+    $("ouback").onclick=()=>slotDialog(p,i);
+  });
+}
 function lpDialog(p){
   open(`${closeX()}<h2>Life Points – ${NAME(p)}</h2>
    <input type="number" id="lpv" inputmode="numeric" placeholder="Amount">
@@ -953,6 +974,7 @@ function removeMon(p,i,dest="gy"){
   S.mon[p][i]=null;
   if(dest!=="none"&&m&&m.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),m,o,dest);
   if(dest!=="none")sendTo(o,dest,m,true);
+  if(dest!=="none"&&m&&m.ou&&m.ou.length){m.ou.forEach(u=>{if(u.id!==undefined)sendTo(o,dest,u,true)});addLog(`${m.name}'s ${m.ou.length} Overlay Unit(s) went to the ${dest==="ban"?"Banished pile":"Graveyard"} too`)}
   if(dest!=="none"&&m&&o!==p)addLog(`${m.name} went to its owner's ${dest==="ban"?"Banished pile":"Graveyard"} (${NAME(o)})`);
   [0,1].forEach(q=>S.st[q].forEach((e,k)=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const se=stEl(q,k);if(se)flyToPile(se.getBoundingClientRect(),e,q,"gy");S.st[q][k]=null;sendTo(q,"gy",e);addLog(`${e.name} went to the Graveyard (equipped monster left the field)`)}}));
 }
@@ -1296,7 +1318,7 @@ function trackerBind(m,again){
     again();
   });
 }
-const badges=m=>{const b=[];if(m.ou&&m.ou.length)b.push("◎"+m.ou.length);if(m.cnt)b.push("●"+m.cnt);if(m.otT===S.tc&&m.otN)b.push(m.otN>1?"①×"+m.otN:"①");if(m.od)b.push("★");return b.length?`<span class="bdg">${b.join(" ")}</span>`:""};
+const badges=m=>{const b=[];if(m.cnt)b.push("●"+m.cnt);if(m.otT===S.tc&&m.otN)b.push(m.otN>1?"①×"+m.otN:"①");if(m.od)b.push("★");return b.length?`<span class="bdg">${b.join(" ")}</span>`:""};
 // "for each …" bonuses: what is counted
 function perKind(t){
   if(/-type\b|\b(?:light|dark|earth|water|fire|wind|divine)\b|"|\blevel\b|\brank\b|\btuner\b|\bfusion\b|\bsynchro\b|\bxyz\b|\bpendulum\b|\blink\b|\bnormal monster|\beffect monster/i.test(String(t))&&!/counter/i.test(String(t)))return null;
@@ -1601,7 +1623,7 @@ function slotDialog(p,i){
     autoText(m);
     actsBind(acts,false,null,()=>slotDialog(p,i));
     if($("mauto"))$("mauto").onclick=()=>{m.auto=m.auto===false;render();slotDialog(p,i)};
-    if($("detach"))$("detach").onclick=()=>{const u=m.ou&&m.ou.shift();if(u&&u.id!==undefined){const el=monEl(p,i);flyToPile(el&&el.getBoundingClientRect(),{name:u.name,type:u.type,id:u.id,pos:"UP"},ownerOf(m,p),"gy");sendTo(ownerOf(m,p),"gy",u,true);addLog(`${m.name} detached ${u.name} (Graveyard)`)}if(m.ou&&!m.ou.length)delete m.ou;render();slotDialog(p,i)};
+    if($("detach"))$("detach").onclick=()=>{detachOU(p,i,0);render();slotDialog(p,i)};
     dlg.querySelectorAll("[data-ec]").forEach(b=>b.onclick=()=>{const e=effs[+b.dataset.ec];if(e){e.on=!e.on;render();slotDialog(p,i)}});
     $("m2st").onclick=()=>monToSTDialog(p,i);
     $("ctl").onclick=()=>ctlDialog(p,i);
