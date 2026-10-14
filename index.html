@@ -278,7 +278,15 @@ dialog[data-th] button{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c3
 dialog[data-th] button img.zi{height:18px;margin-right:2px}
 #pickbar{border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a,0 4px 18px #000b;background:linear-gradient(165deg,#4b301b,#1a1009);font-family:"Palatino Linotype",Palatino,Georgia,serif}
 #pickbar button{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a99;font-family:inherit;font-weight:700;background-image:linear-gradient(#ffffff26,#00000033);background-blend-mode:overlay}
+/* middle strip (phase, Rules, dice, undo, search, menu): same black/gold card style as the pop-ups */
+.mid .row1 button{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a99,0 1px 3px #0008;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-weight:700;background-image:linear-gradient(#ffffff26,#00000033);background-blend-mode:overlay}
+.mid .row1 button.sm{text-shadow:0 1px 2px #000a}
 #toast{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a;font-family:"Palatino Linotype",Palatino,Georgia,serif}
+/* Press feedback: everything tappable shrinks a bit and lights up while pressed (uses 'scale', so it never clashes with transform) */
+button,.slot,.fchip,.lp,.card,.pile,[data-lx],#pickbar button{transition:scale .09s ease-out,filter .09s ease-out;-webkit-tap-highlight-color:transparent}
+button:active,.slot:active,.fchip:active,.lp:active,.card:active,[data-lx]:active{scale:.93;filter:brightness(1.45) drop-shadow(0 0 5px #e8c36acc)}
+.slot:active,.fchip:active,.lp:active{scale:.96}
+@media (prefers-reduced-motion:reduce){button,.slot,.fchip,.lp,.card,.pile,[data-lx]{transition:none}button:active,.slot:active,.fchip:active,.lp:active,.card:active,[data-lx]:active{scale:1}}
 </style>
 </head>
 <body>
@@ -378,6 +386,105 @@ function phaseClick(){
 
 // ---------- Render ----------
 const $=id=>document.getElementById(id);
+// ---------- Sound: all sounds are generated here with Web Audio (no files, no copyright) ----------
+const SFX=(()=>{
+  let ac=null,master,echo,on=true;
+  try{on=localStorage.getItem("ygoref-snd")!=="0"}catch(e){}
+  function init(){
+    if(ac)return ac;
+    const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+    ac=new C();master=ac.createGain();master.gain.value=.55;
+    const comp=ac.createDynamicsCompressor();master.connect(comp);comp.connect(ac.destination);
+    echo=ac.createGain();const d=ac.createDelay(1),fb=ac.createGain(),lp=ac.createBiquadFilter(),wet=ac.createGain();
+    d.delayTime.value=.13;fb.gain.value=.4;lp.type="lowpass";lp.frequency.value=2400;wet.gain.value=.5;
+    echo.connect(d);d.connect(lp);lp.connect(fb);fb.connect(d);lp.connect(wet);wet.connect(master); // echo: every repeat is quieter and duller
+    return ac;
+  }
+  function ready(){if(!on||!init())return false;if(ac.state==="suspended")ac.resume();return true}
+  function tone(o){ // {f,f2,type,dur,vol,t,echo}
+    if(!ready())return;
+    const f=o.f||800,dur=o.dur||.08,vol=o.vol==null?.25:o.vol,t0=ac.currentTime+(o.t||0);
+    const osc=ac.createOscillator(),g=ac.createGain();osc.type=o.type||"sine";
+    osc.frequency.setValueAtTime(f,t0);if(o.f2)osc.frequency.exponentialRampToValueAtTime(o.f2,t0+dur);
+    g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(vol,t0+.004);g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    osc.connect(g);g.connect(master);if(o.echo)g.connect(echo);osc.start(t0);osc.stop(t0+dur+.05);
+  }
+  let nbuf=null;
+  function noise(o){ // {dur,vol,t,f,f2,q,type,echo}
+    if(!ready())return;
+    if(!nbuf){nbuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+    const dur=o.dur||.2,vol=o.vol==null?.3:o.vol,t0=ac.currentTime+(o.t||0);
+    const s=ac.createBufferSource();s.buffer=nbuf;s.loop=true;
+    const fl=ac.createBiquadFilter();fl.type=o.type||"bandpass";fl.Q.value=o.q||1;fl.frequency.setValueAtTime(o.f||1000,t0);if(o.f2)fl.frequency.exponentialRampToValueAtTime(o.f2,t0+dur);
+    const g=ac.createGain();g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(vol,t0+.01);g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    s.connect(fl);fl.connect(g);g.connect(master);if(o.echo)g.connect(echo);s.start(t0);s.stop(t0+dur+.05);
+  }
+  // recorded sounds (Tom's own voice, folder snd/): decoded once, then played with a slightly random speed so they never sound exactly the same
+  const SAMPLES={slash:["slash1","slash2"],stomp:["stomp2"],stomp0:["stomp0"],flip:["flip3"],lunge:["lunge1"],block:["block1"],sbreak:["shieldbreak1"]},buf={};let loading=false;
+  function loadSamples(){
+    if(loading||!init())return;loading=true;
+    for(const k in SAMPLES)for(const n of SAMPLES[k])fetch("snd/"+n+".m4a").then(r=>r.arrayBuffer()).then(b=>new Promise((ok,no)=>ac.decodeAudioData(b,ok,no))).then(d=>{(buf[k]=buf[k]||[]).push(d)}).catch(()=>{});
+  }
+  function sample(k,o){ // true if a recording was played, false = use the synthesised fallback
+    if(!ready())return true;loadSamples();
+    const L=buf[k];if(!L||!L.length)return false;o=o||{};
+    const s=ac.createBufferSource(),g=ac.createGain();s.buffer=L[Math.floor(Math.random()*L.length)];
+    s.playbackRate.value=(o.rate||1)*(o.exact?1:.96+Math.random()*.08);g.gain.value=o.vol==null?.9:o.vol;
+    s.connect(g);g.connect(master);if(o.echo){const e=ac.createGain();e.gain.value=o.echo===true?1:o.echo;g.connect(e);e.connect(echo)} // o.echo = how much echo (1 = full)
+    s.start();return true;
+  }
+  const api={
+    get on(){return on},
+    set(v){on=!!v;try{localStorage.setItem("ygoref-snd",on?"1":"0")}catch(e){}if(on)this.click()},
+    unlock(){if(on&&init()){loadSamples();if(ac.state==="suspended")ac.resume()}},
+    pok(){tone({f:400,f2:250,type:"sine",dur:.045,vol:.22})}, // very short, dry 'pok' (apply, OK, yes ...)
+    close(){tone({f:640,f2:520,type:"sine",dur:.05,vol:.15});tone({f:210,f2:100,type:"sine",dur:.13,vol:.35,t:.075});noise({dur:.04,vol:.06,f:500,type:"lowpass",t:.075})}, // ka-dunk, no echo
+    click(){tone({f:520,f2:300,type:"sine",dur:.08,vol:.2,echo:true});noise({dur:.03,vol:.05,f:700,type:"lowpass"})}, // a dull, soft tap with a fading echo
+    lp(dir,k){ // one tick of the Life Point counter: losing = low, hard, falling; gaining = bright, soft, rising
+      if(dir<0)tone({f:420-200*k,f2:300-160*k,type:"square",dur:.045,vol:.1});
+      else tone({f:650+750*k,f2:900+850*k,type:"triangle",dur:.06,vol:.15});
+    },
+    lpEnd(dir){
+      if(dir<0){tone({f:170,f2:55,type:"sine",dur:.3,vol:.45});noise({dur:.15,vol:.12,f:500,type:"lowpass"})}
+      else{tone({f:880,type:"sine",dur:.5,vol:.18,echo:true});tone({f:1320,type:"sine",dur:.6,vol:.14,t:.09,echo:true});tone({f:1760,type:"sine",dur:.7,vol:.1,t:.18,echo:true})}
+    },
+    slash(){if(sample("slash",{vol:1}))return; // 'tsjoek': a short swish into a big, soft, wet 'oek' (a blade going through cake), no metal
+      noise({dur:.07,vol:.2,f:3200,f2:1500,q:.9,type:"bandpass"});
+      noise({dur:.22,vol:.45,f:700,f2:220,q:3,type:"bandpass",t:.04});
+      tone({f:230,f2:70,type:"sine",dur:.22,vol:.5,t:.05});tone({f:340,f2:120,type:"triangle",dur:.14,vol:.2,t:.05})},
+    stomp(k){k=k||1;tone({f:105,f2:80,type:"triangle",dur:.42,vol:.48*k});tone({f:210,f2:160,type:"triangle",dur:.26,vol:.24*k});tone({f:58,f2:50,type:"sine",dur:.45,vol:.3*k});noise({dur:.5,vol:.33*k,f:700,f2:140,q:.5,type:"lowpass"});sample("stomp",{vol:.6*k,rate:.4,echo:.25});sample("stomp0",{vol:.54*k,exact:true});return;tone({f:105,f2:80,type:"triangle",dur:.42,vol:.8});tone({f:210,f2:160,type:"triangle",dur:.26,vol:.4});tone({f:58,f2:50,type:"sine",dur:.45,vol:.5});noise({dur:.5,vol:.8,f:700,f2:140,q:.5,type:"lowpass"});noise({dur:.12,vol:.4,f:320,q:.5,type:"bandpass"});noise({dur:.3,vol:.08,f:2200,q:.6,type:"bandpass",t:.08})}, // a monster lands: heavy 'DOEF' (almost no pitch drop, that sounded like a cartoon 'boink'), then a puff of dust
+    bell(vol,low){ // a single 'ting' (Graveyard): a sharp strike, then the inharmonic partials of a real bell ring out; no echo and no beating, so it is heard as ONE bell. low = the duller, lower version for Spells/Traps/Rituals
+      const now=performance.now();if(now-(this._bt||0)<1500)return;this._bt=now; // everything that goes to the Graveyard within 1.5 s (a monster and its Equip cards) = still ONE bell
+      const f=low?262:330,V=vol==null?1:vol,dull=low?.55:1;
+      [[.5,.3,4],[1,.8,3.6],[1.19,.6,2.8],[1.5,.4,2.4],[2,.5,2],[2.51,.35,1.5],[3,.28,1.2],[4.07,.2,.9],[5.2,.12,.6]].forEach(([m,v,d],k)=>tone({f:f*m,type:"sine",dur:d,vol:v*.24*V*(k>=4?dull:1),att:low?.006:.003}));
+      noise({dur:.07,vol:.35*V*(low?.7:1),f:low?2200:3500,q:1,type:"bandpass"});if(!low)noise({dur:.04,vol:.2*V,f:6500,type:"highpass"});tone({f:f*2.7,f2:f*2.5,type:"sine",dur:.14,vol:.14*V*dull})},
+    shieldBreak(){if(sample("sbreak",{vol:.9,exact:true}))return;tone({f:1400,f2:300,type:"sawtooth",dur:.25,vol:.15});noise({dur:.3,vol:.3,f:3000,f2:800,q:.8})}, // the shield shatters (Tom's recording)
+    lunge(){if(sample("lunge",{vol:.9}))return;noise({dur:.22,vol:.14,f:250,f2:900,q:.7,type:"lowpass"})}, // the attacker rushes forward: a soft low whoosh
+    hit(){tone({f:220,f2:60,type:"triangle",dur:.25,vol:.6});tone({f:400,f2:100,type:"sine",dur:.12,vol:.3});noise({dur:.14,vol:.35,f:1100,f2:300,type:"lowpass"})},
+    clang(){if(sample("block",{vol:.95}))return;tone({f:200,f2:90,type:"sine",dur:.16,vol:.55});noise({dur:.07,vol:.2,f:450,type:"lowpass"})}, // the shield holds: a dull 'doef'
+    flip(){if(sample("flip",{vol:.6,exact:true}))return;noise({dur:.12,vol:.2,f:2500,f2:6000,q:.8});tone({f:420,f2:900,type:"triangle",dur:.14,vol:.14,t:.14,echo:true});tone({f:900,f2:1500,type:"sine",dur:.2,vol:.1,t:.2,echo:true})},
+    tomb(){tone({f:110,f2:40,type:"sine",dur:.5,vol:.55});noise({dur:.3,vol:.14,f:350,f2:120,type:"lowpass"});tone({f:392,f2:330,type:"triangle",dur:.9,vol:.07,t:.25,echo:true})},
+    stat(up){up?[520,660,880].forEach((f,i)=>tone({f,type:"triangle",dur:.12,vol:.13,t:i*.07,echo:true})):[600,450,320].forEach((f,i)=>tone({f,type:"triangle",dur:.12,vol:.13,t:i*.07,echo:true}))},
+    coin(n){ // one soft 'tok' each time the coin turns over (180 degrees), timed on the same curve as the CSS animation (1.9 s, cubic-bezier .2 .7 .25 1), then a ting when it lands
+      const X=u=>3*(1-u)*(1-u)*u*.2+3*(1-u)*u*u*.25+u*u*u,Y=u=>3*(1-u)*(1-u)*u*.7+3*(1-u)*u*u+u*u*u;
+      for(let j=1;j<=n;j++){let lo=0,hi=1;for(let k=0;k<30;k++){const m=(lo+hi)/2;if(Y(m)<j/n)lo=m;else hi=m}
+        tone({f:760+(j%2)*90,f2:520,type:"sine",dur:.06,vol:.17,t:.03+X(lo)*1.9})}
+      tone({f:1250,type:"sine",dur:.9,vol:.16,t:1.95,echo:true});tone({f:1880,type:"sine",dur:.7,vol:.08,t:1.95,echo:true})},
+    duel(){tone({f:95,f2:38,type:"sine",dur:1,vol:.7});noise({dur:.9,vol:.35,f:3000,f2:150,type:"lowpass"});
+           [220,330,440].forEach(f=>tone({f,f2:f*.99,type:"sawtooth",dur:1.2,vol:.07,echo:true}))},
+  };
+  // safety: a sound that fails must never stop the game (a missing sound once blocked a whole attack) - every sound is played inside try/catch
+  for(const k of Object.keys(api)){const d=Object.getOwnPropertyDescriptor(api,k);if(typeof d.value==="function"){const f=d.value;api[k]=function(...a){try{return f.apply(api,a)}catch(e){try{console.warn("sound",k,e)}catch(_){}}}}}
+  return api;
+})();
+document.addEventListener("pointerdown",e=>{ // which sound: echo click = main navigation (start, menu, phase, zones, middle row, Graveyard/Banished), ka-dunk = close, pok = every other button
+  SFX.unlock();
+  const t=e.target&&e.target.closest&&e.target.closest("button,.slot,.fchip,.lp,.card,.zb,[data-lx]");
+  if(!t||t.disabled)return;
+  if(t.matches("button.x:not(.fl)"))SFX.close();
+  else if(t.matches(".slot,.fchip,.zb,.mid button,#spGo,#spCont,#home"))SFX.click();
+  else SFX.pok();
+},true);
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 const FB={};
 function slug(n){return String(n).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
@@ -488,6 +595,7 @@ function queueStatFx(p,i,up){ // a pop-up dims the field: wait until it is close
   setTimeout(()=>{if(dlg.open)PENDFX[p+":"+i]={p,i,up};else fxStatChange(monEl(p,i),up)},60);
 }
 function fxStatChange(el,up){ // ATK/DEF went up (green glow + white plusses) or down (red glow + white minuses) on this monster
+  if(el)SFX.stat(up);
   if(calmMotion()||!el)return;
   const r=el.getBoundingClientRect(),col=up?"#3dff8a":"#ff2d3f",opp=!!el.closest(".side.opp")||!!el.closest('.emzcell[style*="rotate"]'),dir=opp?-1:1;
   const g=document.createElement("div");g.className="fxglow";
@@ -514,6 +622,7 @@ function statWatch(){ // compare every face-up monster's ATK/DEF with the previo
 let FLSNAP={},PENDFL={};
 const flEl=(k,p,i)=>document.querySelector(`.slot[data-p="${p}"][data-i="${i}"][data-row="${k==="m"?"mon":"st"}"] .cb`);
 function fxFlip(el){
+  if(el)SFX.flip();
   if(calmMotion()||!el)return;
   const r=el.getBoundingClientRect();if(!r.width)return;
   const land=el.classList.contains("land");
@@ -525,15 +634,33 @@ function fxFlip(el){
   const ring=fxAdd("fxring",r,r.height*1.5,r.height*1.5,"","background:radial-gradient(circle,#fff8c8dd 0%,#ffd45a88 40%,#ffd45a00 70%);animation-delay:.25s;opacity:0");
   fxLife(ring,1100);
 }
+// the other way round (face-up -> face-down): the old face (its HTML was saved at the previous render) shrinks away, the card back opens up (silent for now)
+function fxFlipBack(el,html,r0){
+  if(el&&html)SFX.flip();
+  if(calmMotion()||!el||!html)return;
+  const r=r0||el.getBoundingClientRect();if(!r.width)return;
+  const front=document.createElement("div");
+  front.style.cssText=`position:absolute;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;box-sizing:border-box;pointer-events:none`;
+  front.innerHTML=html;const c=front.firstElementChild;if(c)c.style.cssText+=";width:100%;height:100%;box-sizing:border-box;margin:0";
+  $("fx").appendChild(front);
+  front.animate([{transform:"scaleX(1)"},{transform:"scaleX(0)"}],{duration:260,easing:"ease-in",fill:"forwards"}).onfinish=()=>front.remove();
+  el.animate([{transform:"scaleX(0)",offset:0},{transform:"scaleX(0)",offset:.35},{transform:"scale(1.08)",filter:"brightness(1.5)",offset:.7},{transform:"scale(1)",filter:"brightness(1)",offset:1}],{duration:700,easing:"ease-out"});
+}
+const playFlip=o=>{const el=flEl(o.k,o.p,o.i);if(o.back)fxFlipBack(el,o.html,o.rect);else fxFlip(el)};
 function flipWatch(){
   const now={};
+  const chk=(k,p,i,m,idt,kk)=>{
+    const key=kk+":"+p+":"+i,id=m.name+"|"+idt,fd=m.pos==="FD",pr=FLSNAP[key],el=fd?null:flEl(kk,p,i);
+    const rc=el&&el.getBoundingClientRect();now[key]={id,fd,html:el?el.outerHTML:"",rect:rc?{left:rc.left,top:rc.top,width:rc.width,height:rc.height}:null};
+    if(pr&&pr.id===id){if(pr.fd&&!fd)queueFlip(kk,p,i);else if(!pr.fd&&fd)queueFlip(kk,p,i,pr.html,pr.rect)}
+  };
   for(let p=0;p<2;p++){
-    S.mon[p].forEach((m,i)=>{if(!m)return;const k="m:"+p+":"+i,id=m.name+"|"+m.sumT;now[k]={id,fd:m.pos==="FD"};const pr=FLSNAP[k];if(pr&&pr.id===id&&pr.fd&&!now[k].fd)queueFlip("m",p,i)});
-    S.st[p].forEach((m,i)=>{if(!m)return;const k="s:"+p+":"+i,id=m.name+"|"+m.setT;now[k]={id,fd:m.pos==="FD"};const pr=FLSNAP[k];if(pr&&pr.id===id&&pr.fd&&!now[k].fd)queueFlip("s",p,i)});
+    S.mon[p].forEach((m,i)=>{if(m)chk(0,p,i,m,m.sumT,"m")});
+    S.st[p].forEach((m,i)=>{if(m)chk(0,p,i,m,m.setT,"s")});
   }
   FLSNAP=now;
 }
-function queueFlip(k,p,i){setTimeout(()=>{if(dlg.open)PENDFL[k+p+i]={k,p,i};else fxFlip(flEl(k,p,i))},60)}
+function queueFlip(k,p,i,html,rect){const o={k,p,i,back:!!html,html,rect};setTimeout(()=>{if(dlg.open)PENDFL[k+p+i]=o;else playFlip(o)},60)}
 function fxScreen(col,p){ // flash over the half of the player it happens to (p: 0 = bottom half, 1 = top half); no p = the whole screen
   if(calmMotion())return;
   const e=document.createElement("div");e.className="fxscreen";
@@ -544,31 +671,35 @@ function fxScreen(col,p){ // flash over the half of the player it happens to (p:
   $("fx").appendChild(e);fxLife(e,650);
 }
 function fxSlash(r,flip,quiet){
+  SFX.slash();
   const L=Math.min(Math.max(r.width,r.height)*2.3,380),a=(flip?35:-35)*Math.PI/180,cx=r.left+r.width/2,cy=r.top+r.height/2;
   const e=document.createElement("div");e.className="fxslash";
   e.style.cssText=`left:${cx-Math.cos(a)*L/2}px;top:${cy-Math.sin(a)*L/2}px;width:${L}px;--a:${flip?35:-35}deg`;
   $("fx").appendChild(e);fxLife(e,420);
-  if(!quiet){const hp=(r.top+r.height/2)<innerHeight/2?1:0;LASTHIT=Date.now();setTimeout(()=>fxScreen("#ff2d3f",hp),190)} // the hit: the half of the player who is hit flashes red
+  if(!quiet){const hp=(r.top+r.height/2)<innerHeight/2?1:0;LASTHIT=Date.now();setTimeout(()=>{fxScreen("#ff2d3f",hp);SFX.hit()},190)} // the hit: the half of the player who is hit flashes red
 }
 function fxTomb(el){ // a gravestone rises where a monster was destroyed (turned along with the opponent's half in 2P)
-  if(!el)return;const r=el.getBoundingClientRect(),w=Math.min(Math.max(r.width,r.height)*1.3,150);
+  if(!el)return;SFX.bell();const r=el.getBoundingClientRect(),w=Math.min(Math.max(r.width,r.height)*1.3,150);
   const rot=el.closest(".side.opp")||el.closest('.emzcell[style*="rotate"]')?180:0;
   const e=fxAdd("fxtomb",r,w,w*1.02,"",`--rot:${rot}deg`);fxLife(e,1600);
 }
 function fxFlash(r){const e=fxAdd("fxflash",r,Math.min(r.width*1.6,240),Math.min(r.height*1.6,300));fxLife(e,600)}
 function fxDust(r){const w=Math.min(Math.max(r.width,r.height)*1.5,230);const e=fxAdd("fxdust",r,w,w);fxLife(e,800)}
 const shieldW=r=>Math.min(Math.max(r.width*1.5,90),190);
-function fxShieldHold(r){ // the shield holds: shakes and says BLOCKED
+function fxShieldHold(r,afterHit){ // the shield holds: shakes and says BLOCKED
+  SFX.clang();
   const w=shieldW(r),h=w*1.21;
-  const e=fxAdd("fxshield hold",r,w,h);fxLife(e,1400);
+  const e=fxAdd("fxshield hold",r,w,h,"",afterHit?"animation:fxshake .4s,fxshout .3s 1s forwards":"");fxLife(e,1400); // afterHit: the shield was already on screen, so no fade-in again
   const t=fxAdd("fxtext",{left:r.left,top:r.top-h*0.45,width:r.width,height:r.height},180,40,"BLOCKED","animation-delay:.25s;opacity:0");fxLife(t,1400);
 }
 function fxShieldBreak(r){ // the shield splits in two
+  SFX.shieldBreak();
   const w=shieldW(r),h=w*1.21;
   const a=fxAdd("fxshield half l",r,w,h),b=fxAdd("fxshield half r",r,w,h);fxLife(a,900);fxLife(b,900);
 }
 function fxLunge(p,i,toRect){
   const el=monEl(p,i);if(!el||!toRect||!el.animate)return;
+  SFX.lunge();
   const r=el.getBoundingClientRect();let dx=(toRect.left+toRect.width/2-r.left-r.width/2)*0.35,dy=(toRect.top+toRect.height/2-r.top-r.height/2)*0.35;
   if(el.closest(".side.opp")||el.closest('.emzcell[style*="rotate"]')){dx=-dx;dy=-dy} // those halves are turned upside down
   el.animate([{transform:"translate(0,0) scale(1)"},{transform:`translate(${dx}px,${dy}px) scale(1.1)`,offset:.5},{transform:"translate(0,0) scale(1)"}],{duration:420,easing:"ease-in-out"});
@@ -601,12 +732,15 @@ async function fxBattle(pl){
       const w=shieldW(rt),sh=fxAdd("fxshield",rt,w,w*1.21);
       await sleep(300);fxSlash(rt);await sleep(220);
       sh.remove();fxShieldBreak(rt);await sleep(300);
-      if(pl.tDies){fxFlash(rt);fxTomb(el)}await sleep(pl.tDies?1350:520)}
-    else{fxShieldHold(rt);await sleep(280);fxSlash(rt,false,true);await sleep(900)}
+      if(pl.tDies){fxFlash(rt);fxTomb(el)}await sleep(pl.tDies?500:520)} // the destroyed card may already fly away while the gravestone is still up (it is its own overlay)
+    else{ // the shield appears, the slash hits it, THEN it holds: shake + BLOCKED + the clang
+      const w=shieldW(rt),sh=fxAdd("fxshield",rt,w,w*1.21);
+      await sleep(300);fxSlash(rt,false,true);await sleep(240);
+      sh.remove();fxShieldHold(rt,true);await sleep(900)}
   }else{
     fxSlash(rt);await sleep(300);
     if(pl.tDies){fxFlash(rt);fxTomb(el)}if(pl.aDies){fxFlash(ra);fxTomb(monEl(pl.p,pl.i))}
-    await sleep(pl.tDies||pl.aDies?1350:600);
+    await sleep(pl.tDies||pl.aDies?500:600); // same: the card flies to the Graveyard while the gravestone is still there
   }
 }
 // a card flies to the Graveyard / Banished pile (or back out of it onto the field)
@@ -615,6 +749,7 @@ const stEl=(p,i)=>document.querySelector(`.slot[data-p="${p}"][data-i="${i}"][da
 const fieldEl=p=>document.querySelector(`.fchip[data-p="${p}"]`);
 const cardCls=c=>c.pos==="FD"?"fdv":c.kind==="spell"?"spell":c.kind==="trap"?"trap":c.kind==="pend"?"pend":c.pos==="DEF"?"def":"atk";
 function fxFly(fr,to,o){
+  if(o.skel&&fr&&to&&to.width)SFX.bell(.8,true); // Spell/Trap/Ritual to the Graveyard: the lower, duller bell at 80%
   if(calmMotion()||!fr||!to||!to.width)return;
   if(o.skel){ // destroyed Spell/Trap: a skeleton card shows up on its zone for a moment, then flies to the pile
     const w=Math.min(Math.max(fr.width*1.25,70),96),h=w*1.5,e=document.createElement("div");e.className="fxskel";
@@ -624,17 +759,18 @@ function fxFly(fr,to,o){
     const tilt=S.view==="2p"&&fr.top+fr.height/2<innerHeight/2?180:0; // on the opponent's half the card is turned along
     if(!e.animate){e.remove();return}
     const an=e.animate([
-      {transform:`rotate(${tilt}deg) translate(0,10px) scale(.5)`,opacity:0,offset:0},
+      ...(o.go?[{transform:`rotate(${tilt}deg) translate(0,0) scale(1)`,opacity:1,offset:0}] // go: leaves at once (it goes down together with its monster)
+        :[{transform:`rotate(${tilt}deg) translate(0,10px) scale(.5)`,opacity:0,offset:0},
       {transform:`rotate(${tilt}deg) translate(0,0) scale(1.08)`,opacity:1,offset:.1},
-      {transform:`rotate(${tilt}deg) translate(0,0) scale(1)`,opacity:1,offset:.6},
+      {transform:`rotate(${tilt}deg) translate(0,0) scale(1)`,opacity:1,offset:.6}]),
       {transform:`rotate(${tilt+rot}deg) translate(${dx}px,${dy}px) scale(.28)`,opacity:.3,offset:1}],
-      {duration:2000,easing:"linear",fill:"forwards"}); // stands still about as long as the gravestone (1.1 s), then flies
+      {duration:o.go?800:2000,easing:o.go?"ease-in":"linear",fill:"forwards"}); // stands still about as long as the gravestone (1.1 s), then flies
     an.onfinish=()=>e.remove();return;
   }
   const w=Math.min(fr.width*0.85,64),h=w*1.458;
   const e=document.createElement("div");e.className=`fxcard cb port ${o.cls}`;
   e.innerHTML=o.cls==="fdv"?"":`<span class="n">${esc(o.name)}</span>`;
-  e.style.cssText=`left:${fr.left+fr.width/2-w/2}px;top:${fr.top+fr.height/2-h/2}px;width:${w}px;height:${h}px;z-index:6`;
+  e.style.cssText=`left:${fr.left+fr.width/2-w/2}px;top:${fr.top+fr.height/2-h/2}px;width:${w}px;height:${h}px;z-index:4`; // z-index 4: under the gravestone (5), so the card leaves from underneath it
   $("fx").appendChild(e);
   const dx=to.left+to.width/2-(fr.left+fr.width/2),dy=to.top+to.height/2-(fr.top+fr.height/2),rot=(dx>=0?1:-1)*(16+Math.random()*16);
   if(!e.animate){e.remove();return}
@@ -662,9 +798,9 @@ function fxMove(fr,el,o){ // control change: the card glides to the other side o
 }
 function fxPulse(el,delay){if(calmMotion()||!el||!el.animate)return;el.animate([{transform:"scale(1)",filter:"brightness(1)"},{transform:"scale(1.14)",filter:"brightness(1.8)"},{transform:"scale(1)",filter:"brightness(1)"}],{duration:380,delay:delay||0})}
 const skelOf=c=>c&&(c.kind==="spell"||c.kind==="trap"||/Spell|Trap/.test(c.type||""))&&c.pos!=="FD"?(/Trap/.test(c.type||"")||c.kind==="trap"?"trap":/Ritual/.test(c.type||"")?"ritual":"spell"):null;
-function flyToPile(rect,c,p,kind){ // call BEFORE the card is removed from the board (the rectangle is needed)
+function flyToPile(rect,c,p,kind,o2){ // call BEFORE the card is removed from the board (the rectangle is needed)
   const b=pileBtn(p,kind);if(!rect||!b||!c)return;
-  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c)});fxPulse(b,skelOf(c)?1500:560);
+  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c),go:!!(o2&&o2.go)});fxPulse(b,skelOf(c)?1500:560);
 }
 // ---------- Summon with materials: Fusion (purple swirl), Synchro (gold rings), Xyz (black vortex), Link (cyan arrows) ----------
 const SUMK={fusion:{c1:"#c58bff",c2:"#ffffff",spin:2.4,dur:1700},synchro:{c1:"#fff3b0",c2:"#7dff9a",spin:0.6,dur:1500},xyz:{c1:"#16102e",c2:"#6aa8ff",spin:1.2,dur:1700},link:{c1:"#38e8ff",c2:"#ffffff",spin:0.4,dur:1400}};
@@ -717,7 +853,7 @@ function fxSummonMat(kind,mats,tEl,o){
   });
 }
 function fxFlush(){
-  const q=FXQ;FXQ=[];if(calmMotion())return;
+  const q=FXQ;FXQ=[];if(q.some(f=>f.t==="dust"))SFX.stomp(q.filter(f=>f.t==="dust").every(f=>f.soft)?.7:1); // a monster that is Set (face-down) lands softerif(calmMotion())return;
   requestAnimationFrame(()=>q.forEach(f=>{
     if(f.t==="dust"){const el=monEl(f.p,f.i);if(el)fxDust(el.getBoundingClientRect())}
     if(f.t==="move"){const el=monEl(f.p,f.i);if(el&&f.fr)fxMove(f.fr,el,f)}
@@ -775,10 +911,11 @@ function lpAnim(){
     const step=now=>{
       if(LPA[p]!==anim)return;
       const k=Math.min(1,(now-anim.t0)/anim.dur),e=1-Math.pow(1-k,3);
+      if(k<1&&now-(anim.lt||0)>55){anim.lt=now;SFX.lp(dir,k)}
       LPD[p]=anim.from+(anim.to-anim.from)*e;
       lpPaint(p);
       if(k<1)requestAnimationFrame(step);
-      else{LPD[p]=anim.to;LPA[p]=null;lpPaint(p);const l=document.querySelector(`#s${p} .lp`);if(l)l.classList.remove("dmg","heal")}
+      else{LPD[p]=anim.to;LPA[p]=null;SFX.lpEnd(dir);lpPaint(p);const l=document.querySelector(`#s${p} .lp`);if(l)l.classList.remove("dmg","heal")}
     };
     requestAnimationFrame(step);
   }
@@ -892,7 +1029,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-p],[data-lp]");
   DLGP=t?(t.dataset.p!==undefined?+t.dataset.p:+t.dataset.lp):S.turn;
 },true);
-dlg.addEventListener("close",()=>{if(dlg.open)return;{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)fxFlip(flEl(o.k,o.p,o.i))},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
+dlg.addEventListener("close",()=>{if(dlg.open)return;{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)playFlip(o)},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
 function open(html,after){
   dlg.innerHTML=html;dlg.dataset.th="menu"; // every pop-up has the card look; card pop-ups replace "menu" with their own colour
   const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
@@ -976,7 +1113,7 @@ function removeMon(p,i,dest="gy"){
   if(dest!=="none")sendTo(o,dest,m,true);
   if(dest!=="none"&&m&&m.ou&&m.ou.length){m.ou.forEach(u=>{if(u.id!==undefined)sendTo(o,dest,u,true)});addLog(`${m.name}'s ${m.ou.length} Overlay Unit(s) went to the ${dest==="ban"?"Banished pile":"Graveyard"} too`)}
   if(dest!=="none"&&m&&o!==p)addLog(`${m.name} went to its owner's ${dest==="ban"?"Banished pile":"Graveyard"} (${NAME(o)})`);
-  [0,1].forEach(q=>S.st[q].forEach((e,k)=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const se=stEl(q,k);if(se)flyToPile(se.getBoundingClientRect(),e,q,"gy");S.st[q][k]=null;sendTo(q,"gy",e);addLog(`${e.name} went to the Graveyard (equipped monster left the field)`)}}));
+  [0,1].forEach(q=>S.st[q].forEach((e,k)=>{if(e&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const se=stEl(q,k);if(se)flyToPile(se.getBoundingClientRect(),e,q,"gy",{go:true});S.st[q][k]=null;sendTo(q,"gy",e);addLog(`${e.name} went to the Graveyard (equipped monster left the field)`)}}));
 }
 
 // ---------- Control: a monster can be controlled by the player who does not own it ----------
@@ -1419,7 +1556,7 @@ function freeZones(p){ // all empty zones the player could drop a monster into
 
 // ---------- Monster slot ----------
 function placeMon(p,i,c,pos,how,own){
-  FXQ.push({t:"dust",p,i});
+  FXQ.push({t:"dust",p,i,soft:pos==="FD"});
   S.mon[p][i]={own:own??p,name:c.name,atk:Math.max(0,c.atk??0),def:Math.max(0,c.def??0),da:0,dd:0,pos,id:c.id,type:c.type,race:c.race,attr:c.attr,lvl:c.lvl,
     q:(c.atk===-1?"A":"")+(c.def===-1?"D":""),sumT:S.tc,how,lm:c.lm|0,desc:c.desc||"",eff:parseField(c.desc||""),self:selfStatic(c.desc||"")};
 }
@@ -1434,7 +1571,7 @@ function loadMonDialog(p,i){
       $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)} • ${c.atk===-1?"?":c.atk??"-"}/${c.def===-1?"?":c.def??"-"}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
       $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;summonDialog(p,i,r[+d.dataset.k])};
     };
-    $("cust").onclick=()=>{placeMon(p,i,{name:"Monster",atk:0,def:0,type:"Effect Monster"},"ATK","special");render();slotDialog(p,i)};
+    $("cust").onclick=()=>{placeMon(p,i,{name:"Monster",atk:0,def:0,type:"Effect Monster"},"ATK","special");render();dlg.close()};
   });
 }
 function summonDialog(p,i,c,opts){
@@ -1515,7 +1652,7 @@ function summonDialog(p,i,c,opts){
       if(total<need)w.push(`This monster needs ${need} Tribute(s); you selected ${total}.${noTrib?` Its card text says: “${noTrib.trim()}” — if that applies, continue.`:""}`);
       else if(selA.length>1&&total-Math.min(...vals)>=need)w.push("You selected more Tributes than needed.");
       else if(need===0&&selA.length)w.push("This monster needs no Tribute.");
-      guard(w,()=>{if(selO.length)S.nobp=S.tc;sel.forEach(k=>removeMon(p,k));selO.forEach(k=>removeMon(1-p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      guard(w,()=>{if(selO.length)S.nobp=S.tc;sel.forEach(k=>removeMon(p,k));selO.forEach(k=>removeMon(1-p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();dlg.close()},()=>summonDialog(p,i,c,opts));
     };
     thDlg(c.type);
     $("bn").onclick=()=>go("normal");$("bs").onclick=()=>go("set");
@@ -1556,18 +1693,18 @@ function summonDialog(p,i,c,opts){
             if(mk==="xyz"){const nm=S.mon[p][zone];if(nm)nm.ou=ou.concat(Array(M.hand).fill({name:"(from hand)"}))}
             addLog(`${c.name} was ${mk==="xyz"?"Xyz":mk[0].toUpperCase()+mk.slice(1)} Summoned using ${fm.map(x=>x.m.name).concat(M.hand?[M.hand+" card(s) from the hand"]:[]).join(", ")}`);
             M.field=[];M.hand=0;
-            if(opts.take)opts.take();render();slotDialog(p,zone);
+            if(opts.take)opts.take();render();dlg.close();
           });
           return;
         }
-        ls.forEach(k=>removeMon(p,k));placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+        ls.forEach(k=>removeMon(p,k));placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();dlg.close()},()=>summonDialog(p,i,c,opts));
     };
     $("sa").onclick=()=>special("ATK");
     if($("sd"))$("sd").onclick=()=>special("DEF");
     if($("fd"))$("fd").onclick=()=>{
       const w=zoneWarnings(p,zone,c,"special",fromED());
       if(S.mon[p][zone])w.push("That zone is occupied.");
-      guard(w,()=>{placeMon(p,zone,c,"FD","special",ownX());render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      guard(w,()=>{placeMon(p,zone,c,"FD","special",ownX());render();dlg.close()},()=>summonDialog(p,i,c,opts));
     };
     $("bk").onclick=()=>loadMonDialog(p,i);
   });
@@ -1656,7 +1793,7 @@ function setPos(p,i,np){
     if(m.posT===S.tc)w.push("This monster already changed position this turn.");
     if(m.attT===S.tc)w.push("This monster attacked this turn, so it can't change position.");
   }
-  guard(w,()=>{if(old==="FD"&&np==="ATK")m.flipT=S.tc;else m.posT=S.tc;m.pos=np;render();slotDialog(p,i)},()=>slotDialog(p,i));
+  guard(w,()=>{if(old==="FD"&&np==="ATK")m.flipT=S.tc;else m.posT=S.tc;m.pos=np;render();dlg.close()},()=>slotDialog(p,i));
 }
 
 // ---------- Attack ----------
@@ -1969,7 +2106,7 @@ const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
-  const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(e.eq||(e.eff&&e.eff.length))e.hold=true; /* bonus waits for 'Apply' so its animation always shows */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
+  const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(!e.eq&&e.eff&&e.eff.length)e.hold=true; /* the bonus of a Field/Continuous card waits for 'Apply' so its animation always shows; an Equip card is applied at once */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();if(e.eq)dlg.close();else openZone(p,i,z)}; // equipped: no pop-up (tap the card to open it)
   const selfEq=!/Equip/.test(e.type)&&/Trap/.test(e.type)&&/equip this card to|treat this card as an Equip Card|equip it to (a|1) /i.test(e.desc||"");
   const tgtCont=!/Equip/.test(e.type)&&/Continuous/.test(e.type)&&/Activate this card by targeting 1 [^;.]*monster/i.test(e.desc||""); // Continuous Spells/Traps tied to a target monster (Rare Metalmorph, Shadow Spell...): same as an equip card
   if(/Equip/.test(e.type)||selfEq||tgtCont){ // Equip Spells, and Traps that equip themselves (Metalmorph, Amaze Attraction...: 'No target' button)
@@ -1994,7 +2131,7 @@ function stPlace(p,i,c,z){
     $("bs").onclick=()=>{const w=[];
       if(p!==S.turn)w.push("Cards are only Set on your own turn.");
       if(!inMain())w.push(`Spells/Traps can only be Set in a Main Phase (now: ${phName()}).`);
-      guard(w,()=>{putZone(p,i,z,mk());render();openZone(p,i,z)},back)};
+      guard(w,()=>{putZone(p,i,z,mk());render();dlg.close()},back)}; // Set face-down: nothing more to decide, so no pop-up
     $("bk").onclick=()=>loadZoneDialog(p,i,z);
   });
 }
@@ -2530,6 +2667,7 @@ function introCoin(){
   introLayout("","",`<div class="coinwrap"><div class="coin" id="coin"><div class="face">H</div><div class="face b">T</div></div></div><div class="cres" id="cres">&nbsp;</div><div class="clegend">${legend}</div>`);
   const coin=$("coin");
   const spins=calmMotion()?0:5;
+  SFX.coin(spins?spins*2+(heads?0:1):0);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{coin.style.transform=`rotateX(${spins*360+(heads?0:180)}deg)`}));
   setTimeout(()=>{
     $("cres").textContent=heads?"HEADS":"TAILS";
@@ -2568,7 +2706,7 @@ function introFlash(starter){
   setTimeout(()=>{
     el.querySelectorAll(".ittl").forEach(e=>e.classList.add("push"));
     el.querySelectorAll("[data-d]").forEach(e=>e.hidden=false);
-    $("iflash").classList.add("go");el.classList.add("shake");
+    $("iflash").classList.add("go");el.classList.add("shake");SFX.duel();
   },t1+350);
   setTimeout(()=>el.classList.add("out"),t1+350+1500);
   setTimeout(finish,t1+350+1500+520);
@@ -2581,6 +2719,7 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <div class="row"><button id="view">View: ${S.view==="2p"?"2 players, 1 phone (switch to 1 player)":"1 player, own phone (switch to 2 players)"}</button></div>
   <div class="row"><button id="n8">New duel (8000 LP, 5 zones)</button><button id="n4">Speed Duel (4000 LP, 3 zones)</button></div>
   <div class="row"><button id="who">Who starts? Now: ${NAME(S.startPlayer)}</button></div>
+  <div class="row"><button id="snd">Sound: ${SFX.on?"ON":"OFF"}</button></div>
   <div class="row"><button id="ask">Ask the defender before each attack: ${S.noAsk?"OFF":"ON"}</button></div>
   <div class="row"><button id="surr" style="background:#6b2230">🏳 Surrender…</button></div>
   <p><small>A new duel resets LP, monsters and the turn counter.</small></p>
@@ -2589,6 +2728,7 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <p><small>Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami. Yu-Gi-Oh! and all card names and card text are © Konami. This app shows no card artwork. Card data via YGOPRODeck.</small></p>`,()=>{
   const nd=(lp,n)=>{dlg.close();startDuel(lp,n,S.view)};
   $("home").onclick=()=>{dlg.close();showSplash()};
+  $("snd").onclick=()=>{SFX.set(!SFX.on);dlg.close()};
   $("ask").onclick=()=>{S.noAsk=!S.noAsk;render();dlg.close()};
   $("surr").onclick=()=>open(`${closeX()}<h2>Surrender?</h2><p>The duel ends and the other player wins.</p><div class="row"><button id="s0" style="background:#6b2230">I surrender</button>${S.view==="1p"?"":`<button id="s1" style="background:#6b2230">Opponent surrenders</button>`}</div><div class="row"><button id="sno">Cancel</button></div>`,()=>{
     const go=p=>{dlg.close();setLP(p,0,()=>`${NAME(p)} surrendered`)};
