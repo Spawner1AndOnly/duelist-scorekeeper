@@ -30,3 +30,13 @@ class Recorder:
         subprocess.run([FF,"-y","-loglevel","error","-framerate",str(fps),"-i",f"{work}/%05d.jpg","-c:v","libx264","-preset","medium","-crf","20","-pix_fmt","yuv420p","-movflags","+faststart","-vf","scale=trunc(iw/2)*2:trunc(ih/2)*2",out],check=True)
         shutil.rmtree(work,ignore_errors=True)
         return len(fr),n,end
+
+# Sound: demo-audio.js (init script) taps every Web Audio connection to the speakers into a MediaRecorder; __audStop() returns {t0 (epoch s), b64 webm}
+AUDIO_JS=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"demo-audio.js"),encoding="utf-8").read()
+def mux(video,aud,t0_video,out,dur):
+    """aud = result of __audStop(); the sound starts aud['t0']-t0_video seconds into the video; dur = video length (s)."""
+    if not aud:os.replace(video,out);return "no audio"
+    wa=video+".webm";open(wa,"wb").write(base64.b64decode(aud["b64"]))
+    d=max(0,int(round((aud["t0"]-t0_video)*1000)))
+    subprocess.run([FF,"-y","-loglevel","error","-i",video,"-i",wa,"-filter_complex",f"[1:a]adelay={d}:all=1,apad=whole_dur={dur:.3f}[a]","-map","0:v","-map","[a]","-c:v","copy","-c:a","aac","-b:a","160k","-ar","48000","-t",f"{dur:.3f}","-movflags","+faststart",out],check=True)
+    os.remove(wa);os.remove(video);return f"audio delay {d} ms"

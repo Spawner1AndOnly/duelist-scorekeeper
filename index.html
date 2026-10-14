@@ -29,6 +29,15 @@ html,body{margin:0;height:100%;background:var(--bg) url(img/bg-embers.jpg) cente
 .emzcell{min-height:calc(var(--ch) + 10px);display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:10px;color:var(--dim)}
 .emzcell.on{padding:0}.emzcell .slot{width:100%}
 .emzcell.ph{border:1px dashed #6b452488;background:#0006}
+.lprow.md .fchip{flex-basis:70px}
+.emzbox{flex:none;align-self:stretch;display:flex;gap:3px;width:96px}.emzbox.two{width:auto}
+.emzbox .slot{--cw:24px;--ch:35px;flex:1;min-height:0!important;padding:2px 4px 2px 3px;border-radius:10px}
+.emzbox .slot.empty{flex-direction:column;gap:0;font-size:15px;line-height:1;border-style:dashed}.emzbox .slot.empty .sl-lbl{font-size:9px;line-height:1.1}
+.emzbox .slot:not(.empty){display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:4px;row-gap:1px;align-content:center;justify-items:start}
+.emzbox .cbw{grid-row:1/3}.emzbox .cb .n{display:none}.emzbox .mn{font-size:10px;font-weight:800;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.emzbox .slot .st{height:auto;line-height:1.1;font-size:10px;letter-spacing:-.4px}.emzbox .ai,.emzbox .eqs,.emzbox .lk,.emzbox .atkx{display:none}
+.emzbox .lvb{transform:scale(.75);transform-origin:top left;top:-2px;left:-2px}
+.emzbox.two .mn,.emzbox.two .st .sl,.emzbox.two .st .sd,.emzbox.two .st span:nth-of-type(3){display:none}.emzbox.two .slot{grid-template-columns:auto auto}
 .cb.pend{background:linear-gradient(160deg,#27b58a,#e0414f)}
 .mid .row1{transition:transform .35s}.mid .row1.flip{transform:rotate(180deg)}
 .stopp{transform:rotate(180deg)}.st1.idle{opacity:.5}
@@ -38,7 +47,7 @@ dialog.flip{transform:rotate(180deg)}.x.fl{float:left;font-size:20px}
 #toast.on{opacity:1}
 .slot,.fchip{position:relative}.bdg{position:absolute;top:1px;right:3px;font-size:10px;font-weight:800;color:var(--gold);text-shadow:0 1px 2px #000;pointer-events:none}
 .lk{font-size:10px;letter-spacing:1px;color:var(--gold);line-height:1;white-space:nowrap}
-#pickbar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;display:flex;align-items:center;gap:10px;background:#1c1109ee;border:2px solid var(--gold);border-radius:14px;padding:8px 12px;font-weight:800;white-space:nowrap;font-size:14px;box-shadow:0 4px 18px #000b}#pickbar.rot{transform:translate(-50%,-50%) rotate(180deg)}
+#pickbar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;display:flex;align-items:center;gap:10px;background:#1c1109ee;border:2px solid var(--gold);border-radius:14px;padding:8px 12px;font-weight:800;font-size:14px;box-shadow:0 4px 18px #000b;width:max-content;max-width:calc(100vw - 16px);box-sizing:border-box}#pickbar span{min-width:0;line-height:1.25}#pickbar button{white-space:nowrap;flex:none}#pickbar.rot{transform:translate(-50%,-50%) rotate(180deg)}
 body.picking .slot.pk{outline:3px solid var(--gold);outline-offset:-2px;animation:pkp .8s infinite alternate}
 body.picking .slot.picked{outline-color:var(--green);animation:none;background:#1f5a3a88}
 body.picking .slot.picked::after{content:"¹4";position:absolute;right:3px;bottom:2px;font-size:18px;font-weight:900;color:var(--green);text-shadow:0 1px 3px #000}
@@ -74,7 +83,7 @@ button:active{filter:brightness(1.4)}
 .slot{background:var(--panel);border-radius:10px;padding:3px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;text-align:center;font-size:11px;min-height:0;overflow:hidden;border:1px solid #6b4524}
 .slot.empty{min-height:calc(var(--ch) + 12px);color:var(--dim);justify-content:center;font-size:22px}
 .slot .n{font-weight:700;line-height:1.1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
-.slot .st{font-size:12px;font-weight:400;white-space:nowrap;letter-spacing:-.3px}
+.slot .st{font-size:12px;font-weight:400;white-space:nowrap;letter-spacing:-.3px}.slot .st{height:14px;line-height:14px;flex:none}.slot[data-row="mon"],.slot[data-row="st"]{min-height:calc(var(--ch) + 25px)} /* room for card + ATK/DEF line even when empty: the board does not shift when a monster arrives */
 .slot .st span{opacity:.75}.slot .st span.act{font-weight:900;opacity:1}
 .slot .st .up{color:var(--green)}.slot .st .down{color:var(--red)}
 .cb{border-radius:4px;display:flex;align-items:center;justify-content:center;padding:2px;overflow:hidden;border:2px solid #e8c36a;box-shadow:0 2px 6px #0008;flex:none}
@@ -121,8 +130,8 @@ dialog[data-th] #ct hr{border-color:#8a6c2a!important}
 .sl-lbl{font-size:9px;color:var(--dim);margin:0 2px}
 .st.dim{color:var(--dim)}
 .mid{transition:transform .35s;display:flex;flex-direction:column;gap:4px;padding:4px 0}
-.mid .st1{text-align:center;font-weight:800;font-size:14px;text-shadow:0 1px 4px #000,0 0 8px #000}
-.mid .row1{display:flex;gap:4px;align-items:stretch}
+.mid .st1{text-align:center;font-weight:800;font-size:14px;text-shadow:0 1px 4px #000,0 0 8px #000;white-space:nowrap;overflow:hidden;height:19px;line-height:19px} /* fixed height: a longer text gets a smaller font (fitMid), so the board never shifts */
+.mid .row1{display:flex;gap:4px;align-items:stretch;height:60px}.mid .row1 button{overflow:hidden}
 .side.compact{flex:.6}.side.compact .lp .num{font-size:26px}.side.compact .lpb{padding:5px 3px;font-size:11px}
 #phase{flex:2;background:#8be32a;color:#0b2200;font-weight:800;font-size:15px;padding:10px 6px;border-radius:12px;line-height:1.2}
 #phase.wait{background:#7a5230;color:var(--txt)}
@@ -371,6 +380,11 @@ function nextPhase(){
 function oppWait(){return S.view==="1p"&&S.turn===1}
 // Soul Exchange and similar: "you cannot conduct your Battle Phase the turn you activate this card" -> warn (do not block) when moving on to the Battle Phase
 const NOBP_RX=/cannot conduct your Battle Phase the turn you activate/i;
+// the middle strip keeps the same height: a status line stays on 1 line, the phase button on 2 lines; a longer text gets a smaller font
+function fitText(el,min){if(!el||el.hidden)return;el.style.fontSize="";let f=parseFloat(getComputedStyle(el).fontSize);
+  while((el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1)&&f>min){f-=.5;el.style.fontSize=f+"px"}}
+function fitMid(){fitText($("status"),9);fitText($("statusOpp"),9);fitText($("phase"),10);fitText($("rules"),10)}
+addEventListener("resize",()=>{try{fitMid()}catch(e){}});
 function phaseClick(){
   if(!S.paused&&!oppWait()&&S.nobp===S.tc&&PHASES[stepFrom(S).ph].n==="Battle Phase"&&stepFrom(S).turn===S.turn){
     open(`${closeX()}<h2>⚠ Battle Phase skipped</h2><p>You activated a card this turn (such as Soul Exchange) that says you cannot conduct your Battle Phase. Moving on will skip your Battle Phase.</p>
@@ -549,7 +563,7 @@ function render(){
     const el=$("s"+p);
     el.className="side"+(p===1&&!one?" opp":"")+(p===1&&one?" compact":"");
     el.innerHTML=`
-      <div class="lprow"><div class="lp ${S.turn===p?"turn":""}" data-lp="${p}"><span class="nm">${p===0?"YOU":"OPPONENT"}${S.turn===p?" • turn":""}</span><span class="num ${S.lp[p]<=2000?"low":""}">${lpShown(p)}</span><span class="lpfill" style="${lpFill(p)}"></span></div><button class="fchip ${S.field[p]?(S.field[p].pos==="FD"?"fd":"up g-"+fieldGroup(p)):"empty"}" data-p="${p}">${fieldChip(p)}</button></div>
+      <div class="lprow${S.n===5?" md":""}">${emzBox(p)}<div class="lp ${S.turn===p?"turn":""}" data-lp="${p}"><span class="nm">${p===0?"YOU":"OPPONENT"}${S.turn===p?" • turn":""}</span><span class="num ${S.lp[p]<=2000?"low":""}">${lpShown(p)}</span><span class="lpfill" style="${lpFill(p)}"></span></div><button class="fchip ${S.field[p]?(S.field[p].pos==="FD"?"fd":"up g-"+fieldGroup(p)):"empty"}" data-p="${p}">${fieldChip(p)}</button></div>
       <div class="lprow"><div class="btns" style="flex:1">
         ${STEPS.map(v=>`<button class="lpb" style="flex:1" data-p="${p}" data-d="${v*(S.sign?.[p]??-1)}">${S.sign?.[p]===1?"+":"-"}${v}</button>`).join("")}
         <button class="lpb" data-p="${p}" data-sign="1" style="flex:0 0 38px;background:${S.sign?.[p]===1?"#1f5a3a":"#6b2230"}">${S.sign?.[p]===1?"+":"−"}</button>
@@ -573,6 +587,7 @@ function render(){
   pb.textContent=oppWait()?"Opponent's turn — tap when it's your turn":nextLabel();
   if(S.paused){const pm=S.mon[S.paused.p][S.paused.i];pb.className="paused";pb.textContent="▶ Continue the paused attack";const pt=`⏸ Attack paused (${esc(pm?pm.name:"?")}) — resolve effects, then continue`;$("status").innerHTML=pt;if(two2)$("statusOpp").innerHTML=pt}
   $("rules").textContent=S.paused?"✖ End attack":"Rules";
+  fitMid();
   lpAnim();
   gameOver();
   statWatch();flipWatch();
@@ -939,8 +954,16 @@ function lpAnim(){
     requestAnimationFrame(step);
   }
 }
+// Extra Monster Zone: the monster is shown as a small card on the LP bar of the player who controls it (no extra row, so the board never shifts)
+const emzOf=p=>S.n===5?[EMZ0,EMZ1].filter(k=>S.mon[p][k]):[];
+// Toms concept: a fixed EMZ box left of the LP bar (always visible in Master Duel, also when empty); the shared zone that is free is used
+function emzBox(p){if(S.n!==5)return"";const L=emzOf(p);
+  if(!L.length){const k=[EMZ0,EMZ1].find(emzFree);
+    return`<div class="emzbox">${k===undefined?`<div class="slot empty emzfull"><span class="sl-lbl">EMZ<br>in use</span></div>`:`<div class="slot empty" data-p="${p}" data-i="${k}" data-row="mon">+<span class="sl-lbl">Extra<br>Monster</span></div>`}</div>`}
+  return`<div class="emzbox${L.length>1?" two":""}">${L.map(k=>{const m=S.mon[p][k];return slotHTML(p,k,m).replace('<div class="st',`<span class="mn">${esc(m.pos==="FD"?"Set":m.name)}</span><div class="st`)}).join("")}</div>`}
 function renderEMZ(){
   const el=$("emz");if(!el)return;
+  if(true){el.hidden=true;el.innerHTML="";document.body.classList.remove("emzon");return} // the old middle row is no longer used (see emzBox)
   const cells=[EMZ0,EMZ1].map(k=>{const p=S.mon[0][k]?0:S.mon[1][k]?1:-1;return{k,p}});
   document.body.classList.toggle("emzon",S.n===5&&cells.some(c=>c.p>=0));
   if(S.n!==5||cells.every(c=>c.p<0)){el.hidden=true;el.innerHTML="";return}
@@ -1591,7 +1614,7 @@ function sumAsk(p,i,how){
   setTimeout(go,900);
 }
 function loadMonDialog(p,i){
-  open(`${closeX()}<h2>Load monster (slot ${i+1}) – monsters only</h2><input type="search" id="q" placeholder="Search by name…" autocomplete="off">
+  open(`${closeX()}<h2>Load monster (${i>=EMZ0?"Extra Monster Zone":"slot "+(i+1)}) – monsters only</h2><input type="search" id="q" placeholder="Search by name…" autocomplete="off">
     <div class="res" id="res"></div>
     <div class="row"><button id="cust">Custom monster (no search)</button></div>`,()=>{
     const q=$("q");q.focus();
@@ -1707,7 +1730,7 @@ function summonDialog(p,i,c,opts){
           const mats=fm.map(x=>({rect:x.el.getBoundingClientRect(),name:x.m.name,cls:x.el.querySelector(".cb")?[...x.el.querySelector(".cb").classList].filter(y=>y!=="cb"&&y!=="atk"&&y!=="def"&&y!=="land"&&y!=="port").join(" ")+(x.m.pos==="DEF"?" def":" atk"):"atk"}));
           for(let h=0;h<M.hand;h++)mats.push({hand:true,cls:"fdv"});
           fm.forEach(x=>{if(x.el)x.el.style.opacity="0"});
-          let tEl=monEl(p,zone)||[...document.querySelectorAll("#emz>div")][zone===EMZ0?1:3];
+          let tEl=monEl(p,zone)||(zone>=EMZ0?document.querySelector(`#s${p} .emzbox`):null);
           if(!tEl||!tEl.getBoundingClientRect().width){ // empty Extra Monster Zone (its row is hidden until a monster stands there): aim at the middle strip
             const mr=(document.querySelector(".mid")||document.body).getBoundingClientRect(),cw=(innerWidth-12)/5,rc={left:6+cw*(zone===EMZ0?1:3),top:mr.top+mr.height/2-cw*0.75,width:cw,height:cw*1.5};
             tEl={getBoundingClientRect:()=>rc}}
@@ -2040,7 +2063,7 @@ function chainResolve(){
   const ctx=CH.ctx,log=[],st=CH.stack,negL=new Set();let baseNeg=false;
   if(ctx.act&&st.length===1){CH=null;FLIP=null;ctx.fin();return} // nobody responded
   if(ctx.sum&&st.length===1){CH=null;FLIP=null;if(dlg.open)dlg.close();return}
-  UNDOMERGE=true;
+  UNDOMERGE=true;const n0=onField();
   const toGY=(r,z,i,c)=>chainToPile(r,z,i,c,"gy");
   for(let n=st.length-1;n>=0;n--){ // the last activated resolves first
     const R=st[n];
@@ -2061,21 +2084,26 @@ function chainResolve(){
   }
   UNDOMERGE=false;render();
   const neg=CH.negated;CH=null;
-  if(ctx.sum){chainOpen(0,`${closeX()}<h2>Resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
+  if(onField()<n0&&!calmMotion()){if(dlg.open)dlg.close();setTimeout(()=>chainShow(ctx,log,neg,baseNeg),1900);return} // cards left the field: first let the gravestone / portal / flying cards play, then the summary
+  chainShow(ctx,log,neg,baseNeg);
+}
+const onField=()=>[0,1].reduce((n,q)=>n+S.mon[q].filter(Boolean).length+S.st[q].filter(Boolean).length+(S.field[q]?1:0),0);
+function chainShow(ctx,log,neg,baseNeg){
+  if(ctx.sum){chainOpen(0,`${closeX()}<h2>Chain resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
       <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">OK</button></div>`,()=>{FLIP=null;dlg.classList.remove("flip");$("cok").onclick=()=>dlg.close()});return}
   if(ctx.act){ // a Spell/Trap activation: if it was not negated, its own effect is applied now
     const a=ctx.act,c=getZ(a.p,a.i,a.z),go=!baseNeg&&c&&c.uid===a.uid;
     const once=/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(a.type||""),gone=!baseNeg&&!go;
     const ga=gone&&once?cardActs({name:a.name,desc:a.desc,pos:"UP"},a.p).filter(x=>!x.leave):[]; // destroyed while it was activated: a Normal Spell/Trap still resolves
     if(gone)log.push(once?`${a.name} left the field, but a ${a.type} still resolves${ga.length===1?".":": apply its effect by hand."}`:`${a.name} left the field before it resolved, so its effect does not apply.`);
-    chainOpen(0,`${closeX()}<h2>Resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
+    chainOpen(0,`${closeX()}<h2>Chain resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
       <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">${go?"OK — apply "+esc(c.name):ga.length===1?"OK — "+esc(ga[0].label):"OK"}</button></div>`,()=>{
       FLIP=null;dlg.classList.remove("flip");
       $("cok").onclick=()=>{if(go)ctx.fin();else if(ga.length===1)ga[0].run(()=>{render();dlg.close();toast("✔ "+a.name+": "+ga[0].label.replace(/^Apply: /,""))},()=>dlg.close());else dlg.close()};
     });
     return;
   }
-  chainOpen(0,`${closeX()}<h2>Resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
+  chainOpen(0,`${closeX()}<h2>Chain resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
     <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">${neg?"OK — the attack ends":"Continue the battle"}</button></div>`,()=>{
     FLIP=null;dlg.classList.remove("flip");
     $("cok").onclick=()=>{
