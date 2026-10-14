@@ -225,6 +225,13 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .fxslash{height:7px;border-radius:4px;background:linear-gradient(90deg,transparent,#fff 18%,#ffe9a0 62%,transparent);box-shadow:0 0 14px 4px #ffd45acc;transform-origin:0 50%;animation:fxslash .36s ease-out forwards}
 @keyframes fxslash{0%{transform:rotate(var(--a)) scaleX(0);opacity:1}55%{transform:rotate(var(--a)) scaleX(1);opacity:1}100%{transform:rotate(var(--a)) scaleX(1);opacity:0}}
 .fxflash{border-radius:14px;background:radial-gradient(circle,#ff2d3fdd 0%,#ff2d3f88 45%,#ff2d3f00 75%);animation:fxflash .55s ease-out forwards}
+#fx .fxsumcore,#fx .fxsumflash{border-radius:50%;z-index:5}
+#fx .fxsumflash{z-index:8;animation:fxsumfl .75s ease-out forwards}
+@keyframes fxsumfl{0%{opacity:0;transform:scale(.2)}25%{opacity:1}100%{opacity:0;transform:scale(1.35)}}
+.fxsumring{border-radius:50%;z-index:8;border:4px solid var(--c);box-shadow:0 0 18px 6px var(--c),inset 0 0 14px var(--c);animation:fxsumrg .85s ease-out forwards}
+@keyframes fxsumrg{0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(2.6)}}
+.fxlkarrow{z-index:9;width:18px;height:24px;font-size:22px;line-height:24px;text-align:center;color:#38e8ff;text-shadow:0 0 8px #38e8ff,0 0 14px #fff;animation:fxlkar .85s ease-out forwards}
+@keyframes fxlkar{0%{opacity:0;transform:rotate(var(--ang)) translateX(4px)}25%{opacity:1}100%{opacity:0;transform:rotate(var(--ang)) translateX(46px)}}
 @keyframes fxflash{0%{opacity:0;transform:scale(.7)}25%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
 .fxdust{background:url(img/fx/dust.webp) center/contain no-repeat;animation:fxdust .75s ease-out forwards}
 @keyframes fxdust{0%{transform:translateY(28%) scale(.25);opacity:0}30%{opacity:.95}100%{transform:translateY(-14%) scale(1.3);opacity:0}}
@@ -376,6 +383,26 @@ function slug(n){return String(n).toLowerCase().replace(/[^a-z0-9]+/g,"-").repla
 let MAP=null;
 fetch("img/field/map.json").then(r=>r.json()).then(m=>{MAP=m;render()}).catch(()=>{MAP={}});
 function fieldGroup(p){const f=S.field[p];return(f&&MAP&&MAP[slug(f.name)])||""}
+// the field picture fades in when a Field Spell is activated (or replaced) and fades out when it leaves the field
+let FBS={a:"",b:"",on:false,tm:0};
+function fieldBgApply(b0,b1){
+  const fb=$("fbg"),w0=b0||b1,w1=b1||b0,calm=calmMotion();
+  if(!b0&&!b1){
+    if(!FBS.on){fb.style.display="none";return}
+    FBS.on=false;FBS.a=FBS.b="";
+    if(calm){fb.style.display="none";return}
+    fb.style.transition="opacity .9s ease";fb.style.opacity="0";clearTimeout(FBS.tm);FBS.tm=setTimeout(()=>{if(!FBS.on)fb.style.display="none"},950);return;
+  }
+  clearTimeout(FBS.tm);
+  fb.style.display="block";fb.className=b0&&b1&&b0!==b1?"":"one";
+  if(!FBS.on||w0!==FBS.a||w1!==FBS.b){
+    if(!calm){fb.style.transition="none";fb.style.opacity="0"}
+    $("fb0").style.backgroundImage=w0;$("fb1").style.backgroundImage=w1;
+    if(!calm){void fb.offsetWidth;fb.style.transition="opacity .9s ease"}
+    fb.style.opacity="1";
+  }
+  FBS.on=true;FBS.a=w0;FBS.b=w1;
+}
 function fieldBg(p){
   const f=S.field[p];if(!f||f.pos!=="UP")return"";
   const k=slug(f.name);
@@ -422,10 +449,7 @@ function render(){
   }
   renderEMZ();
   document.querySelector(".mid .row1").classList.toggle("flip",S.view==="2p"&&S.turn===1); // the buttons turn towards the player whose turn it is; both players always read their own status line
-  const b0=fieldBg(0),b1=fieldBg(1),fb=$("fbg");
-  if(!b0&&!b1)fb.style.display="none";
-  else{fb.style.display="block";const two=b0&&b1&&b0!==b1;fb.className=two?"":"one";
-    $("fb0").style.backgroundImage=b0||b1;$("fb1").style.backgroundImage=b1||b0}
+  fieldBgApply(fieldBg(0),fieldBg(1));
   const ph=PHASES[S.ph];
   const statusFor=v=>oppWait()?`Turn ${S.tc} • Opponent's turn`:`Turn ${S.tc} • ${S.turn===v?"Your turn":"Opponent's turn"} • ${ph.n}${ph.sub?" – "+ph.sub[S.sub]:""} <small style="font-weight:400;color:${S.ns?"var(--red)":"var(--green)"}">• Normal Summon ${S.ns?"used":"available"}</small>${S.tc===1&&S.ph===0?` <small style="color:var(--gold)">• first turn: no draw</small>`:S.tc===1&&/^Main Phase/.test(ph.n)?` <small style="color:var(--gold)">• first turn: no Battle Phase</small>`:""}`;
   // 2 players on one phone: each player reads their own status line (the one of the player who is not on turn is dimmed)
@@ -640,6 +664,56 @@ const skelOf=c=>c&&(c.kind==="spell"||c.kind==="trap"||/Spell|Trap/.test(c.type|
 function flyToPile(rect,c,p,kind){ // call BEFORE the card is removed from the board (the rectangle is needed)
   const b=pileBtn(p,kind);if(!rect||!b||!c)return;
   fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c)});fxPulse(b,skelOf(c)?1500:560);
+}
+// ---------- Summon with materials: Fusion (purple swirl), Synchro (gold rings), Xyz (black vortex), Link (cyan arrows) ----------
+const SUMK={fusion:{c1:"#c58bff",c2:"#ffffff",spin:2.4,dur:1700},synchro:{c1:"#fff3b0",c2:"#7dff9a",spin:0.6,dur:1500},xyz:{c1:"#16102e",c2:"#6aa8ff",spin:1.2,dur:1700},link:{c1:"#38e8ff",c2:"#ffffff",spin:0.4,dur:1400}};
+const sumKind=t=>/Fusion/i.test(t)?"fusion":/Synchro/i.test(t)?"synchro":/Xyz/i.test(t)?"xyz":/Link/i.test(t)?"link":"";
+// mats: [{rect, name, cls, hand}] fly into the middle of the target zone; resolves when the new monster may appear (during the flash)
+function fxSummonMat(kind,mats,tEl,o){
+  o=o||{};const K=SUMK[kind];
+  return new Promise(res=>{
+    const tr=tEl&&tEl.getBoundingClientRect();
+    if(calmMotion()||!K||!tr||!tr.width||!document.body.animate){res();return}
+    const cx=tr.left+tr.width/2,cy=tr.top+tr.height/2,fx=$("fx"),W=Math.min(tr.width*0.85,64),H=W*1.458,tilt=o.tilt||0;
+    // glow in the middle of the zone
+    const core=document.createElement("div");core.className="fxsumcore";
+    const cs=Math.max(tr.width,tr.height)*1.5;
+    core.style.cssText=`left:${cx-cs/2}px;top:${cy-cs/2}px;width:${cs}px;height:${cs}px;background:radial-gradient(circle,${K.c2} 0%,${K.c1} 38%,${K.c1}00 70%);${kind==="xyz"?"background:radial-gradient(circle,#000 0%,#000 28%,#16102e 48%,#6aa8ffaa 62%,#6aa8ff00 74%);":""}`;
+    fx.appendChild(core);
+    core.animate([{transform:"scale(.1)",opacity:0},{transform:"scale(.8)",opacity:.9,offset:.7},{transform:"scale(1.25)",opacity:1}],{duration:K.dur,easing:"ease-in",fill:"forwards"});
+    const n=mats.length||1;
+    mats.forEach((m,idx)=>{
+      const e=document.createElement("div");e.className=`fxcard cb port ${m.cls}`;e.innerHTML=m.cls==="fdv"?"":`<span class="n">${esc(m.name)}</span>`;
+      let sx,sy;
+      if(m.hand){const bottom=!o.top;sx=innerWidth*(0.2+0.6*(n===1?.5:idx/(n-1)));sy=bottom?innerHeight+H:-H}
+      else{sx=m.rect.left+m.rect.width/2;sy=m.rect.top+m.rect.height/2}
+      e.style.cssText=`left:${sx-W/2}px;top:${sy-H/2}px;width:${W}px;height:${H}px;z-index:7;filter:drop-shadow(0 0 8px ${K.c1})`;
+      fx.appendChild(e);
+      const r0=Math.hypot(sx-cx,sy-cy),a0=Math.atan2(sy-cy,sx-cx),dir=idx%2?-1:1,kf=[],N=16;
+      for(let k=0;k<=N;k++){
+        const t=k/N,r=r0*Math.pow(1-t,1.35),a=a0+dir*K.spin*Math.PI*2*Math.pow(t,1.6)*(kind==="synchro"?0.3:1);
+        const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);
+        kf.push({transform:`translate(${x-sx}px,${y-sy}px) rotate(${(m.hand&&o.top?180:tilt)+dir*t*(kind==="fusion"?540:240)}deg) scale(${(1-0.7*t).toFixed(3)})`,opacity:t>.92?0:1,offset:t});
+      }
+      const an=e.animate(kf,{duration:K.dur,easing:"cubic-bezier(.45,.05,.55,.95)",fill:"forwards"});
+      an.onfinish=()=>e.remove();
+    });
+    // flash + rings at the end, then the monster appears
+    setTimeout(()=>{
+      const r={left:cx-tr.width/2,top:cy-tr.height/2,width:tr.width,height:tr.height};
+      const fl=document.createElement("div");fl.className="fxsumflash";const fs=Math.max(tr.width,tr.height)*3.2;
+      fl.style.cssText=`left:${cx-fs/2}px;top:${cy-fs/2}px;width:${fs}px;height:${fs}px;background:radial-gradient(circle,#ffffff 0%,${K.c2} 22%,${K.c1}cc 48%,${K.c1}00 72%)`;
+      fx.appendChild(fl);fxLife(fl,800);
+      for(let k=0;k<(kind==="synchro"?3:1);k++)setTimeout(()=>{const e=fxAdd("fxsumring",r,tr.width+10,tr.height+10,"",`--c:${kind==="xyz"?K.c2:kind==="synchro"?(k%2?K.c2:"#fff"):K.c1}`);fxLife(e,900)},k*160);
+      if(kind==="link"&&o.mask){
+        const D={1:[-135],2:[-90],4:[-45],8:[180],16:[0],32:[135],64:[90],128:[45]};
+        Object.keys(D).forEach(b=>{if(!(o.mask&b))return;const ang=D[b][0]+(o.top?180:0);
+          const a=document.createElement("div");a.className="fxlkarrow";a.textContent="➤";
+          a.style.cssText=`left:${cx-9}px;top:${cy-12}px;--ang:${ang}deg`;fx.appendChild(a);fxLife(a,900)});
+      }
+      core.remove();res();
+    },K.dur-120);
+  });
 }
 function fxFlush(){
   const q=FXQ;FXQ=[];if(calmMotion())return;
@@ -1222,7 +1296,7 @@ function trackerBind(m,again){
     again();
   });
 }
-const badges=m=>{const b=[];if(m.cnt)b.push("●"+m.cnt);if(m.otT===S.tc&&m.otN)b.push(m.otN>1?"①×"+m.otN:"①");if(m.od)b.push("★");return b.length?`<span class="bdg">${b.join(" ")}</span>`:""};
+const badges=m=>{const b=[];if(m.ou&&m.ou.length)b.push("◎"+m.ou.length);if(m.cnt)b.push("●"+m.cnt);if(m.otT===S.tc&&m.otN)b.push(m.otN>1?"①×"+m.otN:"①");if(m.od)b.push("★");return b.length?`<span class="bdg">${b.join(" ")}</span>`:""};
 // "for each …" bonuses: what is counted
 function perKind(t){
   if(/-type\b|\b(?:light|dark|earth|water|fire|wind|divine)\b|"|\blevel\b|\brank\b|\btuner\b|\bfusion\b|\bsynchro\b|\bxyz\b|\bpendulum\b|\blink\b|\bnormal monster|\beffect monster/i.test(String(t))&&!/counter/i.test(String(t)))return null;
@@ -1368,6 +1442,8 @@ function summonDialog(p,i,c,opts){
    ${lavaN?`<p><b>Tribute ${lavaN} monsters on this side</b> <small>(they go to their owner's Graveyard)</small></p><div class="row"><button id="lvpick">Choose the Tributes on the field</button></div><p id="lvsum" style="margin:0"></p>`:""}
    ${S.n===5?`<p>${isLink?"":`<label><input type="checkbox" id="pends" ${opts.ed?"checked":""}> Pendulum Summon (uses your Pendulum Scales)</label>`}${isPend?`<br><label><input type="checkbox" id="fromED" ${opts.ed?"checked":""}> Pendulum Monster summoned face-up from the Extra Deck</label>`:""}</p>`:""}
    ${S.n===5&&(extra||isPend)?`<p><b>Zone</b></p><div id="zsel" class="row" style="gap:4px"></div><small id="zhint"></small>`:""}
+   ${extra?`<p style="margin:8px 0 2px"><b>Materials</b> <small>(optional – plays the ${sumKind(c.type)==="xyz"?"Xyz":sumKind(c.type)==="link"?"Link":sumKind(c.type)==="synchro"?"Synchro":"Fusion"} Summon animation${sumKind(c.type)==="xyz"?"; they stay under the monster as Overlay Units":"; they go to the Graveyard"})</small></p>
+   <div class="row"><button id="matpick">Choose the materials on the field</button>${sumKind(c.type)==="fusion"?`<button id="hmm" style="flex:0 0 44px">−</button><button id="hmn" style="flex:0 0 88px;pointer-events:none">0 from hand</button><button id="hmp" style="flex:0 0 44px">+</button>`:""}</div><p id="matsum" style="margin:0"></p>`:""}
    <div class="row"><button id="bn">Normal Summon</button><button id="bs">Set (face-down)</button></div>
    <div class="row"><button id="sa">Special Summon (ATK)</button>${isLink?"":`<button id="sd">Special Summon (DEF)</button>`}</div>
    ${isLink?"":`<div class="row"><button id="fd">🂠 Place face-down (by an effect — uses no Normal Set)</button></div>`}
@@ -1385,6 +1461,14 @@ function summonDialog(p,i,c,opts){
       onDone:l=>{T.own=l.filter(x=>x[0]===p).map(x=>x[1]);T.opp=l.filter(x=>x[0]!==p).map(x=>x[1]);summonDialog(p,i,c,opts)},onCancel:()=>summonDialog(p,i,c,opts)});
     if($("lvpick"))$("lvpick").onclick=()=>pickMulti({label:"Tap the Tributes",need:lavaN,cands:own.map(o=>[p,o.k]),sel:T.lava.map(k=>[p,k]),
       onDone:l=>{T.lava=l.map(x=>x[1]);summonDialog(p,i,c,opts)},onCancel:()=>summonDialog(p,i,c,opts)});
+    const M=opts.mat=opts.mat||{field:[],hand:0};
+    const matTxt=()=>{if(!$("matsum"))return;M.field=M.field.filter(k=>S.mon[p][k]);const nm=M.field.map(k=>esc(S.mon[p][k].name));
+      $("matsum").innerHTML=(nm.length||M.hand)?`<small>Materials: <b>${nm.concat(M.hand?[M.hand+" from hand"]:[]).join(", ")}</b></small>`:`<small>No materials chosen – the monster just appears.</small>`;
+      if($("hmn"))$("hmn").textContent=M.hand+" from hand"};
+    matTxt();
+    if($("matpick"))$("matpick").onclick=()=>pickMulti({label:"Tap the materials",need:0,cands:own.map(o=>[p,o.k]),sel:M.field.map(k=>[p,k]),onDone:l=>{M.field=l.map(x=>x[1]);summonDialog(p,i,c,opts)},onCancel:()=>summonDialog(p,i,c,opts)});
+    if($("hmp"))$("hmp").onclick=()=>{M.hand=Math.min(5,M.hand+1);matTxt()};
+    if($("hmm"))$("hmm").onclick=()=>{M.hand=Math.max(0,M.hand-1);matTxt()};
     const ownX=()=>$("ownx")&&$("ownx").checked?1-p:p;
     const fromED=()=>extra||($("fromED")&&$("fromED").checked);
     const drawZones=()=>{
@@ -1426,7 +1510,35 @@ function summonDialog(p,i,c,opts){
       if(S.mon[p][zone])w.push("That zone is occupied.");
       const ls=lavaN?T.lava.filter(k=>S.mon[p][k]):[];
       if(lavaN&&ls.length!==lavaN)w.push(`This card is Special Summoned by Tributing ${lavaN} monsters that ${NAME(p)} controls; you selected ${ls.length}.`);
-      guard(w,()=>{ls.forEach(k=>removeMon(p,k));placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
+      const mk=sumKind(c.type),useM=extra&&mk&&(M.field.some(k=>S.mon[p][k])||M.hand>0)&&!($("pends")&&$("pends").checked);
+      if(useM&&M.field.includes(zone))w.push("The zone you chose holds one of the materials; pick another zone or another material.");
+      guard(w,()=>{
+        if(useM){ // animated summon: the materials fly into the zone first, then the monster appears
+          const fm=M.field.filter(k=>S.mon[p][k]).map(k=>({k,m:S.mon[p][k],el:monEl(p,k)})),own2=ownX();
+          const mats=fm.map(x=>({rect:x.el.getBoundingClientRect(),name:x.m.name,cls:x.el.querySelector(".cb")?[...x.el.querySelector(".cb").classList].filter(y=>y!=="cb"&&y!=="atk"&&y!=="def"&&y!=="land"&&y!=="port").join(" ")+(x.m.pos==="DEF"?" def":" atk"):"atk"}));
+          for(let h=0;h<M.hand;h++)mats.push({hand:true,cls:"fdv"});
+          fm.forEach(x=>{if(x.el)x.el.style.opacity="0"});
+          let tEl=monEl(p,zone)||[...document.querySelectorAll("#emz>div")][zone===EMZ0?1:3];
+          if(!tEl||!tEl.getBoundingClientRect().width){ // empty Extra Monster Zone (its row is hidden until a monster stands there): aim at the middle strip
+            const mr=(document.querySelector(".mid")||document.body).getBoundingClientRect(),cw=(innerWidth-12)/5,rc={left:6+cw*(zone===EMZ0?1:3),top:mr.top+mr.height/2-cw*0.75,width:cw,height:cw*1.5};
+            tEl={getBoundingClientRect:()=>rc}}
+          dlg.close();
+          const top=S.view==="2p"&&p===1;
+          fxSummonMat(mk,mats,tEl,{top,tilt:top?180:0,mask:c.lm|0}).then(()=>{
+            const ou=[];
+            fm.forEach(x=>{const m=S.mon[p][x.k];if(!m)return;
+              if(mk==="xyz")ou.push({name:m.name,id:m.id,type:m.type});
+              removeMon(p,x.k,"none");if(mk!=="xyz")sendTo(ownerOf(m,p),"gy",m,true)});
+            ls.forEach(k=>removeMon(p,k));
+            placeMon(p,zone,c,pos,"special",own2);
+            if(mk==="xyz"){const nm=S.mon[p][zone];if(nm)nm.ou=ou.concat(Array(M.hand).fill({name:"(from hand)"}))}
+            addLog(`${c.name} was ${mk==="xyz"?"Xyz":mk[0].toUpperCase()+mk.slice(1)} Summoned using ${fm.map(x=>x.m.name).concat(M.hand?[M.hand+" card(s) from the hand"]:[]).join(", ")}`);
+            M.field=[];M.hand=0;
+            if(opts.take)opts.take();render();slotDialog(p,zone);
+          });
+          return;
+        }
+        ls.forEach(k=>removeMon(p,k));placeMon(p,zone,c,pos,"special",ownX());if($("pends")&&$("pends").checked)S.pt[p]=S.tc;if(opts.take)opts.take();render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
     $("sa").onclick=()=>special("ATK");
     if($("sd"))$("sd").onclick=()=>special("DEF");
@@ -1479,6 +1591,7 @@ function slotDialog(p,i){
    <div class="row">${[["ATK","⚔ Attack"],["DEF","🛡 Defense"],["FD","🂠 Face-down DEF"]].filter(x=>!m.lm||x[0]==="ATK").map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
    ${m.pos==="FD"?"":trackerHTML(m)}
+   ${m.ou&&m.ou.length?`<p><b>◎ Overlay Units (${m.ou.length})</b>: ${m.ou.map(o=>esc(o.name)).join(", ")}</p><div class="row"><button id="detach">Detach 1 Overlay Unit → Graveyard</button></div>`:""}
    ${effUI}${actsHTML(acts,false)}
    <div class="row">${m.pos==="ATK"?`<button id="atk" style="background:#8a1424">⚔ Attack…</button>`:""}<button id="info">Card text</button><button id="m2st">⬇ To Spell &amp; Trap zone…</button><button id="ctl">⇄ Control${ownerOf(m,p)!==p?" (not yours)":"…"}</button></div>
    ${m.pos!=="FD"&&CTL_RX.test(m.desc||"")?`<div class="row"><button id="ctle">⇄ Its effect takes control of a monster…</button></div>`:""}
@@ -1488,6 +1601,7 @@ function slotDialog(p,i){
     autoText(m);
     actsBind(acts,false,null,()=>slotDialog(p,i));
     if($("mauto"))$("mauto").onclick=()=>{m.auto=m.auto===false;render();slotDialog(p,i)};
+    if($("detach"))$("detach").onclick=()=>{const u=m.ou&&m.ou.shift();if(u&&u.id!==undefined){const el=monEl(p,i);flyToPile(el&&el.getBoundingClientRect(),{name:u.name,type:u.type,id:u.id,pos:"UP"},ownerOf(m,p),"gy");sendTo(ownerOf(m,p),"gy",u,true);addLog(`${m.name} detached ${u.name} (Graveyard)`)}if(m.ou&&!m.ou.length)delete m.ou;render();slotDialog(p,i)};
     dlg.querySelectorAll("[data-ec]").forEach(b=>b.onclick=()=>{const e=effs[+b.dataset.ec];if(e){e.on=!e.on;render();slotDialog(p,i)}});
     $("m2st").onclick=()=>monToSTDialog(p,i);
     $("ctl").onclick=()=>ctlDialog(p,i);
@@ -1772,7 +1886,7 @@ function battleConfirm(p,i,k){
 // ---------- Spell / Trap / Field zones ----------
 const getZ=(p,i,z)=>z==="field"?S.field[p]:S.st[p][i];
 const setZ=(p,i,z,v)=>{if(z==="field")S.field[p]=v;else S.st[p][i]=v};
-const putZone=(p,i,z,e)=>{if(z==="field"&&S.field[p]&&S.field[p]!==e){sendTo(p,"gy",S.field[p],true);addLog(`${S.field[p].name} was replaced by a new Field Spell`)}setZ(p,i,z,e)};
+const putZone=(p,i,z,e)=>{if(z==="field"&&S.field[p]&&S.field[p]!==e){const fe=fieldEl(p);if(fe&&S.field[p].id!==undefined)flyToPile(fe.getBoundingClientRect(),S.field[p],p,"gy");sendTo(p,"gy",S.field[p],true);addLog(`${S.field[p].name} was replaced by a new Field Spell`)}setZ(p,i,z,e)};
 const subType=t=>(t||"").replace(/ (Spell|Trap)$/,"");
 let PICK=null; // while set: the next tap on a monster on the field is the chosen target
 function pickTarget(onPick,back,skip){ // skip (optional): a card that equips by its own text may also be activated without a target (condition not met / the monster does not exist yet)
