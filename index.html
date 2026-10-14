@@ -247,6 +247,7 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .fxtomb{background:url(img/fx/tomb.webp) center/contain no-repeat;z-index:5;animation:fxtomb 1.5s ease-out forwards}
 @keyframes fxtomb{0%{transform:rotate(var(--rot,0deg)) translateY(45%) scale(.4);opacity:0}20%{transform:rotate(var(--rot,0deg)) translateY(-5%) scale(1.07);opacity:1}30%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}78%{transform:rotate(var(--rot,0deg)) translateY(0) scale(1);opacity:1}100%{transform:rotate(var(--rot,0deg)) translateY(10%) scale(.92);opacity:0}}
 .fxskel{background:center/contain no-repeat;z-index:6;filter:drop-shadow(0 4px 8px #000a)}
+.fxbanp{background:url(img/fx/banish.webp) center/contain no-repeat;z-index:5;filter:drop-shadow(0 0 14px #9b6bff)}
 .fxshield{background:url(img/fx/shield.webp) center/contain no-repeat;animation:fxshin .22s ease-out forwards}
 .fxshield.hold{animation:fxshin .22s ease-out forwards,fxshake .4s .3s,fxshout .3s 1s forwards}
 @keyframes fxshin{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
@@ -420,7 +421,7 @@ const SFX=(()=>{
     s.connect(fl);fl.connect(g);g.connect(master);if(o.echo)g.connect(echo);s.start(t0);s.stop(t0+dur+.05);
   }
   // recorded sounds (Tom's own voice, folder snd/): decoded once, then played with a slightly random speed so they never sound exactly the same
-  const SAMPLES={slash:["slash1","slash2"],stomp:["stomp2"],stomp0:["stomp0"],flip:["flip3"],lunge:["lunge1"],block:["block1"],sbreak:["shieldbreak1"]},buf={};let loading=false;
+  const SAMPLES={slash:["slash1","slash2"],stomp:["stomp2"],stomp0:["stomp0"],flip:["flip3"],lunge:["lunge1"],block:["block1"],sbreak:["shieldbreak1"],banish:["banish1"]},buf={};let loading=false;
   function loadSamples(){
     if(loading||!init())return;loading=true;
     for(const k in SAMPLES)for(const n of SAMPLES[k])fetch("snd/"+n+".m4a").then(r=>r.arrayBuffer()).then(b=>new Promise((ok,no)=>ac.decodeAudioData(b,ok,no))).then(d=>{(buf[k]=buf[k]||[]).push(d)}).catch(()=>{});
@@ -464,6 +465,8 @@ const SFX=(()=>{
     clang(){if(sample("block",{vol:.95}))return;tone({f:200,f2:90,type:"sine",dur:.16,vol:.55});noise({dur:.07,vol:.2,f:450,type:"lowpass"})}, // the shield holds: a dull 'doef'
     flip(){if(sample("flip",{vol:.6,exact:true}))return;noise({dur:.12,vol:.2,f:2500,f2:6000,q:.8});tone({f:420,f2:900,type:"triangle",dur:.14,vol:.14,t:.14,echo:true});tone({f:900,f2:1500,type:"sine",dur:.2,vol:.1,t:.2,echo:true})},
     tomb(){tone({f:110,f2:40,type:"sine",dur:.5,vol:.55});noise({dur:.3,vol:.14,f:350,f2:120,type:"lowpass"});tone({f:392,f2:330,type:"triangle",dur:.9,vol:.07,t:.25,echo:true})},
+    banish(){const now=performance.now();if(now-(this._bnt||0)<1500)return;this._bnt=now; // banished: Tom's recording; several cards at once = one sound
+      if(sample("banish",{vol:.9,exact:true}))return;noise({dur:1.3,vol:.22,f:2600,f2:220,q:1.2,type:"bandpass"});tone({f:520,f2:110,type:"sine",dur:1.1,vol:.16,echo:true})},
     stat(up){up?[520,660,880].forEach((f,i)=>tone({f,type:"triangle",dur:.12,vol:.13,t:i*.07,echo:true})):[600,450,320].forEach((f,i)=>tone({f,type:"triangle",dur:.12,vol:.13,t:i*.07,echo:true}))},
     coin(n){ // one soft 'tok' each time the coin turns over (180 degrees), timed on the same curve as the CSS animation (1.9 s, cubic-bezier .2 .7 .25 1), then a ting when it lands
       const X=u=>3*(1-u)*(1-u)*u*.2+3*(1-u)*u*u*.25+u*u*u,Y=u=>3*(1-u)*(1-u)*u*.7+3*(1-u)*u*u+u*u*u;
@@ -798,8 +801,24 @@ function fxMove(fr,el,o){ // control change: the card glides to the other side o
 }
 function fxPulse(el,delay){if(calmMotion()||!el||!el.animate)return;el.animate([{transform:"scale(1)",filter:"brightness(1)"},{transform:"scale(1.14)",filter:"brightness(1.8)"},{transform:"scale(1)",filter:"brightness(1)"}],{duration:380,delay:delay||0})}
 const skelOf=c=>c&&(c.kind==="spell"||c.kind==="trap"||/Spell|Trap/.test(c.type||""))&&c.pos!=="FD"?(/Trap/.test(c.type||"")||c.kind==="trap"?"trap":/Ritual/.test(c.type||"")?"ritual":"spell"):null;
+// banished: a portal opens on the card's zone, the card spirals into it, the portal closes (the counterpart of the gravestone)
+function fxBanish(fr,o){
+  SFX.banish();
+  if(calmMotion()||!fr||!fr.width||!document.body.animate)return;
+  const fx=$("fx"),cx=fr.left+fr.width/2,cy=fr.top+fr.height/2,s=Math.min(Math.max(fr.width,fr.height)*1.45,170);
+  const pt=document.createElement("div");pt.className="fxbanp";pt.style.cssText=`left:${cx-s/2}px;top:${cy-s/2}px;width:${s}px;height:${s}px`;fx.appendChild(pt);
+  pt.animate([{transform:"scale(.1) rotate(0deg)",opacity:0},{transform:"scale(1.1) rotate(140deg)",opacity:1,offset:.18},{transform:"scale(1) rotate(420deg)",opacity:1,offset:.78},{transform:"scale(.05) rotate(620deg)",opacity:0}],{duration:1800,easing:"linear",fill:"forwards"}).onfinish=()=>pt.remove();
+  let e;
+  if(o.skel){const w=Math.min(Math.max(fr.width*1.15,64),90),h=w*1.5;e=document.createElement("div");e.className="fxskel";e.style.cssText=`left:${cx-w/2}px;top:${cy-h/2}px;width:${w}px;height:${h}px;background-image:url(img/fx/skel-${o.skel}.webp)`}
+  else{const w=Math.min(fr.width*0.85,64),h=w*1.458;e=document.createElement("div");e.className=`fxcard cb port ${o.cls}`;e.innerHTML=o.cls==="fdv"?"":`<span class="n">${esc(o.name)}</span>`;e.style.cssText=`left:${cx-w/2}px;top:${cy-h/2}px;width:${w}px;height:${h}px;z-index:6`}
+  fx.appendChild(e);
+  const tilt=S.view==="2p"&&cy<innerHeight/2?180:0;
+  e.animate([{transform:`rotate(${tilt}deg) scale(1)`,filter:"brightness(1)",opacity:1},{transform:`rotate(${tilt}deg) scale(1.06)`,filter:"brightness(1.3) drop-shadow(0 0 10px #b48cff)",opacity:1,offset:.3},
+    {transform:`rotate(${tilt+540}deg) scale(.04)`,filter:"brightness(2) hue-rotate(60deg) drop-shadow(0 0 14px #b48cff)",opacity:0}],{duration:1300,delay:250,easing:"cubic-bezier(.55,0,.85,.4)",fill:"both"}).onfinish=()=>e.remove();
+}
 function flyToPile(rect,c,p,kind,o2){ // call BEFORE the card is removed from the board (the rectangle is needed)
   const b=pileBtn(p,kind);if(!rect||!b||!c)return;
+  if(kind==="ban"){fxBanish(rect,{name:c.name,cls:cardCls(c),skel:skelOf(c)});fxPulse(b,1500);return}
   fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c),go:!!(o2&&o2.go)});fxPulse(b,skelOf(c)?1500:560);
 }
 // ---------- Summon with materials: Fusion (purple swirl), Synchro (gold rings), Xyz (black vortex), Link (cyan arrows) ----------
@@ -1029,7 +1048,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-p],[data-lp]");
   DLGP=t?(t.dataset.p!==undefined?+t.dataset.p:+t.dataset.lp):S.turn;
 },true);
-dlg.addEventListener("close",()=>{if(dlg.open)return;{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)playFlip(o)},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
+dlg.addEventListener("close",()=>{if(dlg.open)return;if(CH&&(CH.ctx.act||CH.ctx.sum))setTimeout(()=>{if(!dlg.open&&CH&&(CH.ctx.act||CH.ctx.sum))chainResolve()},0);{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)playFlip(o)},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
 function open(html,after){
   dlg.innerHTML=html;dlg.dataset.th="menu"; // every pop-up has the card look; card pop-ups replace "menu" with their own colour
   const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
@@ -1559,6 +1578,17 @@ function placeMon(p,i,c,pos,how,own){
   FXQ.push({t:"dust",p,i,soft:pos==="FD"});
   S.mon[p][i]={own:own??p,name:c.name,atk:Math.max(0,c.atk??0),def:Math.max(0,c.def??0),da:0,dd:0,pos,id:c.id,type:c.type,race:c.race,attr:c.attr,lvl:c.lvl,
     q:(c.atk===-1?"A":"")+(c.def===-1?"D":""),sumT:S.tc,how,lm:c.lm|0,desc:c.desc||"",eff:parseField(c.desc||""),self:selfStatic(c.desc||"")};
+  if(pos!=="FD"&&how!=="set")sumAsk(p,i,how);
+}
+// after a Summon (not a Set) the opponent may respond: Solemn Judgment negates it, Trap Hole destroys it... (asked once the dust has settled)
+function sumAsk(p,i,how){
+  if(S.noAskSum)return;const m=S.mon[p][i];if(!m)return;const sid=m.sid=newUid();let n=0;
+  const kind=how==="flip"?"Flip Summon":how==="special"?"Special Summon":/^trib/.test(how||"")?"Tribute Summon":"Normal Summon";
+  const go=()=>{const m2=S.mon[p][i];if(!m2||m2.sid!==sid||m2.pos==="FD")return;
+    if(dlg.open||CH||document.body.classList.contains("picking")){if(++n<20)setTimeout(go,300);return}
+    CH={ctx:{sum:{p,i,sid}},stack:[{who:p===0?"You":"Opponent",r:p,base:true,verb:"Summoned",src:null,srcName:m2.name,effects:[],summary:`${m2.name} (${kind})`}],negated:false};
+    chainAsk(1-p)};
+  setTimeout(go,900);
 }
 function loadMonDialog(p,i){
   open(`${closeX()}<h2>Load monster (slot ${i+1}) – monsters only</h2><input type="search" id="q" placeholder="Search by name…" autocomplete="off">
@@ -1569,7 +1599,7 @@ function loadMonDialog(p,i){
       let r;
       try{r=await find(q.value,'mon')}catch(e){CARDS=null;$("res").innerHTML=`<div><small>⚠ The card data could not be loaded (${esc(String(e.message||e))}). Check your connection, reload the page (Ctrl+F5), then try again. Meanwhile you can use “Custom monster”.</small></div>`;return}
       $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)} • ${c.atk===-1?"?":c.atk??"-"}/${c.def===-1?"?":c.def??"-"}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
-      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;summonDialog(p,i,r[+d.dataset.k])};
+      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];copyGuard(p,c,()=>summonDialog(p,i,c),()=>loadMonDialog(p,i))};
     };
     $("cust").onclick=()=>{placeMon(p,i,{name:"Monster",atk:0,def:0,type:"Effect Monster"},"ATK","special");render();dlg.close()};
   });
@@ -1793,7 +1823,7 @@ function setPos(p,i,np){
     if(m.posT===S.tc)w.push("This monster already changed position this turn.");
     if(m.attT===S.tc)w.push("This monster attacked this turn, so it can't change position.");
   }
-  guard(w,()=>{if(old==="FD"&&np==="ATK")m.flipT=S.tc;else m.posT=S.tc;m.pos=np;render();dlg.close()},()=>slotDialog(p,i));
+  guard(w,()=>{const fl=old==="FD"&&np==="ATK";if(fl)m.flipT=S.tc;else m.posT=S.tc;m.pos=np;render();dlg.close();if(fl)sumAsk(p,i,"flip")},()=>slotDialog(p,i));
 }
 
 // ---------- Attack ----------
@@ -1882,8 +1912,8 @@ const youOr=r=>(S.view==="2p"||r===0)?"you":"the opponent";
 function chainOpen(r,html,after){FLIP=S.view==="2p"?r===1:null;open(html,after)}
 function chainAsk(r){ // r = the player who may respond now
   const last=CH.stack[CH.stack.length-1];
-  chainOpen(r,`${closeX()}<h2>Respond?</h2><p style="font-size:16px">${esc(last.who)} activated: <b>${esc(last.summary)}</b></p>
-   <p><b>${S.view==="2p"?"Do you":"Does the opponent"} want to respond</b> to that?</p>
+  chainOpen(r,`${closeX()}<h2>Respond?</h2><p style="font-size:16px">${esc(S.view==="2p"?(last.r===r?"You":"Your opponent"):last.who)} ${last.verb||"activated"}: <b>${esc(last.summary)}</b></p>
+   <p><b>${S.view!=="2p"&&r===1?"Does the opponent":"Do you"} want to respond</b> to that?</p>
    <div class="row"><button id="cno" style="background:#1f5a3a;font-weight:800">No — resolve it</button><button id="cyes" style="background:#8a5a14;font-weight:800">Yes — activate something</button></div>`,()=>{
     $("cno").onclick=()=>chainResolve();
     $("cyes").onclick=()=>chainBuild(r);
@@ -1898,10 +1928,17 @@ function chainMons(r){
 const monLabel=(o,r)=>`${esc(o.m.pos==="FD"?"Face-down monster ("+o.m.name+")":o.m.name)} <small>— ${sideName(r,o.p)} monster${o.tag?" • "+o.tag:""}</small>`;
 const monRadios=(r,pre)=>{const L=chainMons(r),pi=pre==="own"?Math.max(0,L.findIndex(o=>o.p===r)):0;return L.map((o,n)=>`<label style="display:block;padding:6px 0"><input type="radio" name="tg" value="${o.p}:${o.i}" ${n===pi?"checked":""}> ${monLabel(o,r)}</label>`).join("")||"<small>There are no monsters on the field.</small>"};
 const pickedMon=()=>{const v=(dlg.querySelector('input[name="tg"]:checked')||{}).value;if(!v)return null;const[p,i]=v.split(":").map(Number);const m=S.mon[p][i];return m?{p,i,nm:m.name}:null};
+// Spell Speed: 1 = Normal/Continuous/Equip/Field/Ritual Spell (can't respond), 2 = Quick-Play, Trap, quick monster effect, 3 = Counter Trap (only a Counter Trap responds to it)
+const spdOf=t=>/Counter/.test(t||"")?3:/Trap/.test(t||"")?2:/Quick-Play/.test(t||"")?2:/Spell/.test(t||"")?1:/Monster/.test(t||"")?2:0;
+// a card leaves the field during a chain (negated, destroyed, banished): it flies to its pile
+function chainToPile(r,z,i,c,dest){const se=z==="field"?fieldEl(r):stEl(r,i);if(se)flyToPile(se.getBoundingClientRect(),c,r,dest);ctlSrcGone(c.uid);setZ(r,i,z,null);sendTo(r,dest,c,true)}
+const negSum=()=>{const L=CH.stack[CH.stack.length-1];return!!(L&&L.base&&CH.ctx.sum)};
+const negTxt=()=>`Negate the ${negSum()?"Summon":"activation"} of ${CH.stack[CH.stack.length-1].srcName||"that card"}`;
+const inChain=(r,i)=>CH.stack.some(L=>L.r===r&&L.src&&L.src.z==="st"&&L.src.i===i)||(CH.ctx.act&&CH.ctx.act.p===r&&CH.ctx.act.z==="st"&&CH.ctx.act.i===i);
 function chainBuild(r){
   const R={p:r,who:r===0?"You":"Opponent",kind:"",src:null,srcName:"",effects:[]};
   const kinds=[["Trap Card","trap"],["Quick-Play Spell","spell"],["Monster effect","mon"],["Another effect","other"]];
-  const stepKind=()=>chainOpen(r,`${closeX()}<h2>${S.view==="2p"?"What are you activating?":"What is the opponent activating?"}</h2>
+  const stepKind=()=>chainOpen(r,`${closeX()}<h2>${S.view!=="2p"&&r===1?"What is the opponent activating?":"What are you activating?"}</h2>
     ${kinds.map(([l,k])=>`<div class="row"><button data-k="${k}">${l}</button></div>`).join("")}
     <div class="row"><button id="cx">Cancel</button></div>`,()=>{
     dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{R.kind=b.dataset.k;stepSrc()});
@@ -1910,11 +1947,17 @@ function chainBuild(r){
   const stepSrc=()=>{
     const items=[];
     if(R.kind==="mon")S.mon[r].forEach((m,i)=>{if(m)items.push({key:"mon:"+i,label:m.pos==="FD"?"Face-down monster ("+m.name+")":m.name})});
-    else S.st[r].forEach((c,i)=>{if(c)items.push({key:"st:"+i,label:`${c.name} <small>(${c.pos==="FD"?"Set":"face-up"})</small>`})});
+    else S.st[r].forEach((c,i)=>{if(c&&!inChain(r,i))items.push({key:"st:"+i,label:`${c.name} <small>(${c.pos==="FD"?"Set":"face-up"})</small>`})});
     chainOpen(r,`${closeX()}<h2>Which card?</h2><div class="res" id="sl">${items.map(o=>`<div data-s="${o.key}">${o.label}</div>`).join("")}<div data-s="none"><b>A card from my hand / Graveyard</b><br><small>not on the field</small></div></div><div class="row"><button id="bk">← Back</button></div>`,()=>{
       $("sl").onclick=e=>{const d=e.target.closest("[data-s]");if(!d)return;const v=d.dataset.s;
-        if(v==="none"){R.src=null;R.srcName=""}else{const[z,i]=v.split(":");R.src={z,i:+i};const c=z==="mon"?S.mon[r][+i]:S.st[r][+i];R.srcName=c?c.name:""}
-        stepEffects()};
+        let c=null;if(v==="none"){R.src=null;R.srcName=""}else{const[z,i]=v.split(":");R.src={z,i:+i};c=z==="mon"?S.mon[r][+i]:S.st[r][+i];R.srcName=c?c.name:""}
+        const w=[],t=c&&R.src.z==="st"?c.type||"":R.kind==="trap"?"Trap":R.kind==="spell"?"Quick-Play Spell":R.kind==="mon"?"Monster":"";
+        R.spd=spdOf(t);const prev=CH.stack.length?CH.stack[CH.stack.length-1].spd||0:0;
+        if(c&&R.src.z==="st"&&c.pos==="FD"&&c.setT===S.tc&&/Trap|Quick-Play/.test(t))w.push(`${/Trap/.test(t)?"A Trap":"A Quick-Play Spell"} can't be activated the turn it was Set.`);
+        if(c&&R.src.z==="st"&&c.pos==="UP"&&/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(t))w.push("This card is already face-up: a Normal/Quick-Play Spell or Normal/Counter Trap is used only once.");
+        if(R.spd===1)w.push("This card is Spell Speed 1 (Normal, Continuous, Equip, Field or Ritual Spell): it can't be activated in response. Only Quick-Play Spells, Traps and quick monster effects can.");
+        else if(prev===3&&R.spd&&R.spd<3)w.push("Only a Counter Trap (Spell Speed 3) can respond to a Counter Trap.");
+        guard(w,stepEffects,stepSrc)};
       $("bk").onclick=stepKind;
     });
   };
@@ -1923,8 +1966,9 @@ function chainBuild(r){
     chainOpen(r,`${closeX()}<h2>What does it do?</h2><small>${esc(R.srcName||"A card")} (${kinds.find(x=>x[1]===R.kind)[0]})</small>
      <div class="card" id="el">${R.effects.length?R.effects.map((e,n)=>`<div>• ${esc(sum(e))} <button data-rm="${n}" style="min-width:0;padding:2px 8px">✕</button></div>`).join(""):"<small>Nothing added yet. Add the effects of your card:</small>"}</div>
      <div class="row"><button id="e1">ATK / DEF change</button><button id="e2">Destroy a monster</button></div>
-     <div class="row"><button id="e3">Negate the attack</button><button id="e4">Life Points</button></div>
-     <div class="row"><button id="e5">Other (just note it)</button></div>
+     ${CH.stack.length?`<div class="row"><button id="e6" style="background:#6b2230">${esc(negTxt())}</button></div>${negSum()?`<small>Only Counter Traps (Solemn Judgment, Solemn Strike…) negate a Summon, and not a Special Summon done by a card effect. Trap Hole and the like: use “Destroy a monster”.</small>`:""}`:""}
+     <div class="row">${CH.ctx.act||CH.ctx.sum?"":`<button id="e3">Negate the attack</button>`}<button id="e4">Life Points</button></div>
+     <div class="row"><button id="e7">Destroy a Spell/Trap</button><button id="e5">Other (just note it)</button></div>
      <div class="row"><button id="ebk">← Back</button><button id="edone" style="background:#8be32a;color:#0b2200;font-weight:800">Activate</button></div>
      ${R.src===null?`<small>If the card came from your hand, add it to your Graveyard afterwards (Graveyard list → + Add card).</small>`:""}`,()=>{
       dlg.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{R.effects.splice(+b.dataset.rm,1);stepEffects()});
@@ -1944,7 +1988,8 @@ function chainBuild(r){
           $("b2").onclick=stepEffects;
           $("o2").onclick=()=>{const t=pickedMon();if(!t)return;const b=$("eb").checked;R.effects.push({t:"kill",p:t.p,i:t.i,nm:t.nm,ban:b,text:`${b?"Banish":"Destroy"} ${t.nm}`});stepEffects()};
         });
-      $("e3").onclick=()=>{if(!R.effects.some(e=>e.t==="neg"))R.effects.push({t:"neg",text:"Negate the attack"});stepEffects()};
+      if($("e6"))$("e6").onclick=()=>{if(!R.effects.some(e=>e.t==="negc"))R.effects.push({t:"negc",text:negTxt()});stepEffects()};
+      if($("e3"))$("e3").onclick=()=>{if(!R.effects.some(e=>e.t==="neg"))R.effects.push({t:"neg",text:"Negate the attack"});stepEffects()};
       $("e4").onclick=()=>chainOpen(r,`${closeX()}<h2>Life Points</h2>
         <label style="display:block;padding:6px 0"><input type="radio" name="lw" value="${r}" checked> ${S.view==="2p"?"My":"The responder's"} Life Points</label>
         <label style="display:block;padding:6px 0"><input type="radio" name="lw" value="${1-r}"> The opponent's Life Points</label>
@@ -1954,6 +1999,14 @@ function chainBuild(r){
           $("o4").onclick=()=>{const n=parseInt($("el1").value)||0;if(!n)return stepEffects();const who=+(dlg.querySelector('input[name="lw"]:checked')||{}).value;
             R.effects.push({t:"lp",who,n,text:`${NAME(who)}: ${n>=0?"+":""}${n} LP`});stepEffects()};
         });
+      $("e7").onclick=()=>{const L=[];for(const q of[1-r,r]){S.st[q].forEach((c,i)=>{if(c&&!(q===r&&R.src&&R.src.z==="st"&&R.src.i===i))L.push({p:q,z:"st",i,c})});if(S.field[q])L.push({p:q,z:"field",i:0,c:S.field[q]})}
+        chainOpen(r,`${closeX()}<h2>Destroy which Spell/Trap?</h2>${L.map((o,n)=>`<label style="display:block;padding:6px 0"><input type="radio" name="sg" value="${n}" ${n?"":"checked"}> ${esc(o.c.pos==="FD"?"Set card ("+o.c.name+")":o.c.name)} <small>— ${sideName(r,o.p)} ${o.z==="field"?"Field Zone":"Spell & Trap Zone"}</small></label>`).join("")||"<small>There are no Spells/Traps on the field.</small>"}
+        <label style="display:block;padding:6px 0"><input type="checkbox" id="sb"> Banish it instead</label>
+        <div class="row"><button id="b7">← Back</button><button id="o7" style="background:#1f5a3a">Add</button></div>`,()=>{
+          $("b7").onclick=stepEffects;
+          $("o7").onclick=()=>{const v=(dlg.querySelector('input[name="sg"]:checked')||{}).value;if(v==null)return;const o=L[+v],b=$("sb").checked;
+            R.effects.push({t:"sdes",p:o.p,z:o.z,i:o.i,nm:o.c.name,ban:b,text:`${b?"Banish":"Destroy"} ${o.c.pos==="FD"?"a Set card ("+o.c.name+")":o.c.name}`});stepEffects()};
+        })};
       $("e5").onclick=()=>chainOpen(r,`${closeX()}<h2>Other effect</h2><p>Describe it (optional) — nothing on the board changes, you do it by hand.</p><input type="text" id="en" placeholder="e.g. draw 2 cards" autocomplete="off">
         <div class="row"><button id="b5">← Back</button><button id="o5" style="background:#1f5a3a">Add</button></div>`,()=>{
           $("b5").onclick=stepEffects;
@@ -1963,6 +2016,7 @@ function chainBuild(r){
       $("edone").onclick=()=>{
         R.summary=`${R.srcName||"a card"} — ${R.effects.length?R.effects.map(sum).join("; "):"no board change"}`;
         R.r=r;CH.stack.push(R);addLog(`${R.who} activated ${R.summary}`);
+        if(R.src&&R.src.z==="st"){const c=S.st[r][R.src.i];if(c&&c.pos==="FD"){c.pos="UP";render()}} // activating = turning it face-up
         chainAsk(1-r);
       };
     });
@@ -1972,6 +2026,7 @@ function chainBuild(r){
 function chainApply(e,log){
   if(e.t==="neg"){CH.negated=true;log.push("The attack is negated.");return}
   if(e.t==="note"){log.push(`Note: ${e.text} (do it by hand)`);return}
+  if(e.t==="sdes"){const c=getZ(e.p,e.i,e.z);if(!c||c.name!==e.nm){log.push(`${e.nm} is no longer on the field — skipped.`);return}chainToPile(e.p,e.z,e.i,c,e.ban?"ban":"gy");log.push(e.text);return}
   if(e.t==="lp"){setLP(e.who,S.lp[e.who]+e.n,x=>`${NAME(e.who)}: ${e.n>=0?"+":""}${e.n} (effect) → ${x}`);log.push(e.text);return}
   const m=S.mon[e.p][e.i];
   if(!m||m.name!==e.nm){log.push(`${e.nm} is no longer on the field — its effect is skipped.`);return}
@@ -1982,10 +2037,23 @@ function chainApply(e,log){
   if(e.t==="kill"){removeMon(e.p,e.i,e.ban?"ban":"gy");log.push(e.text)}
 }
 function chainResolve(){
-  const ctx=CH.ctx,log=[];UNDOMERGE=true;
-  for(const R of CH.stack.slice().reverse()){ // the last activated resolves first
+  const ctx=CH.ctx,log=[],st=CH.stack,negL=new Set();let baseNeg=false;
+  if(ctx.act&&st.length===1){CH=null;FLIP=null;ctx.fin();return} // nobody responded
+  if(ctx.sum&&st.length===1){CH=null;FLIP=null;if(dlg.open)dlg.close();return}
+  UNDOMERGE=true;
+  const toGY=(r,z,i,c)=>chainToPile(r,z,i,c,"gy");
+  for(let n=st.length-1;n>=0;n--){ // the last activated resolves first
+    const R=st[n];
+    if(negL.has(n)){
+      log.push(R.base&&ctx.sum?`The Summon of ${R.srcName} is negated — it goes to the Graveyard.`:`${R.who}: ${R.srcName||"a card"} is negated — no effect.`);
+      if(R.base&&ctx.sum){const a=ctx.sum,m=S.mon[a.p][a.i];if(m&&m.sid===a.sid)removeMon(a.p,a.i,"gy")}
+      else if(R.base){baseNeg=true;const a=ctx.act,c=getZ(a.p,a.i,a.z);if(c&&c.uid===a.uid)toGY(a.p,a.z,a.i,c)}
+      else if(R.src&&R.src.z==="st"){const c=S.st[R.r][R.src.i];if(c)toGY(R.r,"st",R.src.i,c)}
+      continue;
+    }
+    if(R.base&&ctx.sum){const m=S.mon[ctx.sum.p][ctx.sum.i];if(m&&m.sid===ctx.sum.sid)log.push(`The Summon of ${R.srcName} succeeds.`);continue}
     log.push(`${R.who}: ${R.srcName||"a card"}`);
-    for(const e of R.effects)chainApply(e,log);
+    for(const e of R.effects){if(e.t==="negc"){if(n>0){negL.add(n-1);log.push(e.text)}continue}chainApply(e,log)}
     if(R.src&&R.src.z==="st"){ // the card is used: it turns face-up, a one-shot card goes to the Graveyard
       const c=S.st[R.r][R.src.i];
       if(c){c.pos="UP";if(NOBP_RX.test(c.desc||""))S.nobp=S.tc;if(/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(c.type||"")){const se=stEl(R.r,R.src.i);if(se)flyToPile(se.getBoundingClientRect(),c,R.r,"gy");S.st[R.r][R.src.i]=null;sendTo(R.r,"gy",c,true)}}
@@ -1993,6 +2061,20 @@ function chainResolve(){
   }
   UNDOMERGE=false;render();
   const neg=CH.negated;CH=null;
+  if(ctx.sum){chainOpen(0,`${closeX()}<h2>Resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
+      <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">OK</button></div>`,()=>{FLIP=null;dlg.classList.remove("flip");$("cok").onclick=()=>dlg.close()});return}
+  if(ctx.act){ // a Spell/Trap activation: if it was not negated, its own effect is applied now
+    const a=ctx.act,c=getZ(a.p,a.i,a.z),go=!baseNeg&&c&&c.uid===a.uid;
+    const once=/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(a.type||""),gone=!baseNeg&&!go;
+    const ga=gone&&once?cardActs({name:a.name,desc:a.desc,pos:"UP"},a.p).filter(x=>!x.leave):[]; // destroyed while it was activated: a Normal Spell/Trap still resolves
+    if(gone)log.push(once?`${a.name} left the field, but a ${a.type} still resolves${ga.length===1?".":": apply its effect by hand."}`:`${a.name} left the field before it resolved, so its effect does not apply.`);
+    chainOpen(0,`${closeX()}<h2>Resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
+      <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">${go?"OK — apply "+esc(c.name):ga.length===1?"OK — "+esc(ga[0].label):"OK"}</button></div>`,()=>{
+      FLIP=null;dlg.classList.remove("flip");
+      $("cok").onclick=()=>{if(go)ctx.fin();else if(ga.length===1)ga[0].run(()=>{render();dlg.close();toast("✔ "+a.name+": "+ga[0].label.replace(/^Apply: /,""))},()=>dlg.close());else dlg.close()};
+    });
+    return;
+  }
   chainOpen(0,`${closeX()}<h2>Resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
     <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">${neg?"OK — the attack ends":"Continue the battle"}</button></div>`,()=>{
     FLIP=null;dlg.classList.remove("flip");
@@ -2106,14 +2188,30 @@ const newUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function openZone(p,i,z){cardZoneDialog(p,i,z)}
 // make a card face-up in a zone: pick equip target / parse field effect first
 function activateIn(p,i,z,e,back){
-  const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(!e.eq&&e.eff&&e.eff.length)e.hold=true; /* the bonus of a Field/Continuous card waits for 'Apply' so its animation always shows; an Equip card is applied at once */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();if(e.eq)dlg.close();else openZone(p,i,z)}; // equipped: no pop-up (tap the card to open it)
+  const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(!e.eq&&e.eff&&e.eff.length)e.hold=true; /* the bonus of a Field/Continuous card waits for 'Apply' so its animation always shows; an Equip card is applied at once */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();if(e.eq)dlg.close();else if(!autoAct(p,i,z,e))openZone(p,i,z)}; // equipped: no pop-up (tap the card to open it)
   const selfEq=!/Equip/.test(e.type)&&/Trap/.test(e.type)&&/equip this card to|treat this card as an Equip Card|equip it to (a|1) /i.test(e.desc||"");
   const tgtCont=!/Equip/.test(e.type)&&/Continuous/.test(e.type)&&/Activate this card by targeting 1 [^;.]*monster/i.test(e.desc||""); // Continuous Spells/Traps tied to a target monster (Rare Metalmorph, Shadow Spell...): same as an equip card
   if(/Equip/.test(e.type)||selfEq||tgtCont){ // Equip Spells, and Traps that equip themselves (Metalmorph, Amaze Attraction...: 'No target' button)
-    pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
+    pickTarget(t=>{e.tgt=t;actAsk(p,i,z,e,()=>{if(!S.mon[t.p][t.i]){e.tgt=null;done();return} // the target left the field during the chain
+      e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
       if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
-      done()},back,selfEq?done:null);
-  }else done();
+      done()})},back,selfEq?()=>actAsk(p,i,z,e,done):null);
+  }else actAsk(p,i,z,e,done);
+}
+// a one-shot Spell/Trap with exactly one effect with numbers (Dian Keto: +1000 LP) is applied at once and goes to the Graveyard
+function autoAct(p,i,z,e){
+  if(z==="field"||!/^(Normal|Quick-Play|Ritual) Spell|^(Normal|Counter) Trap/.test(e.type||""))return false;
+  const acts=cardActs(e,p);if(acts.length!==1||acts[0].leave)return false;
+  acts[0].run(()=>{if(getZ(p,i,z)===e){const el=stEl(p,i);if(el)flyToPile(el.getBoundingClientRect(),e,p,"gy");setZ(p,i,z,null);sendTo(p,"gy",e,true)}render();if(dlg.open)dlg.close();toast("✔ "+e.name+": "+acts[0].label.replace(/^Apply: /,""))},()=>openZone(p,i,z));
+  return true;
+}
+// the card is face-up (activated); the opponent may respond before its effect is applied (fin). A negated card goes to the Graveyard.
+function actAsk(p,i,z,e,fin){
+  if(S.noAskAct){fin();return}
+  e.pos="UP";e.uid=e.uid||newUid();render();
+  CH={ctx:{act:{p,i,z,uid:e.uid,name:e.name,type:e.type,desc:e.desc},fin},stack:[{who:p===0?"You":"Opponent",r:p,base:true,spd:spdOf(e.type),src:null,srcName:e.name,effects:[],summary:e.name}],negated:false};
+  addLog(`${NAME(p)} activated ${e.name}`);
+  chainAsk(1-p);
 }
 const thDlg=t=>{const k=thType(t);if(k)dlg.dataset.th=k};
 function stPlace(p,i,c,z){
@@ -2156,7 +2254,7 @@ function loadZoneDialog(p,i,z){
     q.oninput=async()=>{
       const r=await find(q.value,z==="field"?"field":isPZ(i)?"stp":"st");
       $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
-      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];if(/Monster/.test(c.type))pendPlace(p,i,c);else stPlace(p,i,c,z)};
+      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];copyGuard(p,c,()=>{if(/Monster/.test(c.type))pendPlace(p,i,c);else stPlace(p,i,c,z)},()=>loadZoneDialog(p,i,z))};
     };
   });
 }
@@ -2451,6 +2549,28 @@ function pileDialog(p,kind){
     if($("pall"))$("pall").onclick=()=>open(`${closeX()}<h2>Empty the ${pileName(kind)}?</h2><p>All ${L.length} cards of ${NAME(p)} are removed from this list.</p><div class="row"><button id="no">Cancel</button><button id="yes" style="background:#6b2230">Empty it</button></div>`,()=>{$("no").onclick=()=>pileDialog(p,kind);$("yes").onclick=()=>{L.length=0;render();pileDialog(p,kind)}});
   });
 }
+// a Deck (Main + Extra + Side) holds at most 3 copies of a card: count the copies of player p (owner) that the app can see
+function copyCount(p,name){
+  let n=0;const hit=x=>x&&x.name===name;
+  for(const q of[0,1]){
+    S.mon[q].forEach(m=>{if(!m)return;if(hit(m)&&(m.own??q)===p)n++;if((m.own??q)===p)(m.ou||[]).forEach(u=>{if(hit(u))n++})});
+    S.st[q].forEach(c=>{if(hit(c)&&(c.own??q)===p)n++});
+    if(hit(S.field[q])&&(S.field[q].own??q)===p)n++;
+  }
+  for(const L of[S.gy[p],S.ban[p],S.edup[p]])(L||[]).forEach(c=>{if(hit(c))n++});
+  return n;
+}
+// the TCG Forbidden & Limited List (data/banlist.json: name -> 0 Forbidden, 1 Limited, 2 Semi-Limited); a switch in the menu, off by default, per phone (not in the duel)
+let BANON=false,BAN=null;try{BANON=localStorage.getItem("ygoref-ban")==="1"}catch(e){}
+async function banList(){if(!BAN){try{BAN=await fetch("data/banlist.json").then(r=>r.json())}catch(e){BAN={list:{},date:"?"}}}return BAN}
+async function copyGuard(p,c,go,back){ // 3 copies is a hard limit (no 'Do it anyway')
+  if(/Token/.test(c.type||""))return go();
+  const n=copyCount(p,c.name);let lim=3,why="A Deck may contain at most 3 copies of a card (Main, Extra and Side Deck together).";
+  if(BANON&&S.n!==3){const b=(await banList()).list[c.name];if(b!=null&&b<lim){lim=b;why=b===0?`“${c.name}” is Forbidden on the TCG Forbidden & Limited List (${BAN.date}): it can't be used at all.`:`“${c.name}” is ${b===1?"Limited":"Semi-Limited"} on the TCG Forbidden & Limited List (${BAN.date}): at most ${b} cop${b>1?"ies":"y"}.`}}
+  if(n<lim)return go();
+  open(`${closeX()}<h2>⛔ Not allowed</h2><p style="font-size:15px">${lim?`${NAME(p)} already ${p===0?"have":"has"} ${n} cop${n>1?"ies":"y"} of “${esc(c.name)}” on the field, in the Graveyard or banished.`:""}</p><p style="font-size:15px">${esc(why)}</p>
+   <div class="row"><button id="gb">← Back</button></div>`,()=>{$("gb").onclick=()=>back?back():dlg.close()});
+}
 function pileAdd(p,kind){
   open(`${closeX()}<h2>Add to ${pileName(kind)} – ${NAME(p)}</h2><small>For cards that go there straight from your hand or deck (discard, mill, cost…).</small>
    <input type="search" id="q" placeholder="Search by name…" autocomplete="off"><div class="res" id="res"></div>
@@ -2460,7 +2580,7 @@ function pileAdd(p,kind){
     q.oninput=async()=>{
       const r=await find(q.value);
       $("res").innerHTML=r.map((c,k)=>`<div data-k="${k}"><b>${esc(c.name)}</b><br><small>${esc(c.type)}</small></div>`).join("")||"<div><small>Type at least 2 letters…</small></div>";
-      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];sendTo(p,kind,c);addLog(`${c.name} → ${NAMES(p)} ${pileName(kind)}`);render();pileAdd(p,kind)};
+      $("res").onclick=ev=>{const d=ev.target.closest("[data-k]");if(!d)return;const c=r[+d.dataset.k];copyGuard(p,c,()=>{sendTo(p,kind,c);addLog(`${c.name} → ${NAMES(p)} ${pileName(kind)}`);render();pileAdd(p,kind)},()=>pileAdd(p,kind))};
     };
     $("bk").onclick=()=>pileDialog(p,kind);
   });
@@ -2721,6 +2841,9 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <div class="row"><button id="who">Who starts? Now: ${NAME(S.startPlayer)}</button></div>
   <div class="row"><button id="snd">Sound: ${SFX.on?"ON":"OFF"}</button></div>
   <div class="row"><button id="ask">Ask the defender before each attack: ${S.noAsk?"OFF":"ON"}</button></div>
+  <div class="row"><button id="asks">Ask for a response when a monster is Summoned: ${S.noAskSum?"OFF":"ON"}</button></div>
+  <div class="row"><button id="banl">Forbidden &amp; Limited List (TCG): ${BANON?"ON":"OFF"}${S.n===3?" <small>(not used in a Speed Duel)</small>":""}</button></div>
+  <div class="row"><button id="aska">Ask for a response when a Spell/Trap is activated: ${S.noAskAct?"OFF":"ON"}</button></div>
   <div class="row"><button id="surr" style="background:#6b2230">🏳 Surrender…</button></div>
   <p><small>A new duel resets LP, monsters and the turn counter.</small></p>
   <div class="row"><button id="home">🏠 Back to main menu</button></div>
@@ -2730,6 +2853,9 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   $("home").onclick=()=>{dlg.close();showSplash()};
   $("snd").onclick=()=>{SFX.set(!SFX.on);dlg.close()};
   $("ask").onclick=()=>{S.noAsk=!S.noAsk;render();dlg.close()};
+  $("asks").onclick=()=>{S.noAskSum=!S.noAskSum;render();dlg.close()};
+  $("banl").onclick=()=>{BANON=!BANON;try{localStorage.setItem("ygoref-ban",BANON?"1":"0")}catch(e){}if(BANON)banList();dlg.close();toast(BANON?"Forbidden & Limited List: ON":"Forbidden & Limited List: OFF")};
+  $("aska").onclick=()=>{S.noAskAct=!S.noAskAct;render();dlg.close()};
   $("surr").onclick=()=>open(`${closeX()}<h2>Surrender?</h2><p>The duel ends and the other player wins.</p><div class="row"><button id="s0" style="background:#6b2230">I surrender</button>${S.view==="1p"?"":`<button id="s1" style="background:#6b2230">Opponent surrenders</button>`}</div><div class="row"><button id="sno">Cancel</button></div>`,()=>{
     const go=p=>{dlg.close();setLP(p,0,()=>`${NAME(p)} surrendered`)};
     $("s0").onclick=()=>go(0);if($("s1"))$("s1").onclick=()=>go(1);$("sno").onclick=()=>dlg.close();
