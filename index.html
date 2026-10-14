@@ -48,7 +48,8 @@ body.picking .slot.picked::after{content:"¹4";position:absolute;right:3px;botto
 .lvb{position:absolute;top:2px;left:3px;display:flex;align-items:center;gap:1px;background:#e8731a;color:#fff;border-radius:9px;padding:0 4px 0 2px;font-size:10px;font-weight:800;line-height:14px;box-shadow:0 1px 3px #000a;pointer-events:none;z-index:1}
 .lvb i{font-style:normal;color:#ffe08a;font-size:11px}
 .lvb.rk{background:#23232b;border:1px solid #ffe08a;line-height:12px}.lvb.lkn{background:#1f5fd0}
-.atkx{font-size:9px;line-height:11px;color:#ffd45a;font-weight:800;white-space:nowrap}
+.atkx{font-size:9px;line-height:11px;color:#ffd45a;font-weight:800;white-space:nowrap;display:flex;align-items:center;gap:1px}.atkx img{height:12px;width:auto}
+.sti{height:12px;width:auto;vertical-align:-2px;margin-right:1px}.sti.sd{margin-left:3px}.slot .st:has(.sti){font-size:11px;letter-spacing:-.5px}
 .eqs{position:absolute;top:22px;left:3px;display:flex;flex-direction:column;gap:0;font-size:14px;line-height:13px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;z-index:1}
 .eqt{position:absolute;top:1px;left:50%;transform:translateX(-50%);font-size:16px;line-height:15px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;z-index:1}
 .lprow{display:flex;align-items:center;gap:6px}
@@ -399,7 +400,8 @@ function eqMap(){
   const m={};Object.keys(g).map(Number).sort((a,b)=>a-b).forEach((k,n)=>{m[k]={sym:EQ_SYM[n%EQ_SYM.length],n:g[k],atks:ga[k]||1}});
   return m;
 }
-const eqMon=(p,i)=>{const o=EQM[p*10+i];return o?`<span class="eqs">${Array(o.n).fill(`<span style="color:${o.sym[1]}" title="${o.n} equip card${o.n>1?"s":""} (${o.sym[2]})">${o.sym[0]}</span>`).join("")}${o.atks>1?`<span class="atkx" title="Can attack ${o.atks} times per Battle Phase">⚔×${o.atks}</span>`:""}</span>`:""};
+const atkChip=(p,i)=>{const a=atkInfo(p,i);return a.all||a.n>1?`<span class="atkx" title="${a.all?"Attacks all monsters your opponent controls, once each":"Can attack "+a.n+" times per Battle Phase"}"><img src="img/attr/atk2.webp" alt="">${a.all?"ALL":"×"+a.n}</span>`:""};
+const eqMon=(p,i)=>{const o=EQM[p*10+i];if(!o){const c=atkChip(p,i);return c?`<span class="eqs">${c}</span>`:""}return o?`<span class="eqs">${Array(o.n).fill(`<span style="color:${o.sym[1]}" title="${o.n} equip card${o.n>1?"s":""} (${o.sym[2]})">${o.sym[0]}</span>`).join("")}${atkChip(p,i)}</span>`:""};
 const eqCard=e=>{if(!e||!e.eq||!e.tgt)return"";const o=EQM[e.tgt.p*10+e.tgt.i];return o?`<span class="eqt" style="color:${o.sym[1]}" title="Equipped to a monster (${o.sym[2]})">${o.sym[0]}</span>`:""};
 function render(){
   EQM=eqMap();
@@ -775,7 +777,7 @@ function slotHTML(p,i,m){
   const d=m.pos==="DEF",s=stats(p,i),da=s.a-m.atk,dd=s.d-m.def;
   return`<div class="slot" ${a}>${lvlBadge(m)}${attrIcon(m)}${eqMon(p,i)}${badges(m)}${ownerOf(m,p)!==p?`<span class="ctlb" title="Owned by the other player">⇄</span>`:""}
     <div class="cbw"><div class="cb ${d?"land def":"port atk"}${thCls(m)}"><span class="n">${esc(m.name)}</span></div></div>
-    <div class="st"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":` / <span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span>`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
+    <div class="st"><img class="sti" src="img/attr/atk.webp" alt="ATK"><span class="${cls(da)} ${d?"":"act"}">${m.q?.includes("A")&&!da?"?":s.a}</span>${m.lm?"":`<img class="sti sd" src="img/attr/def.webp" alt="DEF"><span class="${cls(dd)} ${d?"act":""}">${m.q?.includes("D")&&!dd?"?":s.d}</span>`}</div>${m.lm?`<div class="lk">${linkArrows(m)}</div>`:""}</div>`;
 }
 function stHTML(p,i,m){
   const a=`data-p="${p}" data-i="${i}" data-row="st"`;
@@ -1053,6 +1055,7 @@ function parseEquip(desc,m){
   if(!res)res=found?{a,d,found:true}:(note||{a:0,d:0,found:false});
   if(found&&turn&&!res.turn)res.turn=turn;
   const n=parseAtks(desc);if(n>1)res.atks=n;
+  if(/attack all monsters your opponent controls/i.test(desc||""))res.atkAll=true;
   return res;
 }
 const ATTRS=["EARTH","WATER","FIRE","WIND","LIGHT","DARK","DIVINE"];
@@ -1521,13 +1524,31 @@ function setPos(p,i,np){
 }
 
 // ---------- Attack ----------
-const maxAtk=(p,i)=>{let n=1;for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&e.eq.atks&&!e.hold&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i)n=Math.max(n,e.eq.atks)});return n};
-const markAtt=m=>{if(m.attT===S.tc)m.attN=(m.attN||1)+1;else{m.attT=S.tc;m.attN=1}};
+// innate extra attacks in the monster's own text ("This card can make a second attack", "can attack all monsters your opponent controls, once each"); conditional versions ("once per turn: ...", "if ...") are not counted
+function selfAtks(m){
+  let n=1,all=false;
+  for(const x of (m&&m.desc||"").split(/(?<=[.●])\s+|\n/)){
+    const t=x.trim(),q=t.match(/^(?:This card|It) can (?:make (?:a second attack|up to (\d|two|three) attacks?)|attack twice|attack all monsters)/i);
+    if(!q)continue;
+    if(/attack all monsters/i.test(t))all=true;
+    else{const w=(q[1]||"2").toLowerCase();n=Math.max(n,{two:2,three:3}[w]||+w||2)}
+  }
+  return{n,all};
+}
+function atkInfo(p,i){
+  const m=S.mon[p]&&S.mon[p][i];if(!m||m.pos==="FD")return{n:1,all:false};
+  const r=selfAtks(m);
+  for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&!e.hold&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){if(e.eq.atks)r.n=Math.max(r.n,e.eq.atks);if(e.eq.atkAll)r.all=true}});
+  return r;
+}
+const maxAtk=(p,i)=>atkInfo(p,i).n;
+const markAtt=(m,key)=>{if(m.attT===S.tc)m.attN=(m.attN||1)+1;else{m.attT=S.tc;m.attN=1;m.attKs=[]}if(key){m.attKs=m.attKs||[];m.attKs.push(key)}};
 function attackWarnings(p,i){
   const m=S.mon[p][i],w=[];
   if(p!==S.turn)w.push("Only the turn player can attack.");
   if(PHASES[S.ph].n!=="Battle Phase")w.push(`Attacks are made in the Battle Phase (now: ${phName()}).`);
-  if(m.attT===S.tc&&(m.attN||1)>=maxAtk(p,i))w.push(maxAtk(p,i)>1?`This monster already made its ${maxAtk(p,i)} attacks this turn.`:"This monster already attacked this turn.");
+  const ai=atkInfo(p,i);
+  if(m.attT===S.tc&&!ai.all&&(m.attN||1)>=ai.n)w.push(ai.n>1?`This monster already made its ${ai.n} attacks this turn.`:"This monster already attacked this turn.");
   return w;
 }
 function attackDialog(p,i){
@@ -1716,6 +1737,8 @@ function endPausedAttack(){
 const takes=p=>`${NAME(p)} ${p===0?"take":"takes"}`; // "You take" / "Opponent takes"
 function battleConfirm(p,i,k){
   const m=S.mon[p][i],q=1-p,A=stats(p,i).a,w=attackWarnings(p,i);let txt,eff,pl;
+  const tkey=k<0?"direct":q+":"+k; // 'attack all monsters, once each': a monster can't be attacked twice by the same attacker in one turn
+  if(k>=0&&atkInfo(p,i).all&&m.attT===S.tc&&(m.attKs||[]).includes(tkey))w.push("This monster already attacked that monster this turn (once each).");
   const hit=(who,n,why)=>setLP(who,S.lp[who]-n,x=>`${NAME(who)}: −${n} (${why}) → ${x}`);
   if(k<0){
     if(S.mon[q].some(Boolean))w.push("A direct attack is only allowed if the opponent controls no monsters.");
@@ -1740,8 +1763,8 @@ function battleConfirm(p,i,k){
    ${w.length?`<div class="card" style="color:var(--red)">⚠ ${w.map(esc).join("<br>⚠ ")}</div>`:""}
    <p style="font-size:16px">${esc(txt)}</p><small>Card effects (like traps) can change this. Apply only if nothing else happened.</small>
    <div class="row"><button id="ap" style="background:#1f5a3a">Apply result</button><button id="mk">Only mark as attacked</button><button id="bk">Back</button></div>`,()=>{
-    $("ap").onclick=()=>guard(w,async()=>{markAtt(m);dlg.close();await fxBattle(pl);eff();render()},()=>battleConfirm(p,i,k));
-    $("mk").onclick=()=>{markAtt(m);render();dlg.close()};
+    $("ap").onclick=()=>guard(w,async()=>{markAtt(m,tkey);dlg.close();await fxBattle(pl);eff();render()},()=>battleConfirm(p,i,k));
+    $("mk").onclick=()=>{markAtt(m,tkey);render();dlg.close()};
     $("bk").onclick=()=>attackDialog(p,i);
   });
 }
