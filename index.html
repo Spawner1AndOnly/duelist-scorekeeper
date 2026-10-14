@@ -48,6 +48,7 @@ body.picking .slot.picked::after{content:"¹4";position:absolute;right:3px;botto
 .lvb{position:absolute;top:2px;left:3px;display:flex;align-items:center;gap:1px;background:#e8731a;color:#fff;border-radius:9px;padding:0 4px 0 2px;font-size:10px;font-weight:800;line-height:14px;box-shadow:0 1px 3px #000a;pointer-events:none;z-index:1}
 .lvb i{font-style:normal;color:#ffe08a;font-size:11px}
 .lvb.rk{background:#23232b;border:1px solid #ffe08a;line-height:12px}.lvb.lkn{background:#1f5fd0}
+.atkx{font-size:9px;line-height:11px;color:#ffd45a;font-weight:800;white-space:nowrap}
 .eqs{position:absolute;top:22px;left:3px;display:flex;flex-direction:column;gap:0;font-size:14px;line-height:13px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;z-index:1}
 .eqt{position:absolute;top:1px;left:50%;transform:translateX(-50%);font-size:16px;line-height:15px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;z-index:1}
 .lprow{display:flex;align-items:center;gap:6px}
@@ -95,6 +96,7 @@ button:active{filter:brightness(1.4)}
 [data-th=token],.th-token{--c1:#9a9a9a;--c2:#555;--fg:#fff}
 [data-th=spell],.th-spell{--c1:#1f9478;--c2:#0a4638;--fg:#fff}
 [data-th=trap],.th-trap{--c1:#d7399f;--c2:#6e0e52;--fg:#fff}
+[data-th=menu]{--c1:#4b301b;--c2:#1a1009;--fg:#fff1e3}
 [data-th=gy]{--c1:#6b7681;--c2:#222930;--fg:#fff}
 [data-th=ban]{--c1:#7a55e0;--c2:#1b1043;--fg:#fff}
 [data-th=pend],.th-pend{--c1:#d9832a;--c2:#1f8f6e;--fg:#fff}
@@ -110,6 +112,7 @@ dialog[data-th] .res div small{color:#ffffffcc}
 .zi{height:17px;width:auto;vertical-align:-3px}
 .pilehd{display:flex;align-items:center;gap:8px;margin-bottom:8px}.pilehd img{height:54px;flex:none;filter:drop-shadow(0 2px 3px #000a)}.pilehd .sw{font-size:42px;line-height:54px;flex:none}.pilehd h2{flex:1;margin:0!important}
 dialog[data-th=synchro] h2{text-shadow:none}dialog[data-th=synchro] .x{color:#1d1a12}
+dialog[data-th] .card{background:linear-gradient(#f4e8c6,#e6d49d);color:#2b1d08;border:2px solid #3a2a0c;border-radius:4px}
 dialog[data-th] #ct{background:linear-gradient(#f4e8c6,#e6d49d);color:#2b1d08;border:2px solid #3a2a0c;border-radius:4px}
 dialog[data-th] #ct hr{border-color:#8a6c2a!important}
 .cbw{height:var(--ch);width:100%;display:flex;align-items:center;justify-content:center}
@@ -264,6 +267,9 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .lp .num{font-family:"Palatino Linotype",Palatino,Georgia,serif;text-shadow:0 1px 2px #000}
 dialog[data-th] button{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a99,0 1px 3px #0008;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-weight:700;text-shadow:0 1px 2px #000a;background-image:linear-gradient(#ffffff26,#00000033);background-blend-mode:overlay}
 dialog[data-th] button img.zi{height:18px;margin-right:2px}
+#pickbar{border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a,0 4px 18px #000b;background:linear-gradient(165deg,#4b301b,#1a1009);font-family:"Palatino Linotype",Palatino,Georgia,serif}
+#pickbar button{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a99;font-family:inherit;font-weight:700;background-image:linear-gradient(#ffffff26,#00000033);background-blend-mode:overlay}
+#toast{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a;font-family:"Palatino Linotype",Palatino,Georgia,serif}
 </style>
 </head>
 <body>
@@ -384,16 +390,16 @@ function fieldBg(p){
 const EQ_SYM=[["●","#5aa9ff","circle"],["▲","#52d68a","triangle"],["■","#ffd34d","square"],["✚","#ff9a3d","cross"],["★","#ff5d6c","star"],["▶","#b57bff","arrow"],["◆","#3de0e0","diamond"],["♥","#ff7ad9","heart"],["✖","#ffffff","x"],["♣","#c8f23d","club"]];
 let EQM={};
 function eqMap(){
-  const g={};
+  const g={},ga={};
   [0,1].forEach(p=>S.st[p].forEach(e=>{
     if(!e||!e.eq||!e.tgt)return;
     const t=S.mon[e.tgt.p]&&S.mon[e.tgt.p][e.tgt.i];if(!t)return;
-    const k=e.tgt.p*10+e.tgt.i;g[k]=(g[k]||0)+1;
+    const k=e.tgt.p*10+e.tgt.i;g[k]=(g[k]||0)+1;if(e.eq.atks&&!e.hold)ga[k]=Math.max(ga[k]||1,e.eq.atks);
   }));
-  const m={};Object.keys(g).map(Number).sort((a,b)=>a-b).forEach((k,n)=>{m[k]={sym:EQ_SYM[n%EQ_SYM.length],n:g[k]}});
+  const m={};Object.keys(g).map(Number).sort((a,b)=>a-b).forEach((k,n)=>{m[k]={sym:EQ_SYM[n%EQ_SYM.length],n:g[k],atks:ga[k]||1}});
   return m;
 }
-const eqMon=(p,i)=>{const o=EQM[p*10+i];return o?`<span class="eqs">${Array(o.n).fill(`<span style="color:${o.sym[1]}" title="${o.n} equip card${o.n>1?"s":""} (${o.sym[2]})">${o.sym[0]}</span>`).join("")}</span>`:""};
+const eqMon=(p,i)=>{const o=EQM[p*10+i];return o?`<span class="eqs">${Array(o.n).fill(`<span style="color:${o.sym[1]}" title="${o.n} equip card${o.n>1?"s":""} (${o.sym[2]})">${o.sym[0]}</span>`).join("")}${o.atks>1?`<span class="atkx" title="Can attack ${o.atks} times per Battle Phase">⚔×${o.atks}</span>`:""}</span>`:""};
 const eqCard=e=>{if(!e||!e.eq||!e.tgt)return"";const o=EQM[e.tgt.p*10+e.tgt.i];return o?`<span class="eqt" style="color:${o.sym[1]}" title="Equipped to a monster (${o.sym[2]})">${o.sym[0]}</span>`:""};
 function render(){
   EQM=eqMap();
@@ -811,7 +817,7 @@ document.addEventListener("click",e=>{
 },true);
 dlg.addEventListener("close",()=>{if(dlg.open)return;{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)fxFlip(flEl(o.k,o.p,o.i))},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
 function open(html,after){
-  dlg.innerHTML=html;delete dlg.dataset.th;
+  dlg.innerHTML=html;dlg.dataset.th="menu"; // every pop-up has the card look; card pop-ups replace "menu" with their own colour
   const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
   dlg.classList.toggle("flip",FLIP!==null?FLIP:auto);
   if(!dlg.open)dlg.showModal();after&&after()
@@ -987,7 +993,7 @@ function parseOld(s){
   return found?{a,d,found}:{a:0,d:0,found:false};
 }
 // m = the monster it is equipped to (needed for "ATK equal to its Level x 100")
-function parseEquip(desc,m){
+function parseEquip0(desc,m){
   for(const s of sentences(desc)){
     const statWord=/(gain|lose|increase|decrease)s?\b.*\b(ATK|DEF)|\b(ATK|DEF)\b.*(increased|decreased)/i.test(s);
     if(statWord){
@@ -1009,6 +1015,45 @@ function parseEquip(desc,m){
     if(/equipped monster|\bIt (?:gains|loses)|^The equipped|^Gains|gains? \d+|loses? \d+/i.test(s)){const r=parseMods(s);if(r.found)return r}
   }
   return{a:0,d:0,found:false};
+}
+// A sentence is split into clauses so "It loses 500 ATK, but it can make a second attack during each Battle Phase." is read as two parts.
+// Clauses after an 'if/when/while/during' clause are dropped; 'During your turn:' gives a turn flag; 'If this card is equipped to a Fairy monster' is checked on the target.
+function clauses(desc,tgt){
+  const out=[],COND=/^(?:if|when|while|during|until|once per turn|each time|at the|after|before)\b/i;
+  for(let s of sentences((desc||"").replace(/\r?\n/g," "))){
+    s=s.trim();if(!s)continue;let turn="",q;
+    if((q=s.match(/^(?:During your turn|Your turn)\s*:\s*(.*)$/i))){turn="own";s=q[1]}
+    else if((q=s.match(/^(?:During your opponent's turn|Your opponent's turn)\s*:\s*(.*)$/i))){turn="opp";s=q[1]}
+    s=s.replace(/^While (?:you control )?the equipped monster,?\s*/i,"").replace(/^While this card is (?:face-up|equipped|on the field)[^,]*,\s*/i,"");
+    if((q=s.match(/^If this card is equipped to an? (non-)?([A-Za-z-]+) monster,\s*(.*)$/i))){
+      const t=tgt||{},w=q[2].toLowerCase(),has=(t.race||"").toLowerCase()===w||(t.attr||"").toLowerCase()===w;
+      if(has===!!q[1])continue;s=q[3];
+    }
+    if(COND.test(s)){out.push({t:s,turn});continue}
+    let cond=false;
+    for(const x of s.split(/,\s*(?:but |also,? |and )?|;\s*|\s+but\s+/)){const y=x.trim();if(!y)continue;if(COND.test(y))cond=true;if(!cond)out.push({t:y,turn})}
+  }
+  return out;
+}
+// "can make a second attack", "can make up to 2 attacks on monsters", "can attack twice" -> number of attacks per Battle Phase (1 = normal)
+function parseAtks(desc){
+  const m=(desc||"").match(/can make (?:a second attack|up to (\d|two|three) attacks?)|can attack twice|make up to (\d|two|three) attacks/i);
+  if(!m)return 1;
+  const w=(m[1]||m[2]||"2").toLowerCase();return {two:2,three:3}[w]||+w||2;
+}
+function parseEquip(desc,m){
+  let a=0,d=0,found=false,turn="",note=null,res=null;
+  for(const c of clauses(desc,m)){
+    if(/^(?:all|each|every|other)\b|\bmonsters?\b[^.]*\b(?:gain|lose)s?\b/i.test(c.t)&&!/equipped monster/i.test(c.t))continue; // field-wide sentences ("All WATER monsters lose 500 ATK") are not the equip bonus
+    const r=parseEquip0(c.t,m);
+    if(r.found&&!r.per&&!r.lvx&&(!found||c.turn===turn)){a+=r.a;d+=r.d;found=true;turn=c.turn;continue}
+    if(r.found&&!found){res=Object.assign({},r);if(c.turn)res.turn=c.turn;break}
+    if(r.note&&!note)note=r;
+  }
+  if(!res)res=found?{a,d,found:true}:(note||{a:0,d:0,found:false});
+  if(found&&turn&&!res.turn)res.turn=turn;
+  const n=parseAtks(desc);if(n>1)res.atks=n;
+  return res;
 }
 const ATTRS=["EARTH","WATER","FIRE","WIND","LIGHT","DARK","DIVINE"];
 // warning for ATK/DEF changes in the card text that the app could not apply (so the player knows to adjust manually)
@@ -1065,6 +1110,17 @@ function parseAlts(f){
   }
   return out;
 }
+// old wording: "Increase the DEF of all monsters on your side of the field by 300 points", "Increase the ATK of all DARK monsters by 500 points and decreases their DEF by 400 points."
+function parseFieldOld(plain){
+  const m=plain.match(/^(Increase|Decrease)s? the (ATK and DEF|ATK|DEF) of (?:all|each|every) (?:(.+?) )?monsters?(?: (on the field|on your side of the field|you control|your opponent controls|on your opponent's side of the field))?(?: in (Defense|Attack) Position)? by (\d+) points?(?:,? and (increase|decrease)s? (?:its|their) (ATK|DEF) by (\d+) points?)?/i);
+  if(!m)return null;
+  let a=0,d=0;const add=(w,v)=>{w=w.toUpperCase();if(w!=="DEF")a+=v;if(w!=="ATK")d+=v};
+  add(m[2],(/^inc/i.test(m[1])?1:-1)*+m[6]);if(m[7])add(m[8],(/^inc/i.test(m[7])?1:-1)*+m[9]);
+  let f=m[3]||"",pos=m[5]?(/^def/i.test(m[5])?"DEF":"ATK"):"";
+  const pf=f.match(/^(Defense|Attack) Position$/i);if(pf){pos=/^def/i.test(pf[1])?"DEF":"ATK";f=""}
+  const sw=m[4]||"",scope=/you control|your side/i.test(sw)?"own":/opponent/i.test(sw)?"opp":"both";
+  return{a,d,scope,alts:f?parseAlts(f):[],not:[],exc:"",label:f||"all",per:null,pos};
+}
 function parseField(desc){
   // returns a list of effects: [{a,d,scope,alts,not,label}] (permanent "(All) X monsters ... gain/lose N ATK/DEF" clauses only)
   const out=[];
@@ -1079,19 +1135,30 @@ function parseField(desc){
     const scope=/you control/i.test(scopeWord||"")?"own":/opponent controls/i.test(scopeWord||"")?"opp":"both";
     out.push({a:mods.a,d:mods.d,scope,alts:f?parseAlts(f):[],not:ex?parseAlts(ex[1]):[],exc:ex?ex[1]:"",label:f||"all",per});
   };
-  for(const s of sentences((desc||"").replace(/\r?\n/g,". ")).flatMap(x=>x.split(/,\s*also\s+/i))){
+  for(const s0 of sentences((desc||"").replace(/\r?\n/g,". ")).flatMap(x=>x.split(/,\s*also\s+/i))){
+    let s=s0,turn="",cond="",q;
+    if((q=s.match(/^(?:During your turn|Your turn)\s*:\s*(.*)$/i))){turn="own";s=q[1]}
+    s=s.replace(/^While this card is (?:face-up|on the field)[^,]*,\s*/i,"");
+    if((q=s.match(/^While (?!this card)([^,]{3,90}),\s*(.*)$/i))){cond=q[1];s=q[2]}
+    else if((q=s.match(/^(.*?)\s+while (?!this card)([^,.]{3,90})\.?$/i))&&/\b(?:gain|lose)\b/i.test(q[1])){cond=q[2];s=q[1]+"."}
+    const mark=n=>{const k=out.length;n();for(let j=k;j<out.length;j++){if(turn)out[j].turn=turn;if(cond){out[j].cond=cond;out[j].on=false}}};
     const plain=s.replace(/\([^)]*\)/g,"").trim();
+    const olds=plain.replace(/^As long as this card (?:remains )?face-up[^,]*,\s*/i,"").split(/\s+and (?=(?:increase|decrease)s? the )/i).map(parseFieldOld).filter(Boolean);
+    if(olds.length){mark(()=>olds.forEach(o=>out.push(o)));continue}
     const re=/\bAll (?:(.+?) )?monsters?(?: (on the field|you control|your opponent controls))?\s+(?=gain|lose)/gi;
     const hits=[...plain.matchAll(re)];
     hits.forEach((mm,h)=>{
       const prefix=plain.slice(h?hits[h-1].index:0,mm.index).trim();
       if(h===0&&prefix&&!/^(also|and|,)$/i.test(prefix))return;
       const end=h+1<hits.length?hits[h+1].index:plain.length;
-      add(plain.slice(mm.index,end),mm[1]||"",mm[2]);
+      mark(()=>add(plain.slice(mm.index,end),mm[1]||"",mm[2]));
     });
     if(!hits.length){ // sentence starting with "X monsters you control gain N ATK"
-      const mm=plain.match(/^(?:(.+?) )?monsters?\s+(?:(you control|your opponent controls)\s+)?(?=gain|lose)/i);
-      if(mm&&!/\b(that|each|any|extra|summoned|face-up|except)\b/i.test(mm[1]||""))add(plain,mm[1]||"",mm[2]);
+      const mm=plain.match(/^(?:(.+?) )?monsters?\s+(?:(you control|your opponent controls|on the field)\s+)?(?=gain|lose)/i);
+      const mq=!mm&&plain.match(/^(?:All|Each) ("[^"]+"(?:(?:,| or) "[^"]+")*)(?: monsters?)?\s+(you control|your opponent controls|on the field)?\s*(?=gains?|loses?)/i);
+      if(mq){mark(()=>add(plain,mq[1],mq[2]));continue}
+      const f1=(mm&&mm[1]||"").replace(/^face-up\s+/i,"");
+      if(mm&&!/\b(that|each|any|extra|summoned|face-up|except)\b/i.test(f1))mark(()=>add(plain,f1,mm[2]));
     }
   }
   return out;
@@ -1107,6 +1174,9 @@ function altHit(x,m){
 }
 function fieldHits(e,owner,p,m){
   if(m.pos==="FD")return false;
+  if(e.cond&&!e.on)return false; // 'While you control ...' effects count once the player switches the condition on
+  if(e.turn&&(S.turn===owner)!==(e.turn==="own"))return false;
+  if(e.pos&&m.pos!==e.pos)return false;
   if(e.scope==="own"&&p!==owner)return false;
   if(e.scope==="opp"&&p===owner)return false;
   if(e.alts){ // current format
@@ -1124,7 +1194,7 @@ function stats(p,i){
   const m=S.mon[p][i];if(!m)return null;
   let a=m.atk+m.da,d=m.def+m.dd;const src=[];
   if(m.tm&&m.tm.t===S.tc){a+=m.tm.a;d+=m.tm.d;src.push(`temporary ${fmt(m.tm)}`)}
-  for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&!e.hold&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
+  for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&!e.hold&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i&&(!e.eq.turn||(S.turn===q)===(e.eq.turn==="own"))){const k=e.eq.per?perCount(e.eq.per,q,e,m):0,da=e.eq.a+(e.eq.ua||0)*k,dd=e.eq.d+(e.eq.ud||0)*k;a+=da;d+=dd;src.push(`${e.name} ${fmt({a:da,d:dd})}`)}});
   for(const q of[0,1]){const f=S.field[q];if(f&&f.pos==="UP"&&f.auto!==false)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}}
   for(const q of[0,1])S.mon[q].forEach(f=>{if(f&&f.pos!=="FD"&&f.auto!==false&&f.eff&&f.eff.length)for(const e of fieldEffs(f))if(fieldHits(e,q,p,m)){const k=e.per?perCount(e.per,q,f,m):1;if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${f.name} ${fmt({a:e.a*k,d:e.d*k})}`)}});
   if(m.pos!=="FD"&&m.auto!==false&&m.self)for(const e of m.self){const k=perCount(e.per,p,m,m);if(!k)continue;a+=e.a*k;d+=e.d*k;src.push(`${m.name} ${fmt({a:e.a*k,d:e.d*k})}`)}
@@ -1338,6 +1408,7 @@ function summonDialog(p,i,c,opts){
       else if(need===0&&selA.length)w.push("This monster needs no Tribute.");
       guard(w,()=>{if(selO.length)S.nobp=S.tc;sel.forEach(k=>removeMon(p,k));selO.forEach(k=>removeMon(1-p,k));placeMon(p,zone,c,how==="set"?"FD":"ATK",how);S.ns=true;render();slotDialog(p,zone)},()=>summonDialog(p,i,c,opts));
     };
+    thDlg(c.type);
     $("bn").onclick=()=>go("normal");$("bs").onclick=()=>go("set");
     const special=pos=>{
       const w=zoneWarnings(p,zone,c,"special",fromED());
@@ -1395,8 +1466,8 @@ function slotDialog(p,i){
   const s=stats(p,i),sg=m.sg||-1;
   const acts=m.pos==="FD"?[]:cardActs(m,p,{p,i});
   const effs=[...fieldEffs(m),...(m.self||[])];
-  const effUI=m.pos==="FD"?"":(effs.length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${effs.map(e=>`<li>${e.scope==="self"?"This card":e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,e.scope==="self"?p:p,m,m)})`:""}</li>`).join("")}</ul><div class="row"><button id="mauto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div>`:"")
-    +(m.pos==="FD"?"":(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,pz=>parseField(pz).length>0||selfStatic(pz).length>0||tempEffects(pz).length>0||selfGain(pz).length>0)));
+  const effUI=m.pos==="FD"?"":(effs.length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${effs.map((e,k)=>`<li>${e.scope==="self"?"This card":e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,e.scope==="self"?p:p,m,m)})`:""}${e.turn?` <small>(${e.turn==="own"?"your turn":"opponent's turn"} only)</small>`:""}${e.cond?`<br><small>Only while ${esc(e.cond)}</small> <button class="ec" data-ec="${k}" style="padding:4px 8px;font-size:12px">${e.on?"Active ✓":"Not active"}</button>`:""}</li>`).join("")}</ul><div class="row"><button id="mauto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div>`:"")
+    +(m.pos==="FD"?"":(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,pz=>parseField(pz).length>0||selfStatic(pz).length>0||tempEffects(pz).length>0||selfGain(pz).length>0||groupGain(pz).length>0)));
   const lkTxt=m.lm?`<p><small>Link Monster – arrows: <b>${linkArrows(m)}</b>${isLinked(p,i)?" • this monster is linked (a Link Monster points to it)":""}. ${m.lm?"Link Monsters have no DEF and can't be in Defense Position.":""}</small></p>`:isLinked(p,i)?`<p><small>🔗 Linked: a Link Monster points to this monster.</small></p>`:"";
   const adj=(label,key,eff)=>`<div><b>${label}: ${eff}</b> <small>(base ${m[key==="da"?"atk":"def"]}${m[key]?`, manual ${m[key]>0?"+":""}${m[key]}`:""})</small></div>
    <div class="row">${STEPS.map(v=>`<button data-k="${key}" data-v="${v*sg}" style="min-width:40px;padding:8px 2px">${sg>0?"+":"-"}${v}</button>`).join("")}<button id="sg${key}" style="background:${sg>0?"#1f5a3a":"#6b2230"};flex:0 0 40px">${sg>0?"+":"−"}</button><button data-k="${key}" data-v="0">reset</button></div>`;
@@ -1414,6 +1485,7 @@ function slotDialog(p,i){
     autoText(m);
     actsBind(acts,false,null,()=>slotDialog(p,i));
     if($("mauto"))$("mauto").onclick=()=>{m.auto=m.auto===false;render();slotDialog(p,i)};
+    dlg.querySelectorAll("[data-ec]").forEach(b=>b.onclick=()=>{const e=effs[+b.dataset.ec];if(e){e.on=!e.on;render();slotDialog(p,i)}});
     $("m2st").onclick=()=>monToSTDialog(p,i);
     $("ctl").onclick=()=>ctlDialog(p,i);
     if($("ctle"))$("ctle").onclick=()=>ctlFromCard(p,m,()=>slotDialog(p,i));
@@ -1449,11 +1521,13 @@ function setPos(p,i,np){
 }
 
 // ---------- Attack ----------
+const maxAtk=(p,i)=>{let n=1;for(const q of[0,1])S.st[q].forEach(e=>{if(e&&e.eq&&e.eq.atks&&!e.hold&&e.pos==="UP"&&e.tgt&&e.tgt.p===p&&e.tgt.i===i)n=Math.max(n,e.eq.atks)});return n};
+const markAtt=m=>{if(m.attT===S.tc)m.attN=(m.attN||1)+1;else{m.attT=S.tc;m.attN=1}};
 function attackWarnings(p,i){
   const m=S.mon[p][i],w=[];
   if(p!==S.turn)w.push("Only the turn player can attack.");
   if(PHASES[S.ph].n!=="Battle Phase")w.push(`Attacks are made in the Battle Phase (now: ${phName()}).`);
-  if(m.attT===S.tc)w.push("This monster already attacked this turn.");
+  if(m.attT===S.tc&&(m.attN||1)>=maxAtk(p,i))w.push(maxAtk(p,i)>1?`This monster already made its ${maxAtk(p,i)} attacks this turn.`:"This monster already attacked this turn.");
   return w;
 }
 function attackDialog(p,i){
@@ -1629,14 +1703,14 @@ function chainResolve(){
     <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">${neg?"OK — the attack ends":"Continue the battle"}</button></div>`,()=>{
     FLIP=null;dlg.classList.remove("flip");
     $("cok").onclick=()=>{
-      if(neg){const m=S.mon[ctx.p][ctx.i];if(m)m.attT=S.tc;render();dlg.close();toast("Attack negated");return}
+      if(neg){const m=S.mon[ctx.p][ctx.i];if(m)markAtt(m);render();dlg.close();toast("Attack negated");return}
       continueBattle(ctx);
     };
   });
 }
 function endPausedAttack(){
   const pz=S.paused;if(!pz)return;S.paused=null;
-  const m=S.mon[pz.p][pz.i];if(m)m.attT=S.tc; // a declared attack counts as the monster's attack even if it is negated
+  const m=S.mon[pz.p][pz.i];if(m)markAtt(m); // a declared attack counts as the monster's attack even if it is negated
   render();toast("Attack ended (counts as an attack)");
 }
 const takes=p=>`${NAME(p)} ${p===0?"take":"takes"}`; // "You take" / "Opponent takes"
@@ -1666,8 +1740,8 @@ function battleConfirm(p,i,k){
    ${w.length?`<div class="card" style="color:var(--red)">⚠ ${w.map(esc).join("<br>⚠ ")}</div>`:""}
    <p style="font-size:16px">${esc(txt)}</p><small>Card effects (like traps) can change this. Apply only if nothing else happened.</small>
    <div class="row"><button id="ap" style="background:#1f5a3a">Apply result</button><button id="mk">Only mark as attacked</button><button id="bk">Back</button></div>`,()=>{
-    $("ap").onclick=()=>guard(w,async()=>{m.attT=S.tc;dlg.close();await fxBattle(pl);eff();render()},()=>battleConfirm(p,i,k));
-    $("mk").onclick=()=>{m.attT=S.tc;render();dlg.close()};
+    $("ap").onclick=()=>guard(w,async()=>{markAtt(m);dlg.close();await fxBattle(pl);eff();render()},()=>battleConfirm(p,i,k));
+    $("mk").onclick=()=>{markAtt(m);render();dlg.close()};
     $("bk").onclick=()=>attackDialog(p,i);
   });
 }
@@ -1738,12 +1812,14 @@ function openZone(p,i,z){cardZoneDialog(p,i,z)}
 function activateIn(p,i,z,e,back){
   const done=()=>{e.pos="UP";if(/Field|Continuous/.test(e.type))e.eff=parseField(e.desc||"");if(e.eq||(e.eff&&e.eff.length))e.hold=true; /* bonus waits for 'Apply' so its animation always shows */ if(NOBP_RX.test(e.desc||""))S.nobp=S.tc;render();openZone(p,i,z)};
   const selfEq=!/Equip/.test(e.type)&&/Trap/.test(e.type)&&/equip this card to|treat this card as an Equip Card|equip it to (a|1) /i.test(e.desc||"");
-  if(/Equip/.test(e.type)||selfEq){ // Equip Spells, and Traps that equip themselves (Metalmorph, Amaze Attraction...: 'No target' button)
+  const tgtCont=!/Equip/.test(e.type)&&/Continuous/.test(e.type)&&/Activate this card by targeting 1 [^;.]*monster/i.test(e.desc||""); // Continuous Spells/Traps tied to a target monster (Rare Metalmorph, Shadow Spell...): same as an equip card
+  if(/Equip/.test(e.type)||selfEq||tgtCont){ // Equip Spells, and Traps that equip themselves (Metalmorph, Amaze Attraction...: 'No target' button)
     pickTarget(t=>{e.tgt=t;e.eq=parseEquip(e.desc||"",S.mon[t.p][t.i]);
       if(CTL_RX.test(e.desc||"")&&t.p!==p){e.uid=e.uid||newUid();const tm=S.mon[t.p][t.i];if(moveCtl(t.p,t.i,p,{src:e.uid})<0)toast("You have no free monster zone – take control yourself later");else addLog(`${NAME(p)} took control of ${tm.name} with ${e.name}`)}
       done()},back,selfEq?done:null);
   }else done();
 }
+const thDlg=t=>{const k=thType(t);if(k)dlg.dataset.th=k};
 function stPlace(p,i,c,z){
   const t=c.type,spell=/Spell/.test(t),quick=/Quick-Play/.test(t);
   const mk=pos=>({name:c.name,kind:spell?"spell":"trap",type:t,pos:"FD",id:c.id,desc:c.desc,setT:S.tc});
@@ -1751,7 +1827,7 @@ function stPlace(p,i,c,z){
    <div class="row"><button id="ba">Activate (face-up)</button><button id="bs">Set (face-down)</button></div>
    <div class="card" style="max-height:26dvh">${esc(c.desc).replace(/\n/g,"<br>")}</div>
    <div class="row"><button id="bk">← Back to search</button></div>`,()=>{
-    const back=()=>stPlace(p,i,c,z);
+    thDlg(t);const back=()=>stPlace(p,i,c,z);
     $("ba").onclick=()=>{const w=[];
       if(!spell)w.push("Trap Cards can't be activated from the hand: Set it first, then activate it from the next turn on.");
       else{if(p!==S.turn)w.push("Spells are only activated from the hand on your own turn.");if(!quick&&!inMain())w.push(`${t} can only be activated in a Main Phase (now: ${phName()}).`)}
@@ -1768,6 +1844,7 @@ function pendPlace(p,i,c){
    <div class="row"><button id="ba" style="background:#8be32a;color:#0b2200;font-weight:800">Place in Pendulum Zone</button></div>
    <div class="card" style="max-height:26dvh">${esc(c.desc).split("\n").join("<br>")}</div>
    <div class="row"><button id="bk">← Back to search</button></div>`,()=>{
+    dlg.dataset.th="pend";
     $("ba").onclick=()=>{
       const w=[];
       if(p!==S.turn)w.push("Pendulum Monsters are placed in a Pendulum Zone on your own turn.");
@@ -1928,6 +2005,24 @@ function selfStatic(desc){
 const addTemp=(mon,a,d)=>{if(!mon)return;const t=mon.tm&&mon.tm.t===S.tc?mon.tm:{a:0,d:0,t:S.tc};t.a+=a;t.d+=d;mon.tm=t};
 const fmtAD=(a,d)=>a&&d&&a===d?`${a>0?"+":"−"}${Math.abs(a)} ATK/DEF`:[a?`${a>0?"+":"−"}${Math.abs(a)} ATK`:"",d?`${d>0?"+":"−"}${Math.abs(d)} DEF`:""].filter(Boolean).join(" ");
 // all buttons for a face-up card: [{label,color,sent,leave,run(done,back)}]; selfLoc = {p,i} when the card is a monster on the field
+// one-time permanent changes to a whole group, from a trigger/ability sentence ("All monsters your opponent currently controls lose 2000 ATK/DEF", "You can have all "Gouki" monsters you control gain 200 ATK"):
+// a button applies them to the matching monsters on the field at that moment
+function groupGain(desc){
+  const out=[];
+  for(const sent of sentOf(desc)){
+    const t=sent.trim();
+    if(/until the end|until the End Phase|this turn|for (?:each|every)|equal to|Standby Phase|\bx its\b|\d x |becomes?|halve|double|original|Xyz Material/i.test(t))continue;
+    if(!/^(?:when|each time|whenever|if|once per turn|after|at the end|during|you can|flip|\[)|:|\bcurrently\b|\bif you do\b|\bthen\b/i.test(t))continue;
+    const m=t.match(/\b(?:all|each) (?:face-up )?(?:(.+?) )?monsters?(?: (you (?:currently )?control|your opponent (?:currently )?controls|on the field))?\s+(gain|lose)s?\s+(\d[\d,]*)\s+(ATK\/DEF|ATK and DEF|ATK|DEF)/i);
+    if(!m)continue;
+    if(/\b(?:that|those|this|its|any|other)\b/i.test(m[1]||""))continue;
+    const sg=/lose/i.test(m[3])?-1:1,n=NUMV(m[4]),w=m[5].toUpperCase(),a=w==="DEF"?0:sg*n,d=w==="ATK"?0:sg*n;
+    const sw=m[2]||"",scope=/^you (?:currently )?control/i.test(sw)?"own":/opponent/i.test(sw)?"opp":"both";
+    const f=(m[1]||"").replace(/^face-up\s+/i,"");
+    out.push({a,d,scope,alts:f?parseAlts(f):[],label:f,sent:t});
+  }
+  return out;
+}
 function cardActs(m,p,selfLoc){
   const acts=[];if(!m||m.pos==="FD"||!m.desc)return acts;
   lpEffects(m.desc,p).forEach(o=>acts.push({leave:o.leave,sent:o.sent,color:o.d>0?"#1f5a3a":"#6b2230",
@@ -1947,6 +2042,16 @@ function cardActs(m,p,selfLoc){
         else if(o.scope==="all")[0,1].forEach(q=>S.mon[q].forEach(x=>x&&x.pos!=="FD"&&hit.push(x)));
         if(!hit.length){toast("No monster to change");done();return}
         hit.forEach(x=>addTemp(x,o.a,o.d));addLog(`${m.name}: ${what} this turn (${where})`);done();
+      }});
+  });
+  groupGain(m.desc).forEach(o=>{
+    const what=fmtAD(o.a,o.d),who=o.scope==="own"?"your":o.scope==="opp"?"your opponent's":"all",nm=o.label?` ${o.label.replace(/"/g,"")}`:"";
+    acts.push({leave:false,sent:o.sent,color:(o.a>0||o.d>0)?"#1f5a3a":"#6b2230",label:`Apply: ${what} (${o.scope==="both"?"all":who}${nm} monsters, stays)`,
+      run:done=>{
+        const hit=[];
+        [0,1].forEach(q=>{if(o.scope==="own"&&q!==p)return;if(o.scope==="opp"&&q===p)return;S.mon[q].forEach(x=>{if(x&&x.pos!=="FD"&&(!o.alts.length||o.alts.some(a=>altHit(a,x))))hit.push(x)})});
+        if(!hit.length){toast("No matching monster on the field");done();return}
+        hit.forEach(x=>{x.da=(x.da||0)+o.a;x.dd=(x.dd||0)+o.d});addLog(`${m.name}: ${what} to ${hit.length} monster${hit.length>1?"s":""}`);done();
       }});
   });
   if(selfLoc)selfGain(m.desc).forEach(o=>acts.push({leave:false,sent:o.sent,color:(o.a>0||o.d>0)?"#1f5a3a":"#6b2230",label:`Apply: this card ${fmtAD(o.a,o.d)}`,
@@ -1978,11 +2083,11 @@ function cardZoneDialog(p,i,z){
     const tg=m.tgt&&S.mon[m.tgt.p][m.tgt.i];
     const adj=(label,key)=>`<div><b>${label}: ${m.eq[key]>=0?"+":""}${m.eq[key]}</b></div><div class="row">${STEPS.map(v=>`<button data-ek="${key}" data-v="${v*sg}" style="min-width:40px;padding:8px 2px">${sg>0?"+":"-"}${v}</button>`).join("")}<button id="esg${key}" style="background:${sg>0?"#1f5a3a":"#6b2230"};flex:0 0 40px">${sg>0?"+":"−"}</button></div>`;
     return`<p><b>Equipped to:</b> ${tg?(tg.pos==="FD"?"Face-down monster":esc(tg.name)):"?"} <button id="chg" style="min-width:0">Change</button></p>
-      ${m.eq.per?`<small>Counted automatically: ${fmt({a:m.eq.ua,d:m.eq.ud})} for each ${esc(perLabel(m.eq.per))} (now ${perCount(m.eq.per,p,m,null)}). Use the buttons below for extra corrections.</small><br>`:""}${m.eq.found?"<small>Bonus detected from the card text — correct it if needed.</small>":"<small>No bonus detected in the text — set it manually if this card changes ATK/DEF.</small>"}${m.eq.note?`<br><small>${esc(m.eq.note)}</small>`:(w=>w?`<br><small>${esc(w)}</small>`:"")(statNote(m.desc,p=>parseEquip(p,tg).found))}${adj("ATK","a")}${adj("DEF","d")}`;
+      ${m.eq.per?`<small>Counted automatically: ${fmt({a:m.eq.ua,d:m.eq.ud})} for each ${esc(perLabel(m.eq.per))} (now ${perCount(m.eq.per,p,m,null)}). Use the buttons below for extra corrections.</small><br>`:""}${m.eq.found?"<small>Bonus detected from the card text — correct it if needed.</small>":"<small>No bonus detected in the text — set it manually if this card changes ATK/DEF.</small>"}${m.eq.note?`<br><small>${esc(m.eq.note)}</small>`:(w=>w?`<br><small>${esc(w)}</small>`:"")(statNote(m.desc,p=>parseEquip(p,tg).found||tempEffects(p).length>0||groupGain(p).length>0))}${adj("ATK","a")}${adj("DEF","d")}`;
   })():"";
-  const fUI=(/Field/.test(t)||fieldEffs(m).length)&&m.pos==="UP"?(fieldEffs(m).length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${fieldEffs(m).map(e=>`<li>${e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,p,m,null)})`:""}</li>`).join("")}</ul>
-      <div class="row"><button id="auto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div><small>Applies to matching face-up monsters. Archetypes match by name — check the card text if unsure.</small>${(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,p=>parseField(p).length>0))}`
-      :`<p><small>${esc(statNote(m.desc,p=>parseField(p).length>0)||"No permanent stat bonus detected. Adjust monsters manually if needed.")}</small></p>`):"";
+  const fUI=(/Field/.test(t)||fieldEffs(m).length)&&m.pos==="UP"?(fieldEffs(m).length?`<p><b>Detected:</b></p><ul style="margin:2px 0 6px 18px;padding:0;font-size:14px">${fieldEffs(m).map((e,k)=>`<li>${e.label==="all"?"All monsters":"All "+esc(e.label)+" monsters"}${e.scope==="own"?" you control":e.scope==="opp"?" your opponent controls":""}${e.exc?", except "+esc(e.exc):""}: ${fmt(e)}${e.per?" for each "+esc(perLabel(e.per))+` (now ${perCount(e.per,p,m,null)})`:""}${e.turn?` <small>(${e.turn==="own"?"your turn":"opponent's turn"} only)</small>`:""}${e.cond?`<br><small>Only while ${esc(e.cond)}</small> <button class="ec" data-ec="${k}" style="padding:4px 8px;font-size:12px">${e.on?"Active ✓":"Not active"}</button>`:""}${e.pos?` <small>(${e.pos==="DEF"?"Defense":"Attack"} Position only)</small>`:""}</li>`).join("")}</ul>
+      <div class="row"><button id="auto">Auto-apply: ${m.auto===false?"OFF":"ON"}</button></div><small>Applies to matching face-up monsters. Archetypes match by name — check the card text if unsure.</small>${(w=>w?`<p><small>${esc(w)}</small></p>`:"")(statNote(m.desc,p=>parseField(p).length>0||tempEffects(p).length>0||groupGain(p).length>0))}`
+      :`<p><small>${esc(statNote(m.desc,p=>parseField(p).length>0||tempEffects(p).length>0||groupGain(p).length>0)||"No permanent stat bonus detected. Adjust monsters manually if needed.")}</small></p>`):"";
   open(`${closeX()}<h2>${esc(m.name)}</h2><small>${esc(t)}</small><div class="card" id="ct" style="max-height:22dvh;overflow:auto;font-size:13px;margin:6px 0" hidden></div>
    ${pend?"":`<div class="row">${[["UP","Face-up (activated)"],["FD","🂠 Set (face-down)"]].map(([k,l])=>`<button data-pos="${k}" style="${m.pos===k?"outline:2px solid var(--gold)":""}">${l}</button>`).join("")}</div>`}
    ${m.pos==="FD"?`<p><small>Hidden on the field. Only you should look at this screen.</small></p>`:""}
@@ -2015,6 +2120,7 @@ function cardZoneDialog(p,i,z){
     ["a","d"].forEach(k=>{const b=$("esg"+k);if(b)b.onclick=()=>{m.sg=-(m.sg||-1);cardZoneDialog(p,i,z)}});
     if($("chg"))$("chg").onclick=()=>pickTarget(tg=>{m.tgt=tg;if(m.eq&&m.eq.lvx)m.eq=parseEquip(m.desc||"",S.mon[tg.p][tg.i]);again()},()=>cardZoneDialog(p,i,z));
     if($("auto"))$("auto").onclick=()=>{m.auto=m.auto===false;again()};
+    dlg.querySelectorAll("[data-ec]").forEach(b=>b.onclick=()=>{const e=fieldEffs(m)[+b.dataset.ec];if(e){e.on=!e.on;again()}});
     const leave=dest=>{const e=getZ(p,i,z),el=z==="field"?fieldEl(p):stEl(p,i);if(e)ctlSrcGone(e.uid);if(dest!=="none"&&e&&e.id!==undefined)flyToPile(el&&el.getBoundingClientRect(),e,p,dest);setZ(p,i,z,null);if(dest!=="none")sendTo(p,dest,e,true);render();dlg.close()};
     if($("res1"))$("res1").onclick=()=>leave("gy");
     if($("toMon"))$("toMon").onclick=()=>{ // a monster that lay in the Spell & Trap Zone (Continuous Spell / Equip card) comes back: the normal summon pop-up, its Spell/Trap card disappears on confirm
