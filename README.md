@@ -44,7 +44,7 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 - **Card colours like the real cards**: Normal (yellow), Effect (orange), Ritual (blue), Fusion (purple), Synchro (white), Xyz (black), Link (dark blue), Spell (dark mint green), Trap (fuchsia). The card on the field and its pop-up share the colour, and the pop-up looks like a card (name bar, text box with Level and Attribute). Face-down cards stay colourless.
 - The Graveyard and Banished piles have their own look (a graveyard and a portal), and the cards in the list carry their card colour. The list turns towards the player whose turn it is.
 - A face-down card that turns face-up (Flip Summon, an activated Trap) flips with a small animation.
-- A new Equip Spell, Field Spell or Continuous Spell with an ATK/DEF effect waits for you to tap **Apply** before its bonus counts, so you always see the glow.
+- A new Field Spell or Continuous Spell with an ATK/DEF effect waits for you to tap **Apply** before its bonus counts, so you always see the glow. An Equip Spell counts straight away.
 - A monster that lies in the Spell & Trap Zone (Continuous Spell or Equip card) can be Special Summoned back to the Monster Zone.
 - Every monster that has Equip Spells gets its own **symbol and colour** (blue circle, green triangle, yellow square, orange cross, red star, purple arrow, cyan diamond, pink heart, white x, lime club), shown on the monster (one per Equip Spell) and on the Equip Spell itself. Because the symbol is a shape, it also works without colours. To equip a card you simply tap the monster on the field.
 - Monster Zones, Spell & Trap Zones, Field Zone, Graveyard and Banished piles.
@@ -78,7 +78,7 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 **Practical**
 - Counters on cards, "used this turn" markers and "once per Duel" ticks.
 - Coin and dice.
-- Install it on your home screen; it works offline after the first visit.
+- Install it on your home screen; it works offline after the first visit (online play with two phones needs internet).
 
 ## What it does not do
 

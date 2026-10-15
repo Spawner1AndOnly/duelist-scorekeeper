@@ -44,7 +44,7 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 - **Kaartkleuren zoals de echte kaarten**: Normal (geel), Effect (oranje), Ritual (blauw), Fusion (paars), Synchro (wit), Xyz (zwart), Link (donkerblauw), Spell (donker muntgroen), Trap (fuchsia). De kaart op het veld en zijn pop-up hebben dezelfde kleur, en de pop-up ziet eruit als een kaart (naamkader, tekstvak met Level en attribuut). Face-down kaarten blijven kleurloos.
 - De Graveyard en Banished hebben een eigen look (een begraafplaats en een portaal), en de kaarten in de lijst dragen hun kaartkleur. De lijst draait naar de speler aan de beurt.
 - Een face-down kaart die open gaat (Flip Summon, een geactiveerde Trap) draait om met een kleine animatie.
-- Een nieuwe Equip Spell, Field Spell of Continuous Spell met een ATK/DEF-effect wacht tot je op **Apply** tikt voor de bonus meetelt, zodat je altijd de gloed ziet.
+- Een nieuwe Field Spell of Continuous Spell met een ATK/DEF-effect wacht tot je op **Apply** tikt voor de bonus meetelt, zodat je altijd de gloed ziet. Een Equip Spell telt meteen mee.
 - Een monster dat in de Spell & Trap-zone ligt (Continuous Spell of Equip card) kan terug als Special Summon naar de Monster Zone.
 - Elk monster met Equip Spells krijgt een eigen **vorm en kleur** (blauw bolletje, groen driehoekje, geel vierkantje, oranje kruisje, rood sterretje, paarse pijl, cyaan ruitje, roze hartje, wit kruisje, lime klaver), getoond op het monster (één per Equip Spell) en op de Equip Spell zelf. Omdat het een vorm is, werkt het ook zonder kleuren. Om een kaart te equippen tik je gewoon op het monster op het veld.
 - Monsterzones, Spell & Trap-zones, Field Zone, Graveyard en Banished.
@@ -78,7 +78,7 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 **Praktisch**
 - Tellers op kaarten, "deze beurt gebruikt"-markeringen en "één keer per Duel"-vinkjes.
 - Munt en dobbelsteen.
-- Zet hem op je startscherm; hij werkt offline na het eerste bezoek.
+- Zet hem op je startscherm; hij werkt offline na het eerste bezoek (online spelen met twee gsm's heeft internet nodig).
 
 ## Wat de app niet doet
 
