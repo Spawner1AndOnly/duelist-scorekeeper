@@ -160,15 +160,86 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .big{font-size:48px;text-align:center;font-weight:800;margin:10px 0}
 .x{float:right;background:none;font-size:22px}
 .hist{font-size:12px;color:var(--dim);max-height:20dvh;overflow:auto}
-.oh{flex:1;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;text-align:center}
-.oh.rot{transform:rotate(180deg)}.oh.win{color:var(--green)}.oh.lose{color:var(--red)}.oh.draw{color:var(--gold)}
-#over{position:fixed;inset:0;background:#000d;z-index:50;display:flex;flex-direction:column}
+.oh{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;position:relative;z-index:3;overflow:hidden}
+.oh.rot{transform:rotate(180deg)}
+#over{position:fixed;inset:0;background:#0000;z-index:50;display:flex;flex-direction:column;transition:background 1s}
+#over.done{background:#000b}
 #over[hidden]{display:none}
-.orem{font-size:15px;font-weight:600;color:#ffd27a;margin-top:10px;line-height:1.45;padding:0 14px}
+.oban{position:relative;min-width:min(86vw,340px);padding:16px 18px 14px;border-radius:10px;background:linear-gradient(165deg,#4b301bf0,#1a1009f5);border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a,inset 0 0 0 4px #120c05,0 6px 24px #000d;opacity:0;transform:scale(.6)}
+.oban.lose{background:linear-gradient(165deg,#3a1b1ef0,#120809f5)}
+.oban.draw{background:linear-gradient(165deg,#4b3d1bf0,#1a1509f5)}
+.obt{position:relative;font:900 min(14vw,58px)/1.05 Impact,"Arial Black",sans-serif;letter-spacing:2px;-webkit-text-stroke:2px #000;paint-order:stroke fill;text-shadow:0 4px 0 #000}
+.oban.win .obt{color:#8be32a;text-shadow:0 4px 0 #000,0 0 26px #8be32a}.oban.lose .obt{color:#ff4d5e;text-shadow:0 4px 0 #000,0 0 20px #ff2d3f88}.oban.draw .obt{color:#ffd27a}
+.obs{font:700 13px/1.3 Georgia,serif;color:#f1dcc8;margin-top:8px;padding-top:7px;border-top:1px solid #e8c36a55}
+.orays{position:absolute;left:50%;top:50%;width:620px;height:620px;margin:-310px 0 0 -310px;border-radius:50%;background:repeating-conic-gradient(#ffd27a55 0 7deg,#0000 7deg 20deg);-webkit-mask:radial-gradient(circle,#000 18%,#0000 66%);mask:radial-gradient(circle,#000 18%,#0000 66%);z-index:-1;pointer-events:none;display:none;animation:rays 14s linear infinite}
+.oban.win .orays{display:block}
+@keyframes rays{to{transform:rotate(360deg)}}
+.orem{font-size:14px;font-weight:600;color:#ffd27a;margin-top:10px;line-height:1.45}
+.omid{display:flex;gap:10px;justify-content:center;padding:10px;position:relative;z-index:3;opacity:0;transition:opacity .5s}
+#over.done .omid{opacity:1}
+.omid button{padding:12px 18px;font:700 16px/1.2 Georgia,serif;border-radius:10px;border:2px solid #120c05;box-shadow:inset 0 0 0 1.5px #e8c36a,0 3px 8px #000c;background:linear-gradient(180deg,#6b4524,#3a2412);color:#fff1e3}
+.omid #ovN{background:linear-gradient(180deg,#ffd27a,#d39a2a);color:#241a00}
+#over:not(.done) .omid button{pointer-events:none}
+.endfx{position:fixed;pointer-events:none;z-index:2}
+.endshard{overflow:hidden}.endshard>.side{position:absolute;left:0;top:0}
+.endcrack svg{overflow:visible}.endcrack path{fill:none;stroke:#fff;stroke-width:2.2;stroke-linejoin:round;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #9cf);stroke-dasharray:900;stroke-dashoffset:900;animation:crack .5s ease-out forwards}
+.endcrack path.ring{stroke-width:1.6;animation-delay:.18s}.endcrack.off{opacity:0;transition:opacity .2s}
+@keyframes crack{to{stroke-dashoffset:0}}
+.endember{border-radius:50%;box-shadow:0 0 8px currentColor}
+.endportal{filter:drop-shadow(0 0 18px #a46bff)}
+@keyframes endshake{0%,100%{translate:0 0}15%{translate:-10px 6px}30%{translate:9px -7px}50%{translate:-7px -5px}70%{translate:6px 6px}85%{translate:-3px 2px}} /* 'translate', not 'transform': the opponent's half stays turned 180 degrees */
+.oban.wA,.oban.lA{animation:banslam .55s cubic-bezier(.2,1.5,.4,1) .9s forwards}
+.oban.lA{animation-delay:1.25s}
+@keyframes banslam{0%{opacity:0;transform:scale(4)}55%{opacity:1}100%{opacity:1;transform:scale(1)}}
+.obt .tp,.obt .bt{display:block}.obt .bt{position:absolute;left:0;right:0;top:0}
+.obt .tp{clip-path:polygon(0 0,100% 0,100% 44%,0 60%)}.obt .bt{clip-path:polygon(0 60%,100% 44%,100% 100%,0 100%);animation:textcrack .5s ease-in 1.9s forwards}
+@keyframes textcrack{to{transform:translate(4px,9px) rotate(3deg)}}
+.oban.lB{animation:banrise .6s ease-out 1.6s forwards}
+.oban.wB{animation:cardturn .75s ease-in-out .45s forwards,wglow 2.2s ease-in-out 1.4s infinite}
+.ocard{position:absolute;inset:-3px;border-radius:10px;background:url(img/cardback-h.jpg) center/cover;border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a;z-index:5;animation:cardhide .01s linear .96s forwards}
+@keyframes cardturn{0%{opacity:0;transform:perspective(800px) scale(.3) rotateY(180deg)}40%{opacity:1;transform:perspective(800px) scale(1.06) rotateY(180deg)}100%{opacity:1;transform:perspective(800px) scale(1) rotateY(360deg)}}
+@keyframes cardhide{to{opacity:0;visibility:hidden}}
+@keyframes wglow{0%,100%{box-shadow:inset 0 0 0 2px #e8c36a,inset 0 0 0 4px #120c05,0 0 14px #ffd27a66}50%{box-shadow:inset 0 0 0 2px #fff3c0,inset 0 0 0 4px #120c05,0 0 38px #ffd27acc}}
+.oglit{position:absolute;border-radius:2px;pointer-events:none;box-shadow:0 0 6px #ffd27a;z-index:4}
+@keyframes banrise{0%{opacity:0;transform:translateY(30px) scale(.9)}100%{opacity:1;transform:none}}
+.obt.ltrs span{display:inline-block;opacity:0;transform:scale(2.6);animation:ltrin .25s ease-out forwards}
+.oban.lB .obt{animation:wob 2.4s ease-in-out 1.6s infinite}
+@keyframes wob{0%,100%{text-shadow:0 4px 0 #000,0 0 20px #a46bff}50%{text-shadow:0 4px 0 #000,0 0 34px #a46bff,0 0 4px #fff;transform:skewX(-4deg)}}
+.endgrave{overflow:hidden;z-index:2}
+.gearth{position:absolute;inset:0;opacity:0;animation:gearth 2s ease-in .3s forwards;background:url(img/fx/earth.webp) center/cover,radial-gradient(circle at 20% 30%,#5a3d22 0 6%,#0000 7%),radial-gradient(circle at 70% 60%,#4a301a 0 8%,#0000 9%),radial-gradient(circle at 45% 80%,#6b4a2a 0 5%,#0000 6%),radial-gradient(circle at 85% 20%,#523620 0 7%,#0000 8%),radial-gradient(ellipse at 50% 55%,#4b331e,#2a1a0e 75%);box-shadow:inset 0 0 60px #000c}
+@keyframes gearth{from{opacity:0}to{opacity:1}}
+.gpit{position:absolute;left:0;right:0;top:0;overflow:hidden}
+.gdirt{position:absolute;height:auto;opacity:0;transform:scale(1.7) rotate(var(--r));animation:gdirt .35s cubic-bezier(.5,0,.8,.4) forwards;filter:drop-shadow(0 3px 4px #0009)}
+@keyframes gdirt{0%{opacity:0;transform:translateY(-40px) scale(1.7) rotate(var(--r))}60%{opacity:1}100%{opacity:1;transform:scale(1) rotate(var(--r))}}
+.gtomb{position:absolute;left:50%;bottom:0;transform:translateY(105%);animation:grise 1s cubic-bezier(.2,.8,.3,1) 2.4s forwards;filter:drop-shadow(0 6px 10px #000c)}
+.ghand{position:absolute;bottom:0;transform:translateY(105%) rotate(-8deg);transform-origin:50% 100%;animation:ghand 1.6s ease-out 3s forwards}
+@keyframes grise{0%{transform:translateY(105%)}70%{transform:translateY(-3%)}85%{transform:translateY(2%) rotate(-1deg)}100%{transform:translateY(0)}}
+@keyframes ghand{0%{transform:translateY(105%) rotate(-8deg)}40%{transform:translateY(8%) rotate(-8deg)}60%{transform:translateY(10%) rotate(6deg)}80%{transform:translateY(9%) rotate(-5deg)}100%{transform:translateY(10%) rotate(2deg)}}
+.oh:has(.lC){align-items:flex-end;padding-bottom:14px} /* the tombstone stays visible above the banner */
+.oban.lC{background:linear-gradient(165deg,#4a4642f0,#1c1a18f5);animation:banrise .7s ease-out 3.6s forwards}
+.grain{position:absolute;inset:0;pointer-events:none;background:#0b1424;opacity:0;animation:gdark 1.2s ease-out 3.2s forwards}
+.grain i{position:absolute;top:-40px;width:1.5px;background:linear-gradient(#cfe3ff00,#cfe3ffcc);transform:rotate(12deg);opacity:0;animation-name:gdrop;animation-timing-function:linear;animation-iteration-count:infinite}
+@keyframes gdark{to{opacity:1;background:#0b142466}}
+@keyframes gdrop{0%{opacity:.9;translate:0 0}100%{opacity:.9;translate:-60px calc(100vh)}}
+.oban.lC .obt{color:#d8d2c8;text-shadow:0 4px 0 #000,0 0 18px #0008}
+.oheav{position:absolute;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(180deg,#fff6d8aa,#fff6d800 65%);opacity:0;animation:heavin 1s ease-out forwards}
+.oheav i{position:absolute;top:-15%;height:130%;background:linear-gradient(180deg,#fffbe8ee,#fff3c055 55%,#fff3c000);filter:blur(7px);mix-blend-mode:screen;transform:skewX(var(--sk));opacity:0;animation:beam .9s ease-out forwards,sway 3.5s ease-in-out infinite alternate}
+@keyframes heavin{to{opacity:1}}
+@keyframes beam{to{opacity:.85}}
+@keyframes sway{to{transform:skewX(calc(var(--sk) * -1))}}
+.omote{background:#fff;box-shadow:0 0 8px #fff,0 0 14px #ffe9a0;border-radius:50%}
+.oban.wC{background:linear-gradient(165deg,#5a4a2ef0,#2a2010f5);animation:descend 1.3s cubic-bezier(.2,.7,.3,1) .8s forwards,wglow 2.6s ease-in-out 2.1s infinite}
+.oban.wC .obt{color:#fffbe8;text-shadow:0 4px 0 #000,0 0 22px #fff3c0,0 0 40px #ffd27a}
+@keyframes descend{0%{opacity:0;transform:translateY(-90px) scale(.95)}60%{opacity:1}100%{opacity:1;transform:none}}
+.ohalo{position:absolute;left:50%;top:-30px;width:110px;height:26px;margin-left:-55px;border-radius:50%;border:5px solid #ffe9a0;box-shadow:0 0 14px #fff3c0,inset 0 0 10px #fff3c0;animation:halo 2.4s ease-in-out infinite}
+@keyframes halo{50%{transform:translateY(-6px)}}
+#over.done .oban{opacity:1}#over.done .oban:not(.wB):not(.wC){transform:none}#over.done .ocard{display:none}
 .ctlb{position:absolute;top:1px;left:3px;font-size:11px;font-weight:900;color:#0b2200;background:#8be32a;border-radius:6px;padding:0 3px;line-height:14px;pointer-events:none;box-shadow:0 1px 3px #000a;z-index:2}
-.omid{display:flex;gap:8px;justify-content:center;padding:8px}.omid button{padding:12px 16px;font-weight:700}
 #splash{position:fixed;inset:0;z-index:100;background:var(--bg) url(img/bg-embers.jpg) center/cover;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;overflow:auto}
 #splash[hidden]{display:none}
+#netbar{position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:120;background:#2a1a10;color:#ffd27a;border:2px solid #e8c36a;border-radius:10px;padding:6px 12px;font-weight:700;font-size:13px;box-shadow:0 2px 10px #000a;pointer-events:none;white-space:nowrap}#netbar[hidden]{display:none}
+dialog button:disabled{opacity:.45;filter:grayscale(.7)}
+.roomcode{font:800 40px/1.1 Georgia,serif;letter-spacing:8px;text-align:center;color:#ffd27a;background:#0008;border:2px solid #e8c36a;border-radius:12px;padding:8px;margin:4px 0 8px;user-select:text}
 #splash img{width:max(170px,min(92vw,360px,calc(100dvh - 540px)));height:auto}
 #splash h1{margin:0;font-size:26px}
 #splash .by{color:#f1dcc8;font-size:13px;margin-top:-4px;font-weight:600;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1.5px 0 #000,0 1.5px 0 #000,-1.5px 0 0 #000,1.5px 0 0 #000,0 0 6px #000}
@@ -210,10 +281,12 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .ihalf.rot{transform:rotate(180deg)}
 .imid{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:2}
 .imid>*{pointer-events:auto}
-.ibox{display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;max-width:340px;width:100%;text-shadow:0 1px 4px #000,0 0 8px #000}
-.ihead{font-size:20px;font-weight:900;color:var(--gold)}.isub{font-size:15px}
-.ibox button,.igo{font-weight:800;font-size:17px;padding:14px 16px;width:100%;border-radius:14px}
-.igo{background:#8be32a;color:#0b2200;width:min(80vw,300px)}
+.ibox{display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;max-width:340px;width:100%;color:#fff1e3;background:linear-gradient(165deg,#4b301be6,#1a1009f0);border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a,inset 0 0 0 4px #120c05,0 4px 16px #000c;border-radius:10px;padding:14px 16px 16px}
+.ihead{font:900 21px/1.15 Georgia,"Times New Roman",serif;color:#ffd27a;letter-spacing:1.5px;text-shadow:0 2px 0 #000,0 0 10px #000;padding-bottom:6px;border-bottom:1px solid #e8c36a66;width:100%}.isub{font-size:13px;color:#e9d3bd}
+.ibox button,.igo{font:700 17px/1.2 Georgia,"Times New Roman",serif;padding:13px 16px;width:100%;border-radius:10px;border:2px solid #120c05;box-shadow:inset 0 0 0 1.5px #e8c36a,0 2px 6px #000a}
+.ibox button{background:linear-gradient(180deg,#6b4524,#3a2412);color:#fff1e3}
+.igo{background:linear-gradient(180deg,#a6f24a,#6cc21c);color:#0b2200;font-weight:800;width:min(80vw,300px);box-shadow:inset 0 0 0 1.5px #e8c36a,0 0 18px #8be32a77,0 3px 8px #000c}
+.igo:disabled{background:linear-gradient(180deg,#6b4524,#3a2412);color:#e9d3bd;box-shadow:inset 0 0 0 1.5px #e8c36a}
 .coinwrap{width:120px;height:120px;perspective:600px;animation:cointoss 1.9s cubic-bezier(.3,.1,.5,1)}
 .coin{width:120px;height:120px;position:relative;transform-style:preserve-3d;transition:transform 1.9s cubic-bezier(.2,.7,.25,1)}
 .face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:50px;background:radial-gradient(circle at 35% 30%,#ffe9a0,#d6a21f 60%,#8a5d07);color:#5a3a00;border:5px solid #f5cf5a;box-shadow:0 6px 18px #000a}
@@ -230,6 +303,16 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 @keyframes ltrout{from{opacity:1;transform:scale(1)}to{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(.5)}}
 .duel{position:absolute;font-size:min(30vw,150px);font-weight:900;color:#8be32a;opacity:0;letter-spacing:2px;text-shadow:-4px -4px 0 #000,4px -4px 0 #000,-4px 4px 0 #000,4px 4px 0 #000,0 0 30px #8be32a;animation:duelslam .55s cubic-bezier(.2,1.5,.4,1) forwards}
 @keyframes duelslam{0%{transform:scale(6);opacity:0}55%{opacity:1}100%{transform:scale(1);opacity:1}}
+.ishock{position:absolute;left:50%;top:50%;width:110px;height:110px;margin:-55px;border-radius:50%;border:6px solid #c8ff7a;box-shadow:0 0 30px #8be32a,inset 0 0 30px #8be32a;pointer-events:none;z-index:3}
+.iember{position:absolute;left:50%;top:50%;border-radius:50%;box-shadow:0 0 8px currentColor;pointer-events:none;z-index:3}
+.iportal{position:absolute;left:50%;top:50%;width:min(88vw,420px);height:auto;filter:hue-rotate(-150deg) saturate(1.7) brightness(1.1) drop-shadow(0 0 26px #8be32a);pointer-events:none;z-index:0}
+.itt .ittl{position:relative;z-index:1}.itt .duel{z-index:2}
+.ibolt{position:absolute;inset:0;pointer-events:none;z-index:1}.ibig{position:absolute;left:50%;top:0;height:100%;width:auto;pointer-events:none;z-index:6;filter:drop-shadow(0 0 6px #7fb4ff) drop-shadow(0 0 18px #2a6cff) drop-shadow(0 0 3px #1a3a8a)}.ibolt.big{z-index:6}.idark{position:absolute;inset:0;background:#000;pointer-events:none;z-index:4;opacity:0}.ibolt.big path{stroke:#fff;stroke-width:5;filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 18px #9cf)}.ibolt.big path.thin{stroke-width:2.5}.ibolt svg{overflow:visible}.ibolt path{fill:none;stroke:#f2ffe0;stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 0 4px #b6ff5a) drop-shadow(0 0 10px #8be32a)}
+.cres.cban{font:900 30px/1.1 Impact,"Arial Black",sans-serif;letter-spacing:3px;padding:8px 22px;border-radius:10px;background:linear-gradient(165deg,#4b301bf0,#1a1009f5);border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a,inset 0 0 0 4px #120c05,0 4px 16px #000c;color:#ffd27a;animation:banslam .45s cubic-bezier(.2,1.5,.4,1)}
+.coin::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,#fff0 35%,#fffc 50%,#fff0 65%);background-size:250% 100%;animation:coinshine .6s linear infinite;pointer-events:none;mix-blend-mode:screen}
+@keyframes coinshine{from{background-position:120% 0}to{background-position:-120% 0}}
+.ispark{pointer-events:none;background:radial-gradient(ellipse at center,#fff 0,#ffe9a0 18%,#8be32a66 40%,#0000 70%)}
+.lp.lpglow{box-shadow:0 0 18px #8be32a,inset 0 0 14px #8be32a88;transition:box-shadow .6s}
 .iflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5}
 .iflash.go{animation:iflash .45s ease-out}
 @keyframes iflash{0%{opacity:.95}100%{opacity:0}}
@@ -409,6 +492,7 @@ function nextLabel(){
 }
 function nextPhase(){
   if(S.paused){resumeBattle();return}
+  if(oppWait()&&online()){toast("Wait: it's your opponent's turn");return}
   if(oppWait()){ctlEndPhase();Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();setTimeout(drawAsk,350);return}
   const n=stepFrom(S);if(n.turn!==S.turn)S.ns=false;
   if(PHASES[S.ph].n==="Draw Phase"&&n.turn===S.turn&&PHASES[n.ph].n!=="Standby Phase")setTimeout(()=>toast("Standby Phase: nothing to do"),50);
@@ -489,7 +573,7 @@ const SFX=(()=>{
     s.connect(fl);fl.connect(g);g.connect(master);if(o.echo)g.connect(echo);s.start(t0);s.stop(t0+dur+.05);
   }
   // recorded sounds (Tom's own voice, folder snd/): decoded once, then played with a slightly random speed so they never sound exactly the same
-  const SAMPLES={slash:["slash1","slash2"],stomp:["stomp2"],stomp0:["stomp0"],flip:["flip3"],lunge:["lunge1"],block:["block1"],sbreak:["shieldbreak1"],banish:["banish1"]},buf={};let loading=false;
+  const SAMPLES={slash:["slash1","slash2"],stomp:["stomp2"],stomp0:["stomp0"],flip:["flip3"],lunge:["lunge1"],block:["block1"],sbreak:["shieldbreak1"],banish:["banish1"],shovel:["shovel1","shovel2","shovel3"],zap:["zap1"],thunder:["thunder1"]},buf={};let loading=false;
   function loadSamples(){
     if(loading||!init())return;loading=true;
     for(const k in SAMPLES)for(const n of SAMPLES[k])fetch("snd/"+n+".m4a").then(r=>r.arrayBuffer()).then(b=>new Promise((ok,no)=>ac.decodeAudioData(b,ok,no))).then(d=>{(buf[k]=buf[k]||[]).push(d)}).catch(()=>{});
@@ -584,6 +668,29 @@ const SFX=(()=>{
     hit(){tone({f:220,f2:60,type:"triangle",dur:.25,vol:.6});tone({f:400,f2:100,type:"sine",dur:.12,vol:.3});noise({dur:.14,vol:.35,f:1100,f2:300,type:"lowpass"})},
     clang(){if(sample("block",{vol:.95}))return;tone({f:200,f2:90,type:"sine",dur:.16,vol:.55});noise({dur:.07,vol:.2,f:450,type:"lowpass"})}, // the shield holds: a dull 'doef'
     flip(){if(sample("flip",{vol:.6,exact:true}))return;noise({dur:.12,vol:.2,f:2500,f2:6000,q:.8});tone({f:420,f2:900,type:"triangle",dur:.14,vol:.14,t:.14,echo:true});tone({f:900,f2:1500,type:"sine",dur:.2,vol:.1,t:.2,echo:true})},
+    dirt(){if(sample("shovel",{vol:.85,rate:.92}))return; // Pixabay 'Digging with shovel' (freesound_community), 3 cut-out scoops; peak ±0.27 s after the start
+      noise({dur:.16,vol:.22,f:1800,f2:500,q:.8});noise({dur:.22,vol:.18,f:300,f2:120,type:"lowpass",t:.05});tone({f:90,f2:55,type:"sine",dur:.2,vol:.3,t:.06})},
+    rain(){ // soft rain that swells and dies away (±7 s); rainStop() ends it early (undo)
+      if(!ready())return;try{this.rainStop();const t0=ac.currentTime,n=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),d=n.getChannelData(0);
+      for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(Math.random()<.002?3:1); // a few louder drops in the hiss
+      const src=ac.createBufferSource();src.buffer=n;src.loop=true;const hp=ac.createBiquadFilter();hp.type="highpass";hp.frequency.value=700;const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=5500;
+      const g=ac.createGain();g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(.2,t0+1.4);g.gain.setValueAtTime(.2,t0+4.2);g.gain.linearRampToValueAtTime(.0001,t0+7.5);
+      src.connect(hp);hp.connect(lp);lp.connect(g);g.connect(master);src.start(t0);src.stop(t0+7.6);this._rain=src}catch(e){}
+    },
+    rainStop(){try{if(this._rain)this._rain.stop()}catch(e){}this._rain=null},
+    zap(){if(sample("zap",{vol:.9,exact:true}))return; // Pixabay 'Lightning Spell Impact' (DRAGON-STUDIO), peak ±0.6 s after the start
+      noise({dur:.09,vol:.3,f:5000,f2:1500,type:"highpass"});noise({dur:.14,vol:.22,f:3500,f2:900,q:.6,t:.07});noise({dur:.08,vol:.25,f:6000,f2:2000,type:"highpass",t:.18});tone({f:70,f2:40,type:"sine",dur:.35,vol:.3,t:.05})},
+    thunder(){if(sample("thunder",{vol:1,exact:true}))return; // Pixabay 'Thunder clap' (u_q2hb2391vb), crack ±0.23 s after the start, then rumble
+      noise({dur:.25,vol:.5,f:4000,f2:600,type:"lowpass"});noise({dur:2.5,vol:.35,f:400,f2:60,type:"lowpass",t:.1});tone({f:60,f2:30,type:"sine",dur:1.5,vol:.5,t:.05})},
+    choir(){ // heavenly "aaah": 5 voices (A major), each 2 detuned saws with vibrato, through the formants of an 'a' vowel; slow swell, long fade
+      if(!ready())return;try{const t0=ac.currentTime+.02,dur=3.6;
+      const out=ac.createGain();out.gain.setValueAtTime(.0001,t0);out.gain.linearRampToValueAtTime(.5,t0+.8);out.gain.setValueAtTime(.5,t0+dur-1.6);out.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+      const mix=ac.createGain();mix.gain.value=.5;
+      [[800,1],[1150,.55],[2900,.22]].forEach(([f,g])=>{const bp=ac.createBiquadFilter();bp.type="bandpass";bp.frequency.value=f;bp.Q.value=f/110;const gg=ac.createGain();gg.gain.value=g*3;mix.connect(bp);bp.connect(gg);gg.connect(out)});
+      const lfo=ac.createOscillator(),ld=ac.createGain();lfo.frequency.value=5.1;ld.gain.value=2.6;lfo.connect(ld);lfo.start(t0);lfo.stop(t0+dur+.1);
+      [220,277.18,329.63,440,554.37].forEach(f=>[-4,4].forEach(dt=>{const o=ac.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=dt;ld.connect(o.frequency);const v=ac.createGain();v.gain.value=.12;o.connect(v);v.connect(mix);o.start(t0);o.stop(t0+dur+.1)}));
+      out.connect(master);out.connect(echo)}catch(e){}
+    },
     tomb(){tone({f:110,f2:40,type:"sine",dur:.5,vol:.55});noise({dur:.3,vol:.14,f:350,f2:120,type:"lowpass"});tone({f:392,f2:330,type:"triangle",dur:.9,vol:.07,t:.25,echo:true})},
     banish(){const now=performance.now();if(now-(this._bnt||0)<1500)return;this._bnt=now; // banished: Tom's recording; several cards at once = one sound
       if(sample("banish",{vol:.9,exact:true}))return;noise({dur:1.3,vol:.22,f:2600,f2:220,q:1.2,type:"bandpass"});tone({f:520,f2:110,type:"sine",dur:1.1,vol:.16,echo:true})},
@@ -682,7 +789,7 @@ function render(){
   document.querySelector(".mid .row1").classList.toggle("flip",S.view==="2p"&&S.turn===1); // the buttons turn towards the player whose turn it is; both players always read their own status line
   fieldBgApply(fieldBg(0),fieldBg(1));
   const ph=PHASES[S.ph];
-  const statusFor=v=>oppWait()?`Turn ${S.tc} • Opponent's turn`:`Turn ${S.tc} • ${S.turn===v?"Your turn":"Opponent's turn"} • ${ph.n}${ph.sub?" – "+ph.sub[S.sub]:""} <small style="font-weight:400;color:${S.ns?"var(--red)":"var(--green)"}">• Normal Summon ${S.ns?"used":"available"}</small>${S.tc===1&&S.ph===0?` <small style="color:var(--gold)">• first turn: no draw</small>`:S.tc===1&&/^Main Phase/.test(ph.n)?` <small style="color:var(--gold)">• first turn: no Battle Phase</small>`:""}`;
+  const statusFor=v=>oppWait()&&!online()?`Turn ${S.tc} • Opponent's turn`:`Turn ${S.tc} • ${S.turn===v?"Your turn":"Opponent's turn"} • ${ph.n}${ph.sub?" – "+ph.sub[S.sub]:""} <small style="font-weight:400;color:${S.ns?"var(--red)":"var(--green)"}">• Normal Summon ${S.ns?"used":"available"}</small>${S.tc===1&&S.ph===0?` <small style="color:var(--gold)">• first turn: no draw</small>`:S.tc===1&&/^Main Phase/.test(ph.n)?` <small style="color:var(--gold)">• first turn: no Battle Phase</small>`:""}`;
   // 2 players on one phone: each player reads their own status line (the one of the player who is not on turn is dimmed)
   const two2=S.view==="2p";
   $("statusOpp").hidden=!two2;
@@ -690,7 +797,7 @@ function render(){
   $("status").classList.toggle("idle",two2&&S.turn!==0);$("statusOpp").classList.toggle("idle",S.turn!==1);
   const pb=$("phase");
   pb.className=oppWait()?"wait":"";
-  pb.textContent=oppWait()?"Opponent's turn — tap when it's your turn":nextLabel();
+  pb.textContent=oppWait()?(online()?"Opponent's turn":"Opponent's turn — tap when it's your turn"):nextLabel();
   if(S.paused){const pm=S.mon[S.paused.p][S.paused.i];pb.className="paused";pb.textContent="▶ Continue the paused attack";const pt=`⏸ Attack paused (${esc(pm?pm.name:"?")}) — resolve effects, then continue`;$("status").innerHTML=pt;if(two2)$("statusOpp").innerHTML=pt}
   $("rules").textContent=S.paused?"✖ End attack":"Rules";
   fitMid();
@@ -700,6 +807,7 @@ function render(){
   if(FXQ.length)fxFlush();
   undoTrack();
   save();
+  if(NET&&NET.live)netSync();
 }
 // ---------- Effects: slash, shield, red flash, dust ----------
 let FXQ=[];
@@ -1083,12 +1191,20 @@ function renderEMZ(){
     return`<div class="emzcell on" ${c.p===1&&!one?'style="transform:rotate(180deg)"':""}>${html}</div>`;
   }).join("");
 }
+// End of the duel: the app picks a win and a lose animation at random (Toms idea), separately.
+// Lose A = the loser's board cracks and shatters, the text cracks in two; lose B = the board is pulled into the Banished portal, the text wobbles purple.
+// Win A = the banner slams in with golden light rays and an ember burst; win B = a card turns over to reveal the banner, letters pop in, gold glitter rains down.
+// Lose C = dust clouds, the half is covered with earth, a tombstone rises (+ a skeleton hand); win C = heavenly light beams, a halo and a choir.
+// For testing: ?win=A|B|C and ?lose=A|B|C in the address fix one.
+const endPick=(k)=>(new RegExp("[?&]"+k+"=([ABC])").exec(location.search)||[])[1]||"ABC"[rnd(3)];
 function gameOver(){
   if(LPA[0]||LPA[1]){setTimeout(gameOver,150);return}
   const o=$("over"),a=S.lp[0],b=S.lp[1];
-  if(a>0&&b>0){o.hidden=true;return}
-  const m=(x,y)=>x===0&&y===0?["DRAW","draw"]:x===0?["YOU LOST","lose"]:["YOU WIN","win"];
-  const [t0,c0]=m(a,b),[t1,c1]=m(b,a);
+  if(a>0&&b>0){if(!o.hidden)endClear();o.hidden=true;o.dataset.k="";return}
+  const key=a+":"+b+":"+S.tc;if(!o.hidden&&o.dataset.k===key)return; // already showing: don't restart the animation on every render
+  endClear();o.dataset.k=key;
+  const res=(x,y)=>x===0&&y===0?["DRAW","draw"]:x===0?["YOU LOST","lose"]:["YOU WIN","win"];
+  const [t0,c0]=res(a,b),[t1,c1]=res(b,a);
   const two=S.view!=="1p";
   // cards on the field that belong to the other player go back to their owner after the duel
   const rem=ctlReminders(),remFor=q=>{
@@ -1097,10 +1213,122 @@ function gameOver(){
     const L=two?ask.concat(give):ask.concat(rem.filter(r=>r.o===1).map(r=>`Give <b>${esc(r.name)}</b> back to your opponent.`));
     return L.length?`<div class="orem">⇄ ${L.join("<br>⇄ ")}</div>`:"";
   };
-  o.innerHTML=(two?`<div class="oh rot ${c1}"><div>${t1}${remFor(1)}</div></div>`:"")+`<div class="omid"><button id="ovU">↩ Undo last change</button><button id="ovN" style="background:var(--gold);color:#241a00">New duel</button></div><div class="oh ${c0}"><div>${t0}${remFor(0)}</div></div>`;
+  const mins=S.t0?Math.max(1,Math.round((Date.now()-S.t0)/60000)):0;
+  const sum=q=>`<div class="obs">Turn ${S.tc} · ${S.lp[q]} LP left${mins?` · ${mins} min`:""}</div>`;
+  const WF=endPick("win"),LF=endPick("lose");
+  const sty=c=>c==="win"?"w"+WF:c==="lose"?"l"+LF:"wA";
+  const txt=(t,c)=>sty(c)==="wB"?[...t].map((ch,i)=>`<span style="animation-delay:${1150+i*70}ms">${ch===" "?"&nbsp;":ch}</span>`).join("")
+    :sty(c)==="lA"?`<span class="tp">${t}</span><span class="bt">${t}</span>`:t;
+  const ban=(t,c,q)=>`<div class="oh ${c}${q===1?" rot":""}"><div class="oban ${c} ${sty(c)}">${sty(c)==="wC"?`<div class="ohalo"></div>`:""}${sty(c)==="wA"&&c==="win"?`<div class="orays"></div>`:""}${sty(c)==="wB"?`<div class="ocard"></div>`:""}<div class="obt${sty(c)==="wB"?" ltrs":""}">${txt(t,c)}</div>${sum(q)}${remFor(q)}</div></div>`;
+  o.className="";o.dataset.fx=WF+LF;
+  const mid=`<div class="omid"><button id="ovU">↩ Undo</button><button id="ovN">⚔ New duel</button></div>`;
+  o.innerHTML=two?ban(t1,c1,1)+mid+ban(t0,c0,0):ban(t0,c0,0)+mid; // 1 player: the buttons under the banner
   o.hidden=false;
   $("ovU").onclick=()=>undoStep();
-  $("ovN").onclick=()=>{const v=S.view,n=S.n;startDuel(n===3?4000:8000,n,v)};
+  $("ovN").onclick=()=>{const v=S.view,n=S.n;if(online()){if(NET.seat===0)netBegin(n===3?4000:8000,n);else toast("The player who made the room starts a new duel");return}startDuel(n===3?4000:8000,n,v)};
+  if(calmMotion()){o.classList.add("done");return}
+  [0,1].filter(q=>S.lp[q]===0&&S.lp[1-q]>0).forEach(q=>LF==="C"?endGrave(q):LF==="B"?endPortal(q):endShatter(q));
+  if(c0==="win"||c1==="win"){
+    if(WF==="A")setTimeout(()=>{try{SFX.duel()}catch(e){}o.querySelectorAll(".oban.win").forEach(endEmbers)},1050);
+    else if(WF==="B"){setTimeout(()=>{try{SFX.flip()}catch(e){}},1000);setTimeout(()=>{try{SFX.duel()}catch(e){}o.querySelectorAll(".oh.win").forEach(endGlitter)},1250)}
+    else{o.querySelectorAll(".oh.win").forEach(endHeaven);setTimeout(()=>{try{SFX.choir()}catch(e){}},350)}
+  }
+  setTimeout(()=>{if(o.dataset.k===key)o.classList.add("done")},Math.max(LF==="C"?4200:LF==="B"?2300:2000,WF==="C"?2200:WF==="B"?2000:1600));
+}
+function endClear(){
+  const o=$("over");o.className="";o.innerHTML="";
+  document.querySelectorAll(".endfx").forEach(e=>e.remove());try{SFX.rainStop()}catch(e){}
+  for(const q of[0,1]){const el=$("s"+q);if(el){el.style.visibility="";el.style.filter="";el.style.animation=""}}
+}
+const sideClone=(side,W,H,extra)=>{const cl=side.cloneNode(true);cl.removeAttribute("id");cl.style.cssText=`width:${W}px;height:${H}px;margin:0;visibility:visible;animation:none;${extra||""}`;return cl};
+// A: the loser's half shakes, cracks from an impact point and falls apart in shards (real pieces of the board: clones with a clip-path)
+function endShatter(q){
+  const side=$("s"+q);if(!side)return;const r=side.getBoundingClientRect(),W=r.width,H=r.height;
+  side.style.animation="endshake .45s";side.style.filter="grayscale(1) brightness(.6)";
+  try{SFX.shieldBreak()}catch(e){}
+  const ix=W*(.35+Math.random()*.3),iy=H*(.4+Math.random()*.2);
+  let paths=""; // cracks: jagged lines from the impact point + two broken rings
+  for(let k=0;k<11;k++){let ang=k/11*Math.PI*2+Math.random()*.4,x=ix,y=iy,d=`M${ix.toFixed(1)} ${iy.toFixed(1)}`;const len=Math.max(W,H)*(.55+Math.random()*.4);
+    for(let st=0;st<7;st++){ang+=(Math.random()-.5)*.5;x+=Math.cos(ang)*len/7;y+=Math.sin(ang)*len/7;d+=` L${x.toFixed(1)} ${y.toFixed(1)}`}paths+=`<path d="${d}"/>`}
+  for(const rr of[34,78]){let d="";for(let k=0;k<=12;k++){const an=k/12*Math.PI*2,j=rr*(.85+Math.random()*.3);d+=(k?" L":"M")+(ix+Math.cos(an)*j).toFixed(1)+" "+(iy+Math.sin(an)*j).toFixed(1)}paths+=`<path d="${d}" class="ring"/>`}
+  const svg=document.createElement("div");svg.className="endfx endcrack";svg.style.cssText=`left:${r.left}px;top:${r.top}px;width:${W}px;height:${H}px`;
+  svg.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}</svg>`;$("over").appendChild(svg);
+  setTimeout(()=>{if(!svg.isConnected)return; // shards: a jittered grid, every piece a clone of the board that bursts out and falls away
+    const C=5,R=6,pt=[];
+    for(let y=0;y<=R;y++){pt.push([]);for(let x=0;x<=C;x++)pt[y].push([x/C*W+(x===0||x===C?0:(Math.random()-.5)*W/C*.7),y/R*H+(y===0||y===R?0:(Math.random()-.5)*H/R*.7)])}
+    for(let y=0;y<R;y++)for(let x=0;x<C;x++){
+      const P=[pt[y][x],pt[y][x+1],pt[y+1][x+1],pt[y+1][x]],cx=P.reduce((a,p)=>a+p[0],0)/4,cy=P.reduce((a,p)=>a+p[1],0)/4;
+      const sh=document.createElement("div");sh.className="endfx endshard";
+      sh.style.cssText=`left:${r.left}px;top:${r.top}px;width:${W}px;height:${H}px;clip-path:polygon(${P.map(p=>p[0].toFixed(1)+"px "+p[1].toFixed(1)+"px").join(",")});transform-origin:${cx}px ${cy}px`;
+      sh.appendChild(sideClone(side,W,H,"filter:grayscale(1) brightness(.6)"));$("over").appendChild(sh);
+      const dist=Math.hypot(cx-ix,cy-iy),dx=(cx-ix)/Math.max(1,dist),dy=(cy-iy)/Math.max(1,dist),del=dist/Math.max(W,H)*260;
+      sh.animate([{transform:"translate(0,0) rotate(0)",opacity:1},{transform:`translate(${dx*40}px,${dy*40}px) rotate(${(Math.random()-.5)*20}deg)`,opacity:1,offset:.25},
+        {transform:`translate(${dx*120+(Math.random()-.5)*60}px,${dy*60+H*.9}px) rotate(${(Math.random()-.5)*160}deg) scale(.8)`,opacity:0}],{duration:1300,delay:del,easing:"cubic-bezier(.4,0,.8,.6)",fill:"forwards"}).onfinish=()=>sh.remove();
+    }
+    if(!svg.isConnected)return; // the end screen was closed meanwhile (undo, new duel)
+    side.style.visibility="hidden";svg.classList.add("off");
+  },650);
+}
+// B: the Banished portal opens on the loser's half, the board spirals into it, the portal closes
+function endPortal(q){
+  const side=$("s"+q);if(!side)return;const r=side.getBoundingClientRect(),W=r.width,H=r.height,sz=Math.min(W,H)*1.05;
+  try{SFX.banish()}catch(e){}
+  const pt=document.createElement("img");pt.src="img/fx/banish.webp";pt.className="endfx endportal";pt.style.cssText=`left:${r.left+W/2-sz/2}px;top:${r.top+H/2-sz/2}px;width:${sz}px;height:${sz}px`;$("over").appendChild(pt);
+  pt.animate([{transform:"scale(0) rotate(0)",opacity:0},{transform:"scale(1) rotate(200deg)",opacity:1,offset:.25},{transform:"scale(1.05) rotate(560deg)",opacity:1,offset:.75},{transform:"scale(0) rotate(900deg)",opacity:0}],{duration:2300,easing:"ease-in-out",fill:"forwards"});
+  const wr=document.createElement("div");wr.className="endfx endshard";wr.style.cssText=`left:${r.left}px;top:${r.top}px;width:${W}px;height:${H}px`;
+  wr.appendChild(sideClone(side,W,H));$("over").appendChild(wr);side.style.visibility="hidden";
+  wr.animate([{transform:"scale(1) rotate(0)",filter:"none",opacity:1},{transform:"scale(.9) rotate(-25deg)",filter:"hue-rotate(220deg) saturate(2) brightness(1.3)",opacity:1,offset:.3},{transform:"scale(0) rotate(-720deg)",filter:"hue-rotate(260deg) brightness(2)",opacity:0}],{duration:1500,delay:350,easing:"cubic-bezier(.6,0,.9,.5)",fill:"forwards"}).onfinish=()=>wr.remove();
+}
+// lose C: dust clouds roll over the loser's half; when they clear, the half lies under earth and a tombstone rises out of it (+ a skeleton hand)
+// earth = img/fx/earth.webp (Tom, perchance), hand = img/fx/hand.webp (Tom); without those files a drawn earth is used and the hand is left out
+function endGrave(q){
+  const side=$("s"+q);if(!side)return;const r=side.getBoundingClientRect(),W=r.width,H=r.height;
+  const rot=q===1&&S.view==="2p"; // the turned half: the tombstone stands up for that player
+  const box=document.createElement("div");box.className="endfx endgrave";box.style.cssText=`left:${r.left}px;top:${r.top}px;width:${W}px;height:${H}px;${rot?"transform:rotate(180deg)":""}`;
+  const ts=Math.min(W*.5,H*.62),base=H*.4+ts*.42;
+  // 4 shovels of earth, in the rhythm of the shovel sound: 3 heaps around, then the big mound where the tombstone rises
+  const land=[.6,1.15,1.7,2.3],piles=land.map((t,k)=>k===3?[W/2,base-ts*.05,W*.95]:[W*(.15+Math.random()*.7),H*(.1+Math.random()*.8),W*(.42+Math.random()*.18)]);
+  const dirt=piles.map(([x,y,z],k)=>`<img class="gdirt" src="img/fx/dirt.webp" alt="" style="left:${x-z/2}px;top:${y-z/2}px;width:${z}px;--r:${Math.round(Math.random()*360)}deg;animation-delay:${(land[k]-.35).toFixed(2)}s">`).join("");
+  const drops=Array.from({length:70},()=>`<i style="left:${(Math.random()*110-5).toFixed(1)}%;height:${(14+Math.random()*16).toFixed(0)}px;animation-duration:${(.45+Math.random()*.3).toFixed(2)}s;animation-delay:${(3.3+Math.random()*1.2).toFixed(2)}s"></i>`).join("");
+  box.innerHTML=`<div class="gearth"></div>${dirt}<div class="gpit" style="height:${base}px"><img class="gtomb" src="img/fx/tomb.webp" alt="" style="width:${ts}px;margin-left:${-ts/2}px"><img class="ghand" src="img/fx/hand.webp" alt="" style="width:${ts*.42}px;left:calc(50% + ${ts*.46}px)" onerror="this.remove()"></div><div class="grain">${drops}</div>`;
+  $("over").appendChild(box);
+  const later=(f,ms)=>setTimeout(()=>{if(box.isConnected)f()},ms); // nothing happens any more once the end screen is closed (undo, new duel)
+  land.forEach(t=>later(()=>{try{SFX.dirt()}catch(e){}},(t-.27)*1000));
+  later(()=>{side.style.visibility="hidden"},2300);
+  later(()=>{try{SFX.tomb()}catch(e){}},2650);
+  later(()=>{try{SFX.bell(.8,true)}catch(e){}},3200);
+  setTimeout(()=>{if(box.isConnected)try{SFX.rain()}catch(e){}},3300); // when the tombstone stands, it starts to rain
+}
+// win C: heavenly light beams fall on the winner's half, little lights float up, the banner comes down with a halo (sound: SFX.choir)
+function endHeaven(half){
+  const hv=document.createElement("div");hv.className="oheav";
+  hv.innerHTML=Array.from({length:6},(_,k)=>`<i style="left:${4+k*16+Math.random()*6}%;width:${10+Math.random()*12}%;--sk:${(Math.random()-.5)*22}deg;animation-delay:${.15+k*.12}s,${1+Math.random()}s"></i>`).join("");
+  half.prepend(hv);
+  const H=half.clientHeight,W=half.clientWidth;
+  for(let k=0;k<26;k++){
+    const e=document.createElement("div");e.className="oglit omote";const z=3+Math.random()*5;
+    e.style.cssText=`left:${Math.random()*W}px;top:${H*(.6+Math.random()*.45)}px;width:${z}px;height:${z}px`;half.appendChild(e);
+    e.animate([{transform:"translate(0,0)",opacity:0},{opacity:1,offset:.25},{transform:`translate(${(Math.random()-.5)*40}px,${-H*(.5+Math.random()*.4)}px)`,opacity:0}],{duration:2600+Math.random()*1800,delay:400+Math.random()*1400,easing:"ease-out",fill:"forwards"}).onfinish=()=>e.remove();
+  }
+}
+// win B: gold glitter rains down over the winner's half (inside the half, so on the turned half it falls towards that player)
+function endGlitter(half){
+  const H=half.clientHeight,W=half.clientWidth;
+  for(let k=0;k<46;k++){
+    const e=document.createElement("div");e.className="oglit";const z=3+Math.random()*6;
+    e.style.cssText=`left:${Math.random()*W}px;top:${-10-Math.random()*40}px;width:${z}px;height:${z*(Math.random()<.5?1:2.2)}px;background:${["#ffd27a","#fff3c0","#e8c36a","#ffe9a0"][k%4]}`;half.appendChild(e);
+    e.animate([{transform:"translate(0,0) rotate(0)",opacity:0},{opacity:1,offset:.1},{transform:`translate(${(Math.random()-.5)*80}px,${H*(.8+Math.random()*.4)}px) rotate(${Math.random()*720}deg)`,opacity:0}],{duration:1800+Math.random()*1400,delay:Math.random()*900,easing:"cubic-bezier(.3,.1,.7,1)",fill:"forwards"}).onfinish=()=>e.remove();
+  }
+}
+// the winner's banner: embers burst out of it
+function endEmbers(ban,host){
+  const r=ban.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  for(let k=0;k<34;k++){
+    const e=document.createElement("div");e.className="endfx endember";const z=4+Math.random()*7,col=["#ffd27a","#ff8a1f","#fff3c0","#ff5a1f"][k%4];
+    e.style.cssText=`left:${cx-z/2}px;top:${cy-z/2}px;width:${z}px;height:${z}px;background:${col};color:${col}`;(host||$("over")).appendChild(e);
+    const an=Math.random()*Math.PI*2,d=90+Math.random()*190;
+    e.animate([{transform:"translate(0,0) scale(1)",opacity:1},{transform:`translate(${Math.cos(an)*d}px,${Math.sin(an)*d+40}px) scale(.3)`,opacity:0}],{duration:900+Math.random()*700,easing:"cubic-bezier(.1,.8,.3,1)",fill:"forwards"}).onfinish=()=>e.remove();
+  }
 }
 function fieldChip(p){
   const f=S.field[p];
@@ -1177,8 +1405,9 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-p],[data-lp]");
   DLGP=t?(t.dataset.p!==undefined?+t.dataset.p:+t.dataset.lp):S.turn;
 },true);
-dlg.addEventListener("close",()=>{if(dlg.open)return;if(CH&&(CH.ctx.act||CH.ctx.sum))setTimeout(()=>{if(!dlg.open&&CH&&(CH.ctx.act||CH.ctx.sum))chainResolve()},0);{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)playFlip(o)},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
+dlg.addEventListener("close",()=>{if(dlg.open)return;if(WAITQ)waitEnd();if(CH&&(CH.rem||CH.ctx.act||CH.ctx.sum))setTimeout(()=>{if(!dlg.open&&!WAITQ&&CH&&(CH.rem||CH.ctx.act||CH.ctx.sum))chainResolve()},0);{let h=0;for(const q of[0,1]){S.st[q].forEach(e=>{if(e&&e.hold){delete e.hold;h=1}});const f=S.field[q];if(f&&f.hold){delete f.hold;h=1}}if(h)render()}FLIP=null;dlg.classList.remove("flip");const pf=Object.values(PENDFX);PENDFX={};const pl=Object.values(PENDFL);PENDFL={};pl.forEach(o=>setTimeout(()=>{if(!dlg.open)playFlip(o)},250));pf.forEach(o=>setTimeout(()=>{if(!dlg.open)fxStatChange(monEl(o.p,o.i),o.up)},250))}); // (a dialog re-opened straight away keeps its orientation)
 function open(html,after){
+  delete dlg.dataset.nox;
   dlg.innerHTML=html;dlg.dataset.th="menu"; // every pop-up has the card look; card pop-ups replace "menu" with their own colour
   const auto=S.view==="2p"&&DLGP===1&&!/<input|<textarea/.test(html); // with a text field the phone's keyboard stays at the bottom, so those are not turned automatically
   dlg.classList.toggle("flip",FLIP!==null?FLIP:auto);
@@ -1248,7 +1477,7 @@ function guard(w,go,back){
 // graveyard / banished piles: lists of {name,id,type}; custom monsters (no id) are not tracked
 function sendTo(p,kind,c,fromField){
   if(!c||!c.name||c.id===undefined)return;
-  const e={name:c.name,id:c.id,type:c.type};
+  const e={name:c.name,id:c.id,type:c.type};if(c.hk)e.hk=c.hk; // online: a hidden card keeps its key, so its owner's phone can put the real name back
   if(fromField&&kind==="gy"&&/Pendulum/.test(c.type||"")){S.edup[p].unshift(e);addLog(`${c.name} (Pendulum) went to the Extra Deck face-up instead of the Graveyard`);return}
   (kind==="ban"?S.ban:S.gy)[p].unshift(e);
 }
@@ -2007,6 +2236,7 @@ function attackDialog(p,i){
 // the defender gets the chance to respond (Trap, Quick-Play Spell, effect) before the result is calculated
 function battleStart(p,i,k){
   if(S.noAsk||attackWarnings(p,i).length){battleConfirm(p,i,k);return}
+  if(p===0&&remote()){NET.bat={i,k};netCtl({t:"battle",p:1,i:zSwap(i),k:k>=0?zSwap(k):-1});netWait("Waiting for your opponent to respond to the attack…");return}
   const m=S.mon[p][i],q=1-p,t=k>=0?S.mon[q][k]:null,two=S.view==="2p",A=stats(p,i).a;
   const tn=k<0?(two?"you directly":"the opponent directly"):t.pos==="FD"?"a face-down monster":esc(t.name);
   FLIP=two&&q===1?true:(two?false:null);
@@ -2040,6 +2270,7 @@ const sideName=(r,p)=>p===r?"your":"opponent's";
 const youOr=r=>(S.view==="2p"||r===0)?"you":"the opponent";
 function chainOpen(r,html,after){FLIP=S.view==="2p"?r===1:null;open(html,after)}
 function chainAsk(r){ // r = the player who may respond now
+  if(r===1&&remote()){const rem=CH.rem;netCtl({t:"ask",ch:chMirror(CH)});if(rem)CH=null;netWait(rem?"Waiting for your opponent…":"Waiting for your opponent to respond…");return} // online: the opponent answers on their phone
   const last=CH.stack[CH.stack.length-1];
   chainOpen(r,`${closeX()}<h2>Respond?</h2><p style="font-size:16px">${esc(S.view==="2p"?(last.r===r?"You":"Your opponent"):last.who)} ${last.verb||"activated"}: <b>${esc(last.summary)}</b></p>
    <p><b>${S.view!=="2p"&&r===1?"Does the opponent":"Do you"} want to respond</b> to that?</p>
@@ -2071,7 +2302,7 @@ function chainBuild(r){
     ${kinds.map(([l,k])=>`<div class="row"><button data-k="${k}">${l}</button></div>`).join("")}
     <div class="row"><button id="cx">Cancel</button></div>`,()=>{
     dlg.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{R.kind=b.dataset.k;stepSrc()});
-    $("cx").onclick=()=>CH.stack.length?chainAsk(1-CH.stack[CH.stack.length-1].r):(FLIP=null,battleStart(CH.ctx.p,CH.ctx.i,CH.ctx.k));
+    $("cx").onclick=()=>CH.stack.length?chainAsk(1-CH.stack[CH.stack.length-1].r):CH.rem?battleAskRemote(CH.ctx.p,CH.ctx.i,CH.ctx.k):(FLIP=null,battleStart(CH.ctx.p,CH.ctx.i,CH.ctx.k));
   });
   const stepSrc=()=>{
     const items=[];
@@ -2155,10 +2386,10 @@ function chainBuild(r){
 function chainApply(e,log){
   if(e.t==="neg"){CH.negated=true;log.push("The attack is negated.");return}
   if(e.t==="note"){log.push(`Note: ${e.text} (do it by hand)`);return}
-  if(e.t==="sdes"){const c=getZ(e.p,e.i,e.z);if(!c||c.name!==e.nm){log.push(`${e.nm} is no longer on the field — skipped.`);return}chainToPile(e.p,e.z,e.i,c,e.ban?"ban":"gy");log.push(e.text);return}
+  if(e.t==="sdes"){const c=getZ(e.p,e.i,e.z);if(!c||(c.name!==e.nm&&!c.ph)){log.push(`${e.nm} is no longer on the field — skipped.`);return}chainToPile(e.p,e.z,e.i,c,e.ban?"ban":"gy");log.push(e.text);return}
   if(e.t==="lp"){setLP(e.who,S.lp[e.who]+e.n,x=>`${NAME(e.who)}: ${e.n>=0?"+":""}${e.n} (effect) → ${x}`);log.push(e.text);return}
   const m=S.mon[e.p][e.i];
-  if(!m||m.name!==e.nm){log.push(`${e.nm} is no longer on the field — its effect is skipped.`);return}
+  if(!m||(m.name!==e.nm&&!m.ph)){log.push(`${e.nm} is no longer on the field — its effect is skipped.`);return}
   if(e.t==="stat"){
     if(e.u){const t=m.tm&&m.tm.t===S.tc?m.tm:{a:0,d:0,t:S.tc};t.a+=e.a;t.d+=e.d;m.tm=t}else{m.da+=e.a;m.dd+=e.d}
     log.push(e.text);return;
@@ -2166,9 +2397,11 @@ function chainApply(e,log){
   if(e.t==="kill"){removeMon(e.p,e.i,e.ban?"ban":"gy");log.push(e.text)}
 }
 function chainResolve(){
+  if(CH&&CH.rem){netCtl({t:"resolve",ch:chMirror(CH)});CH=null;netWait("Resolving the chain…");return} // online: the chain is resolved on the phone of the player who started it
   const ctx=CH.ctx,log=[],st=CH.stack,negL=new Set();let baseNeg=false;
-  if(ctx.act&&st.length===1){CH=null;FLIP=null;ctx.fin();return} // nobody responded
-  if(ctx.sum&&st.length===1){CH=null;FLIP=null;if(dlg.open)dlg.close();return}
+  const tell=()=>{if(online())netCtl({t:"clog",log:[]})}; // the other phone stops waiting
+  if(ctx.act&&st.length===1){CH=null;FLIP=null;tell();ctx.fin();return} // nobody responded
+  if(ctx.sum&&st.length===1){CH=null;FLIP=null;tell();if(dlg.open)dlg.close();return}
   UNDOMERGE=true;const n0=onField();
   const toGY=(r,z,i,c)=>chainToPile(r,z,i,c,"gy");
   for(let n=st.length-1;n>=0;n--){ // the last activated resolves first
@@ -2195,6 +2428,7 @@ function chainResolve(){
 }
 const onField=()=>[0,1].reduce((n,q)=>n+S.mon[q].filter(Boolean).length+S.st[q].filter(Boolean).length+(S.field[q]?1:0),0);
 function chainShow(ctx,log,neg,baseNeg){
+  if(online())netCtl({t:"clog",log:log.map(swapLog)}); // the other phone sees the same summary
   if(ctx.sum){chainOpen(0,`${closeX()}<h2>Chain resolved</h2><div class="card">${log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div>
       <div class="row"><button id="cok" style="background:#1f5a3a;font-weight:800">OK</button></div>`,()=>{FLIP=null;dlg.classList.remove("flip");$("cok").onclick=()=>dlg.close()});return}
   if(ctx.act){ // a Spell/Trap activation: if it was not negated, its own effect is applied now
@@ -2225,6 +2459,7 @@ function endPausedAttack(){
 }
 const takes=p=>`${NAME(p)} ${p===0?"take":"takes"}`; // "You take" / "Opponent takes"
 function battleConfirm(p,i,k){
+  if(k>=0&&p===0&&remote()&&S.mon[1][k]&&S.mon[1][k].ph){NET.revCont=()=>battleConfirm(p,i,k);netCtl({t:"reveal",k:zSwap(k)});netWait("The face-down monster is flipped face-up…");return}
   const m=S.mon[p][i],q=1-p,A=stats(p,i).a,w=attackWarnings(p,i);let txt,eff,pl;
   const tkey=k<0?"direct":q+":"+k; // 'attack all monsters, once each': a monster can't be attacked twice by the same attacker in one turn
   if(k>=0&&atkInfo(p,i).all&&m.attT===S.tc&&(m.attKs||[]).includes(tkey))w.push("This monster already attacked that monster this turn (once each).");
@@ -2904,24 +3139,24 @@ function startDuel(lp,n,view){
   LPHOLD=true;
   S=fresh(lp,n);S.view=view;S.startPlayer=sp0;S.turn=sp0;render();
   $("splash").hidden=true;if(dlg.open)dlg.close();
-  if(n===3)introSkills();else introCoin();
+  if(n===3)introSkills();else if(!online())introCoin();else if(NET.seat===0)netTossIfReady(NET.rdy={me:true,opp:true});else introLayout("","",`<div class="cres">Waiting for the coin toss…</div>`);
 }
 function introSkills(){
   const two=S.view!=="1p";
-  const lbl=p=>S.skill[p]?"⚡ Skill chosen ✓ (tap to change)":"⚡ Choose a Skill (optional)";
+  const lbl=p=>S.skill[p]?`⚡ ${esc(S.skill[p].ch||"Skill")} ✓ <small style="display:block;font-size:12px;opacity:.8">tap to change</small>`:"⚡ Choose a Skill (optional)";
   const draw=()=>{
     introLayout(`<div class="ibox"><div class="ihead">${two?"YOU":"YOUR SKILL"}</div><button id="isk0">${lbl(0)}</button><div class="isub">Skills are set face-down before the coin toss.</div></div>`,
       two?`<div class="ibox"><div class="ihead">OPPONENT</div><button id="isk1">${lbl(1)}</button><div class="isub">Skills are set face-down before the coin toss.</div></div>`:"",
-      `<button class="igo" id="itoss">Toss the coin 🪙</button>`);
+      online()&&NET.rdy.me?`<button class="igo" id="itoss" disabled>✓ Ready — waiting for your opponent…</button>`:`<button class="igo" id="itoss">${online()?"Ready ✓":"Toss the coin 🪙"}</button>`);
     $("isk0").onclick=()=>skillPick(0);
     if($("isk1"))$("isk1").onclick=()=>skillPick(1);
-    $("itoss").onclick=()=>{dlg.onclose=null;introCoin()};
+    $("itoss").onclick=()=>{dlg.onclose=null;if(!online()){introCoin();return}$("itoss").disabled=true;$("itoss").textContent="✓ Ready — waiting for your opponent…";netReady()};
   };
   dlg.onclose=draw;draw();
 }
-function introCoin(){
+function introCoin(h){
   const two=S.view!=="1p";
-  const heads=rnd(2)===0,winner=heads?0:1;
+  const heads=h!==undefined?h:rnd(2)===0,winner=heads?0:1; // online: the toss is made on the phone of seat 0 and sent
   const forced=S.n===3&&!!S.skill[winner]; // Speed Duel: whoever presented a Skill before the toss and wins it must go first
   const legend=two?"▼ Heads = bottom player · ▲ Tails = top player":"Heads = You · Tails = Opponent";
   introLayout("","",`<div class="coinwrap"><div class="coin" id="coin"><div class="face">H</div><div class="face b">T</div></div></div><div class="cres" id="cres">&nbsp;</div><div class="clegend">${legend}</div>`);
@@ -2931,8 +3166,67 @@ function introCoin(){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{coin.style.transform=`rotateX(${spins*360+(heads?0:180)}deg)`}));
   setTimeout(()=>{
     $("cres").textContent=heads?"HEADS":"TAILS";
-    setTimeout(()=>introChoice(winner,forced,two,legend,heads),700);
+    if(!calmMotion())coinLand();
+    setTimeout(()=>introChoice(winner,forced,two,legend,heads),calmMotion()?700:1100);
   },calmMotion()?200:2000);
+}
+// ---------- Intro effects (Toms wish: the start as spectacular as the end) ----------
+// DUEL! A = shockwave + embers, B = green portal + lightning; board A = both halves slide in and lock in the middle, B = the zones are dealt in like cards.
+// Picked at random every duel; ?duel=A|B and ?board=A|B in the address fix one.
+const introPick=k=>(new RegExp("[?&]"+k+"=([AB])").exec(location.search)||[])[1]||"AB"[rnd(2)];
+function coinLand(){
+  const c=$("coin"),r=c&&c.getBoundingClientRect(),el=$("intro");if(!r)return;
+  try{SFX.stomp(1)}catch(e){}
+  el.classList.remove("shake");void el.offsetWidth;el.classList.add("shake");
+  for(let k=0;k<3;k++){const d=document.createElement("img");d.src="img/fx/dust.webp";d.className="endfx";const z=150+k*30;d.style.cssText=`left:${r.left+r.width/2-z/2+(k-1)*50}px;top:${r.bottom-z*.55}px;width:${z}px;height:${z}px;z-index:1`;el.appendChild(d);
+    d.animate([{transform:"scale(.3)",opacity:0},{transform:"scale(1)",opacity:.9,offset:.3},{transform:`translate(${(k-1)*40}px,-20px) scale(1.4)`,opacity:0}],{duration:1100,easing:"ease-out",fill:"forwards"}).onfinish=()=>d.remove()}
+  const b=$("cres");if(b){b.classList.add("cban");endEmbers(b,el)}
+}
+function introBoom(t,v){ // in every half (.itt), at the moment DUEL! hits
+  const w=document.createElement("div");w.className="ishock";t.appendChild(w);
+  w.animate([{transform:"scale(.2)",opacity:1},{transform:"scale(7)",opacity:0}],{duration:900,easing:"cubic-bezier(.1,.7,.3,1)",fill:"forwards"}).onfinish=()=>w.remove();
+  if(v==="A"){const w2=w.cloneNode();t.appendChild(w2);w2.animate([{transform:"scale(.2)",opacity:.8},{transform:"scale(5)",opacity:0}],{duration:900,delay:140,easing:"cubic-bezier(.1,.7,.3,1)",fill:"both"}).onfinish=()=>w2.remove()}
+  for(let k=0;k<(v==="A"?40:24);k++){ // sparks fly out of DUEL!
+    const e=document.createElement("div");e.className="iember";const z=3+Math.random()*6,col=v==="A"?["#ffd27a","#ff8a1f","#fff3c0","#8be32a"][k%4]:["#b6ff5a","#eaffd0","#8be32a"][k%3];
+    e.style.cssText=`width:${z}px;height:${z}px;margin:${-z/2}px;background:${col};color:${col}`;t.appendChild(e);
+    const an=Math.random()*Math.PI*2,d=120+Math.random()*220;
+    e.animate([{transform:"translate(0,0)",opacity:1},{transform:`translate(${Math.cos(an)*d}px,${Math.sin(an)*d}px) scale(.3)`,opacity:0}],{duration:800+Math.random()*700,easing:"cubic-bezier(.1,.8,.3,1)",fill:"forwards"}).onfinish=()=>e.remove();
+  }
+}
+function introBolt(el){ // DUEL! A: Tom's lightning (img/fx/bolt.webp) strikes from the top of the screen, flickering with the flash
+  const bl=document.createElement("img");bl.src="img/fx/bolt.webp";bl.alt="";bl.className="ibig";
+  const fl=Math.random()<.5?-1:1;bl.style.transform=`translateX(-50%) scaleX(${fl})`;el.appendChild(bl); // centred, sometimes mirrored
+  bl.animate([{clipPath:"inset(0 0 100% 0)",opacity:1},{clipPath:"inset(0 0 0 0)",opacity:1,offset:.09},{opacity:1,offset:.3},{opacity:.25,offset:.42},{opacity:1,offset:.52},{opacity:.9,offset:.75},{clipPath:"inset(0 0 0 0)",opacity:0}],{duration:1150,fill:"forwards"}).onfinish=()=>bl.remove();
+}
+function introPortal(t){ // DUEL! B: a green portal opens behind the letters, lightning flickers around it
+  const pt=document.createElement("img");pt.src="img/fx/banish.webp";pt.className="iportal";t.prepend(pt);
+  pt.animate([{transform:"translate(-50%,-50%) scale(0) rotate(0)",opacity:0},{transform:"translate(-50%,-50%) scale(1) rotate(240deg)",opacity:1,offset:.3},{transform:"translate(-50%,-50%) scale(1.08) rotate(720deg)",opacity:1}],{duration:2600,easing:"ease-out",fill:"forwards"});
+  const W=t.clientWidth,H=t.clientHeight,cx=W/2,cy=H/2;let paths="";
+  for(let k=0;k<6;k++){const an=k/6*Math.PI*2+Math.random()*.5;let x=cx+Math.cos(an)*60,y=cy+Math.sin(an)*60,d=`M${x.toFixed(0)} ${y.toFixed(0)}`;
+    for(let st=0;st<6;st++){x+=Math.cos(an)*W*.08+(Math.random()-.5)*30;y+=Math.sin(an)*W*.08+(Math.random()-.5)*30;d+=` L${x.toFixed(0)} ${y.toFixed(0)}`}paths+=`<path d="${d}"/>`}
+  const bl=document.createElement("div");bl.className="ibolt";bl.innerHTML=`<svg width="${W}" height="${H}">${paths}</svg>`;t.appendChild(bl);
+  bl.animate([{opacity:0},{opacity:1,offset:.05},{opacity:.1,offset:.15},{opacity:1,offset:.25},{opacity:0,offset:.4},{opacity:.9,offset:.55},{opacity:0,offset:.7},{opacity:0}],{duration:1500,fill:"forwards"}).onfinish=()=>bl.remove();
+}
+// after the intro: the board comes in
+function boardIntro(v){
+  if(calmMotion())return;
+  const a=$("s0"),b=$("s1"),m=document.querySelector(".mid");
+  if(v==="A"){ // both halves slide in from the edges and lock in the middle with a spark
+    a.animate([{translate:"0 75vh"},{translate:"0 0"}],{duration:560,easing:"cubic-bezier(.3,1.2,.5,1)"});
+    b.animate([{translate:"0 -75vh"},{translate:"0 0"}],{duration:560,easing:"cubic-bezier(.3,1.2,.5,1)"});
+    m.animate([{opacity:0,scale:".5"},{opacity:0,scale:".5",offset:.55},{opacity:1,scale:"1.08",offset:.85},{opacity:1,scale:"1"}],{duration:700});
+    setTimeout(()=>{try{SFX.clang()}catch(e){}const r=m.getBoundingClientRect(),sp=document.createElement("div");sp.className="endfx ispark";sp.style.cssText=`left:0;right:0;top:${r.top+r.height/2-40}px;height:80px;z-index:60`;document.body.appendChild(sp);
+      sp.animate([{opacity:1,transform:"scaleX(.1)"},{opacity:1,transform:"scaleX(1)",offset:.3},{opacity:0,transform:"scaleX(1.2) scaleY(.2)"}],{duration:500,fill:"forwards"}).onfinish=()=>sp.remove();
+      document.body.animate([{translate:"0 0"},{translate:"0 5px"},{translate:"0 -4px"},{translate:"0 0"}],{duration:260})},330);
+  }else{ // the zones are dealt in like cards, in a wave from the middle out
+    const cy=innerHeight/2;let n=0;
+    document.querySelectorAll("#s0 .slot,#s1 .slot,#s0 .zb,#s1 .zb,#s0 .fchip,#s1 .fchip").forEach(z=>{
+      const r=z.getBoundingClientRect(),dl=Math.abs(r.top+r.height/2-cy)/cy*650+Math.random()*60;
+      z.animate([{opacity:0,transform:"perspective(500px) rotateY(100deg) translateY(-14px) scale(.8)"},{opacity:1,transform:"none"}],{duration:380,delay:dl,easing:"cubic-bezier(.3,1.3,.5,1)",fill:"backwards"});
+    });
+    [0,200,400,600].forEach(t=>setTimeout(()=>{try{SFX.flip()}catch(e){}},t+60));
+  }
+  document.querySelectorAll(".lp").forEach(l=>{l.classList.add("lpglow");setTimeout(()=>l.classList.remove("lpglow"),1900)});
 }
 function introChoice(winner,forced,two,legend,heads){
   const you=winner===0;
@@ -2940,12 +3234,14 @@ function introChoice(winner,forced,two,legend,heads){
       ?`<div class="isub">${two||you?"You":"The opponent"} presented a Skill, so ${two||you?"you":"they"} must go first.</div><button id="ifirst">OK, ${two||you?"I go":"they go"} first</button>`
       :`<div class="isub">${two||you?"You get to choose:":"Tap the opponent's choice:"}</div><button id="ifirst">${two||you?"I go first":"Opponent goes first"}</button><button id="isecond">${two||you?"My opponent goes first":"I go first"}</button>`}</div>`;
   const wait=`<div class="ibox"><div class="ihead">OPPONENT WON THE TOSS</div><div class="isub">They are choosing…</div></div>`;
-  const mid=`<div class="cres" style="font-size:26px">${heads?"HEADS":"TAILS"}</div><div class="clegend">${legend}</div>`;
+  const mid=`<div class="cres cban" style="animation:none">${heads?"HEADS":"TAILS"}</div><div class="clegend">${legend}</div>`;
   if(two)introLayout(you?mine():wait,you?wait:mine(),mid);
-  else introLayout(mine(),"",mid);
+  else introLayout(online()&&!you?wait:mine(),"",mid);
   const pick=first=>{ // first = true -> the toss winner goes first (in 1p without 'you', the buttons are labelled the other way round)
     const winnerFirst=forced?true:first; // 'ifirst' always means: the toss winner goes first
-    introFlash(winnerFirst?winner:1-winner);
+    const st=winnerFirst?winner:1-winner;
+    if(online())netRaw({t:"first",starter:NET.seat?1-st:st});
+    introFlash(st);
   };
   const f=document.querySelectorAll("#ifirst"),sc=document.querySelectorAll("#isecond");
   f.forEach(b=>b.onclick=()=>pick(true));sc.forEach(b=>b.onclick=()=>pick(false));
@@ -2957,16 +3253,25 @@ function introFlash(starter){
   const half=`<div class="itt"><div class="ittl" data-t>${letters}</div><div class="duel" data-d hidden>DUEL!</div></div>`;
   introLayout(half,two?half:"","");
   el.insertAdjacentHTML("beforeend",`<div class="iflash" id="iflash"></div>`);
+  const DV=introPick("duel"),BV=introPick("board");new Image().src=DV==="A"?"img/fx/bolt.webp":"img/fx/banish.webp"; // load the picture before it is needed
   const finish=()=>{
-    LPHOLD=false;S.startPlayer=starter;S.turn=starter;S.tc=1;S.ph=0;S.sub=0;render();
+    LPHOLD=false;S.startPlayer=starter;S.turn=starter;S.tc=1;S.ph=0;S.sub=0;S.t0=Date.now();render();
     el.hidden=true;el.className="";el.innerHTML="";
+    boardIntro(BV);
   };
   if(calm){el.classList.add("out");setTimeout(finish,450);return}
   const t1=word.length*40+500;                       // letters have popped in
+  // B: the lightning sound starts a little earlier, so its crack falls when the portal and the bolts appear
+  if(DV==="B"){setTimeout(()=>{try{SFX.zap()}catch(e){}},Math.max(0,t1-380));setTimeout(()=>el.querySelectorAll(".itt").forEach(introPortal),t1+80)}
+  // A: a thunderclap: the screen goes dark, then a double lightning flash with one big bolt (crack of the sound on DUEL!)
+  let dim=null;if(DV==="A")setTimeout(()=>{dim=document.createElement("div");dim.className="idark";el.appendChild(dim);dim.animate([{opacity:0},{opacity:.72}],{duration:200,fill:"forwards"});try{SFX.thunder()}catch(e){}},t1+120); // a dark layer UNDER the bolt (dimming #intro itself would dim the bolt too)
   setTimeout(()=>{
+    if(DV==="A"){introBolt(el); // first the bolt on the dark screen, a moment later the flash (a white flash at the same time would hide the white bolt)
+      setTimeout(()=>{if(dim){const d=dim;d.animate([{opacity:.72},{opacity:0}],{duration:500,fill:"forwards"}).onfinish=()=>d.remove()}$("iflash").animate([{opacity:0},{opacity:.75,offset:.12},{opacity:.05,offset:.3},{opacity:.6,offset:.42},{opacity:0}],{duration:800})},170)}
+    else{el.querySelectorAll(".itt").forEach(t=>introBoom(t,DV));$("iflash").classList.add("go");SFX.duel()}
     el.querySelectorAll(".ittl").forEach(e=>e.classList.add("push"));
     el.querySelectorAll("[data-d]").forEach(e=>e.hidden=false);
-    $("iflash").classList.add("go");el.classList.add("shake");SFX.duel();
+    el.classList.add("shake");
   },t1+350);
   setTimeout(()=>el.classList.add("out"),t1+350+1500);
   setTimeout(finish,t1+350+1500+520);
@@ -2984,9 +3289,11 @@ const OPTS={
 const APP_NAME="Duelist Scorekeeper";
 const COFFEE_URL="https://ko-fi.com/spawnerindustries";
 $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
-  <div class="row"><button id="view">View: ${S.view==="2p"?"2 players, 1 phone (switch to 1 player)":"1 player, own phone (switch to 2 players)"}</button></div>
-  <div class="row"><button id="n8">New duel (8000 LP, 5 zones)</button><button id="n4">Speed Duel (4000 LP, 3 zones)</button></div>
-  <div class="row"><button id="who">Who starts? Now: ${NAME(S.startPlayer)}</button></div>
+  ${online()?`<div class="card" style="margin:4px 0">🌐 Online · room <b>${esc(NET.code)}</b> · ${NET.peer?"opponent connected":"⏳ opponent not connected"}</div>
+  ${NET.seat===0?`<div class="row"><button id="n8">New duel (8000 LP, 5 zones)</button><button id="n4">Speed Duel (4000 LP, 3 zones)</button></div>`:`<p><small>A new duel is started by the player who made the room.</small></p>`}
+  <div class="row"><button id="nleave" style="background:#6b2230">🚪 Leave the online duel</button></div>`
+  :`<div class="row"><button id="n8">New duel (8000 LP, 5 zones)</button><button id="n4">Speed Duel (4000 LP, 3 zones)</button></div>
+  <div class="row"><button id="who">Who starts? Now: ${NAME(S.startPlayer)}</button></div>`}
   <div class="row volrow"><button id="snd" class="${SFX.on?"":"off"}">${SFX.on?"🔊":"🔇"} Sound</button><input type="range" id="sndv" min="0" max="100" value="${Math.round(SFX.vol*100)}" aria-label="Sound volume"></div>
   <div class="row volrow"><button id="mus" class="${SFX.music?"":"off"}">${SFX.music?"🎵":"🔇"} Music</button><input type="range" id="musv" min="0" max="100" value="${Math.round(SFX.musVol*100)}" aria-label="Music volume"><button id="musn" class="nx" aria-label="Switch music">⏭</button></div>
   <div id="mtn" class="mtn">Now playing: ${esc(SFX.trackName)}</div>
@@ -2996,7 +3303,8 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <div class="row"><button id="home">🏠 Back to main menu</button><button id="cred" style="flex:0 0 96px">📜 Credits</button></div>
   <div class="row"><a href="${COFFEE_URL}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#ff5e5b;color:#fff;font-weight:800;border-radius:10px;padding:10px;text-decoration:none"><span class="kcup">☕</span> Support me on Ko-fi</a></div>
   <p><small>Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami. Yu-Gi-Oh! and all card names and card text are © Konami. This app shows no card artwork. Card data via YGOPRODeck.</small></p>`,()=>{
-  const nd=(lp,n)=>{dlg.close();startDuel(lp,n,S.view)};
+  const nd=(lp,n)=>{dlg.close();if(online())netBegin(lp,n);else startDuel(lp,n,S.view)};
+  if($("nleave"))$("nleave").onclick=()=>{dlg.close();netLeave();showSplash()};
   $("home").onclick=()=>{dlg.close();showSplash()};
   $("cred").onclick=creditsDialog;
   const tog=(id,on,ic)=>{const b=$(id);b.classList.toggle("off",!on);b.textContent=(on?ic:"🔇")+(id==="snd"?" Sound":" Music")};
@@ -3011,10 +3319,214 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
     const go=p=>{dlg.close();setLP(p,0,()=>`${NAME(p)} surrendered`)};
     $("s0").onclick=()=>go(0);if($("s1"))$("s1").onclick=()=>go(1);$("sno").onclick=()=>dlg.close();
   });
-  $("n8").onclick=()=>nd(8000,5);$("n4").onclick=()=>nd(4000,3);
-  $("who").onclick=()=>{S.startPlayer=1-S.startPlayer;S.turn=S.startPlayer;S.tc=1;S.ph=0;S.sub=0;render();dlg.close()};
-  $("view").onclick=()=>{S.view=S.view==="2p"?"1p":"2p";render();dlg.close()};
+  if($("n8")){$("n8").onclick=()=>nd(8000,5);$("n4").onclick=()=>nd(4000,3)}
+  if($("who"))$("who").onclick=()=>{S.startPlayer=1-S.startPlayer;S.turn=S.startPlayer;S.tc=1;S.ph=0;S.sub=0;render();dlg.close()};
 });
+
+// ---------- Online: 1 player per phone (Online-plan.md) ----------
+// What goes over the net is NEUTRAL: seat 0 (made the room) = index 0, seat 1 (joined) = index 1. The phone of seat 1 mirrors it,
+// so on every phone all existing code keeps working with 'me = 0'. The state is sent in 3 parts (side 0, side 1, general), each with
+// its own version number: the highest version wins; on a tie the owner of the part wins (general part: seat 0).
+// Hidden information: my face-down cards and my unused Skill are replaced by a placeholder in what is SENT; the real card stays on my phone.
+const RELAY=/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!/[?&]live\b/.test(location.search)?`ws://${location.hostname}:8787`:"wss://duelist-relay.duelist-relay.workers.dev"; // on the pc: the test relay (npm run dev), ?live = the real one
+var NET=null; // {code,seat,cid,live,ver,last,hide,ws,peer,rdy}
+const NETKEY="ygoref-net",SIDEK=["mon","st","field","gy","ban","skill","edup","pt","lp","sign","prev"],PARTS=["0","1","g","l"]; // l = the log
+const KEEPFD=["pos","own","ctl","cnt","sumT","setT","how","tgt","attT","attN","attKs","noPosT","uid","sid","hk","da","dd","tm"]; // also ATK/DEF changes, so an effect of the opponent on my face-down monster is kept // what the opponent may know of a face-down card
+const online=()=>!!(NET&&NET.live&&S.view==="1p");
+function netSave(){try{if(NET)localStorage.setItem(NETKEY,JSON.stringify({code:NET.code,seat:NET.seat,cid:NET.cid,live:NET.live,ver:NET.ver,hide:NET.hide}));else localStorage.removeItem(NETKEY)}catch(e){}}
+function netLoad(){try{return JSON.parse(localStorage.getItem(NETKEY))}catch(e){return null}}
+const netNew=(code,seat)=>({code,seat,cid:(netLoad()||{}).cid||newUid(),live:false,ver:{0:0,1:0,g:0,l:0},last:{},hide:{},peer:false,rdy:{me:false,opp:false}});
+const clone=o=>o==null?o:JSON.parse(JSON.stringify(o));
+// ---- mirror: players 0 and 1 swapped (also the 2 shared Extra Monster Zones: the left one for me is the right one for my opponent)
+function swapLog(t){return String(t).replace(/\bOpponent's\b/g,"\u0001").replace(/\bOpponent\b/g,"\u0002").replace(/\bYour\b/g,"Opponent's").replace(/\bYou\b/g,"Opponent").replace(/\u0001/g,"Your").replace(/\u0002/g,"You")}
+function mirror(s){
+  const m=clone(s),md=s.n===5,zi=i=>md&&i===EMZ0?EMZ1:md&&i===EMZ1?EMZ0:i;
+  const card=c=>{if(!c||typeof c!=="object")return;if(c.own!==undefined)c.own=1-c.own;if(c.tgt&&c.tgt.p!=null){c.tgt.p=1-c.tgt.p;c.tgt.i=zi(c.tgt.i)}
+    if(c.attKs)c.attKs=c.attKs.map(k=>{const a=/^(\d):(\d+)$/.exec(k);return a?(1-a[1])+":"+zi(+a[2]):k})};
+  for(const k of SIDEK)if(Array.isArray(m[k]))m[k].reverse();
+  for(const p of[0,1]){if(md&&m.mon[p]){const a=m.mon[p][EMZ0];m.mon[p][EMZ0]=m.mon[p][EMZ1];m.mon[p][EMZ1]=a}
+    (m.mon[p]||[]).forEach(card);(m.st[p]||[]).forEach(card);card(m.field&&m.field[p])}
+  if(m.turn!=null)m.turn=1-m.turn;if(m.startPlayer!=null)m.startPlayer=1-m.startPlayer;
+  if(m.paused){m.paused.p=1-m.paused.p;m.paused.i=zi(m.paused.i);if(m.paused.k>=0)m.paused.k=zi(m.paused.k)}
+  if(m.log)m.log=m.log.map(swapLog);
+  return m;
+}
+// ---- the neutral state as it is SENT: my face-down cards and unused Skill hidden
+function netOut(){
+  const real=[],names=new Set(),up=new Set();
+  const mine=[...S.mon[0],...S.st[0],S.field[0]];
+  mine.forEach(c=>{if(c&&c.pos==="FD"){if(!c.hk)c.hk=newUid();NET.hide[c.hk]=clone(c);names.add(c.name)}});
+  for(const p of[0,1])[...S.mon[p],...S.st[p],S.field[p]].forEach(c=>{if(c&&c.pos!=="FD")up.add(c.name)});
+  const s=clone(S);delete s.view;
+  const ph=c=>{if(!c||c.pos!=="FD")return c;const o={name:"Set card",id:-1,atk:0,def:0,da:0,dd:0,type:"",desc:"",ph:1};KEEPFD.forEach(k=>{if(c[k]!==undefined)o[k]=c[k]});return o};
+  s.mon[0]=s.mon[0].map(ph);s.st[0]=s.st[0].map(ph);s.field[0]=ph(s.field[0]);
+  const k=s.skill&&s.skill[0];if(k&&!k.uses){if(!S.skill[0].hk)S.skill[0].hk=newUid();NET.hide[S.skill[0].hk]=clone(S.skill[0]);s.skill[0]={id:0,name:"Skill",ch:k.ch,desc:"",uses:0,ph:1,hk:S.skill[0].hk}}
+  const secret=[...names].filter(n=>!up.has(n)); // a name in the log could give a Set card away
+  if(secret.length)s.log=(s.log||[]).map(t=>secret.reduce((a,n)=>a.split(n).join("a Set card"),String(t)));
+  return NET.seat?mirror(s):s;
+}
+function netParts(N){
+  const side=p=>{const o={};SIDEK.forEach(k=>{o[k]=Array.isArray(N[k])?N[k][p]:null});return o};
+  const g={};for(const k in N)if(!SIDEK.includes(k)&&k!=="log")g[k]=N[k];
+  return{0:side(0),1:side(1),g,l:{log:N.log||[]}};
+}
+function netCtl(o){netSend();netRaw(o)} // a question/answer: first send the state it is about, then the message (they arrive in this order)
+function netRaw(o){if(NET&&NET.ws&&NET.ws.readyState===1)try{NET.ws.send(JSON.stringify(o))}catch(e){}}
+function netSync(now){if(!online())return;clearTimeout(NET.tm);if(now)netSend();else NET.tm=setTimeout(()=>netSend(),80)}
+function netSend(full){
+  if(!online())return;clearTimeout(NET.tm);
+  const P=netParts(netOut()),out={};
+  for(const k of PARTS){const str=JSON.stringify(P[k]);if(str!==NET.last[k]){NET.ver[k]=(NET.ver[k]||0)+1;NET.last[k]=str;out[k]={v:NET.ver[k],d:P[k]}}else if(full)out[k]={v:NET.ver[k],d:P[k]}}
+  if(Object.keys(out).length)netRaw({t:"st",parts:out});
+  netSave();
+}
+// ---- a state from the other phone: take the parts with a higher version, put my real hidden cards back
+function netIn(parts){
+  if(!online())return;
+  netSend(); // first send what is still waiting here, then compare
+  const take=PARTS.filter(k=>{const o=parts[k];if(!o)return false;const own=k==="g"||k==="l"?NET.seat===0:+k===NET.seat,mv=NET.ver[k]||0;return o.v>mv||(o.v===mv&&!own&&JSON.stringify(o.d)!==NET.last[k])});
+  if(!take.length)return;
+  const N=NET.seat?mirror(S):clone(S);delete N.view;
+  const byHk={};[...S.mon[0],...S.st[0],S.field[0],S.skill&&S.skill[0]].forEach(c=>{if(c&&c.hk)byHk[c.hk]=c});
+  const realOf=c=>{if(!c||!c.ph||!c.hk)return c;const r=clone(byHk[c.hk]||NET.hide[c.hk]);if(!r)return c;KEEPFD.forEach(k=>{if(c[k]!==undefined)r[k]=c[k];else if(k!=="hk"&&k!=="uid"&&k!=="sid")delete r[k]});return r};
+  const pile=e=>{if(!e||!e.hk||e.id!==-1)return e;const r=byHk[e.hk]||NET.hide[e.hk];return r?Object.assign({},e,{name:r.name,id:r.id,type:r.type}):e};
+  const oldTurn=S.turn,oldPh=S.ph;
+  for(const k of take){
+    const {v,d}=parts[k];NET.ver[k]=v;NET.last[k]=JSON.stringify(d);
+    if(k==="l"){N.log=clone(d.log||[]);continue}
+    if(k==="g"){for(const x in N)if(!SIDEK.includes(x)&&x!=="log")delete N[x];Object.assign(N,clone(d));continue}
+    const p=+k,dd=clone(d);
+    if(p===NET.seat){dd.mon=(dd.mon||[]).map(realOf);dd.st=(dd.st||[]).map(realOf);dd.field=realOf(dd.field);
+      ["gy","ban","edup"].forEach(x=>{if(dd[x])dd[x]=dd[x].map(pile)});
+      if(dd.skill&&dd.skill.ph){const r=byHk[dd.skill.hk]||NET.hide[dd.skill.hk];if(r)dd.skill=Object.assign(clone(r),{uses:dd.skill.uses,lastT:dd.skill.lastT})}}
+    SIDEK.forEach(x=>{if(!Array.isArray(N[x]))N[x]=[null,null];N[x][p]=dd[x]});
+  }
+  const L=NET.seat?mirror(N):N;L.view=S.view;S=L;
+  UNDO=[];LASTSTR=null; // undo only takes back my own changes since the opponent's last move
+  render();
+  if(S.turn===0&&S.ph===0&&(oldTurn!==0||oldPh!==0))setTimeout(drawAsk,350); // the opponent ended their turn: my Draw Phase
+}
+const netBusy=()=>(dlg.open&&!WAITQ)||document.body.classList.contains("picking");
+function netFlushQ(force){if(NET&&NET.q&&(force||!netBusy())){const q=NET.q;NET.q=null;netIn(q)}}
+setInterval(()=>netFlushQ(false),400);
+
+// ---------- Online step 2: questions for the other player go to THEIR phone ----------
+// The player who started it (attacker, summoner, activator) owns the chain: its CH (with the 'fin' callback) stays on that phone.
+// The question goes back and forth; the player who may answer sees the normal pop-ups, the other sees 'Waiting…'.
+// The chain is always resolved on the owner's phone; the other phone gets the summary. A copy of CH on the other phone has rem:true.
+var WAITQ=false; // waiting for the opponent's answer: the waiting pop-up can't be closed and incoming state is applied at once
+const remote=()=>online()&&NET.peer;
+const zSwap=i=>S.n===5&&i===EMZ0?EMZ1:S.n===5&&i===EMZ1?EMZ0:i;
+function netWait(txt){WAITQ=true;open(`<h2>⏳ ${esc(txt)}</h2><p><small>Your opponent answers on their own phone.</small></p>`);dlg.dataset.nox="1"}
+function waitEnd(){WAITQ=false;delete dlg.dataset.nox}
+function chMirror(ch){ // a chain as the other phone sees it (players swapped)
+  const c=JSON.parse(JSON.stringify({ctx:ch.ctx,stack:ch.stack,negated:!!ch.negated})),x=c.ctx; // (JSON drops ctx.fin)
+  if(x.act)x.act.p=1-x.act.p;else if(x.sum){x.sum.p=1-x.sum.p;x.sum.i=zSwap(x.sum.i)}else{x.p=1-x.p;x.i=zSwap(x.i);if(x.k>=0)x.k=zSwap(x.k)}
+  c.stack.forEach(R=>{R.r=1-R.r;if(R.p!=null)R.p=1-R.p;R.who=swapLog(R.who||"");R.summary=swapLog(R.summary||"");if(R.src&&R.src.z==="mon")R.src.i=zSwap(R.src.i);
+    (R.effects||[]).forEach(e=>{if(e.p!=null){e.p=1-e.p;if(e.t!=="sdes")e.i=zSwap(e.i)}if(typeof e.who==="number")e.who=1-e.who;e.text=swapLog(e.text||"")})});
+  return c;
+}
+const chOwner=ch=>{const x=ch.ctx;return x.act?x.act.p:x.sum?x.sum.p:x.p};
+function netQ(m){
+  if(m.t==="ask"||m.t==="resolve"){
+    const inc=m.ch,mine=chOwner(inc)===0; // after the mirror: owner 0 = this phone owns the chain
+    if(mine){const fin=CH&&!CH.rem&&CH.ctx&&CH.ctx.fin;CH={ctx:Object.assign(inc.ctx,fin?{fin}:{}),stack:inc.stack,negated:inc.negated}}
+    else CH=Object.assign(inc,{rem:true});
+    waitEnd();
+    if(m.t==="ask")chainAsk(0);else chainResolve();
+    return;
+  }
+  if(m.t==="clog"){waitEnd();if(m.log&&m.log.length)open(`${closeX()}<h2>Chain resolved</h2><div class="card">${m.log.map(x=>`<div>• ${esc(x)}</div>`).join("")}</div><div class="row"><button onclick="dlg.close()" style="background:#1f5a3a;font-weight:800">OK</button></div>`);else if(dlg.open)dlg.close();return}
+  if(m.t==="battle"){battleAskRemote(m.p,m.i,m.k);return}
+  if(m.t==="bans"){const b=NET.bat;waitEnd();NET.bat=null;if(!b)return;
+    if(m.a==="no")battleConfirm(0,b.i,b.k);
+    else{if(dlg.open)dlg.close();S.paused={p:0,i:b.i,k:b.k};render();toast("⏸ Your opponent paused the attack to respond by hand")}
+    return}
+  if(m.t==="reveal"){const t=S.mon[0][m.k];if(t&&t.pos==="FD"){t.pos="DEF";addLog(`${t.name} was attacked and flipped face-up`);render()}netSend();netRaw({t:"revealed"});return} // the attacked face-down monster is flipped face-up (official: in the Damage Step)
+  if(m.t==="revealed"){const f=NET.revCont;NET.revCont=null;waitEnd();if(f)f();return}
+}
+// the defender's phone: the attacker asks "do you respond?"
+function battleAskRemote(p,i,k){
+  const m=S.mon[p][i],t=k>=0?S.mon[1-p][k]:null;if(!m){netCtl({t:"bans",a:"no"});return}
+  const tn=k<0?"you directly":t?(t.pos==="FD"?"your face-down monster":esc(t.name)):"your monster";
+  open(`<h2>⚔ ${esc(m.name)} attacks ${tn}</h2><p style="font-size:16px">${esc(m.name)} (${stats(p,i).a} ATK) attacks.</p>
+   <p><b>Do you want to respond</b> with a Trap, a Quick-Play Spell or an effect?</p>
+   <div class="row"><button id="rno" style="background:#1f5a3a;font-weight:800">No, continue</button></div>
+   <div class="row"><button id="rbuild" style="background:#8a5a14;font-weight:800">Yes — activate (effect builder)</button></div>
+   <div class="row"><button id="ryes">Yes — pause, I'll do it by hand</button></div>`,()=>{
+    dlg.dataset.nox="1";
+    $("rno").onclick=()=>{delete dlg.dataset.nox;netCtl({t:"bans",a:"no"});dlg.close()};
+    $("rbuild").onclick=()=>{delete dlg.dataset.nox;CH={ctx:{p,i,k},stack:[],negated:false,rem:true};chainBuild(0)};
+    $("ryes").onclick=()=>{delete dlg.dataset.nox;netCtl({t:"bans",a:"pause"});dlg.close();toast("⏸ Attack paused — resolve your effect, the attacker continues")};
+  });
+}
+dlg.addEventListener("cancel",e=>{if(dlg.dataset.nox)e.preventDefault()}); // Esc / back button: a waiting or required pop-up stays
+
+// ---- connection
+function netConnect(create){
+  if(!NET)return;clearTimeout(NET.rt);
+  if(NET.ws){try{NET.ws.onclose=null;NET.ws.close()}catch(e){}}
+  netBar("🔌 Connecting…");
+  const ws=NET.ws=new WebSocket(`${RELAY}/room/${NET.code}?seat=${NET.seat}&cid=${encodeURIComponent(NET.cid)}${create?"&create=1":""}`);
+  ws.onmessage=e=>{if(e.data==="pong")return;let m;try{m=JSON.parse(e.data)}catch(x){return}netMsg(m)};
+  ws.onclose=()=>{if(!NET||NET.ws!==ws)return;NET.peer=false;netBar("🔌 Connection lost — reconnecting…");NET.rt=setTimeout(()=>netConnect(),NET.back=Math.min(15000,(NET.back||1000)*1.6))};
+  ws.onopen=()=>{NET.back=1000;clearInterval(NET.pi);NET.pi=setInterval(()=>{if(ws.readyState===1)ws.send("ping")},25000)};
+}
+function netMsg(m){
+  if(!NET)return;
+  if(m.t==="err"){const why=m.err;const w=NET;NET.ws.onclose=null;
+    if(why==="taken"&&w.seat===0&&!w.live){NET=netNew(roomCode(),0);NET.mode=w.mode;netSave();netConnect(true);lobbyDraw(true);return}
+    NET=null;netSave();netBar("");
+    open(`${closeX()}<h2>Online</h2><p>${why==="notfound"?"Room <b>"+esc(w.code)+"</b> was not found. Check the code with your opponent.":why==="full"?"Room <b>"+esc(w.code)+"</b> already has 2 players.":"The room is no longer available."}</p><div class="row"><button onclick="dlg.close()">OK</button></div>`);return}
+  if(m.t==="hello"){NET.peer=m.peer;netBar(m.peer||!NET.live?"":"⏳ Opponent disconnected — waiting…");if(NET.live&&m.peer)netSend(true);lobbyDraw();return}
+  if(m.t==="peer"&&!m.on&&WAITQ){waitEnd();if(dlg.open)dlg.close();toast("Your opponent disconnected");NET.bat=null;NET.revCont=null}
+  if(m.t==="peer"){NET.peer=m.on;netBar(m.on||!NET.live?"":"⏳ Opponent disconnected — waiting…");if(m.on&&NET.live)netSend(true);if(m.on)SFX.pok&&SFX.pok();lobbyDraw();return}
+  if(m.t==="st"){if(netBusy()){NET.q=NET.q||{};for(const k in m.parts)if(!NET.q[k]||m.parts[k].v>=NET.q[k].v)NET.q[k]=m.parts[k]}else netIn(m.parts);return}
+  if(["ask","resolve","clog","battle","bans","reveal","revealed"].includes(m.t)){netFlushQ(true);netQ(m);return}
+  if(m.t==="start"&&NET.seat===1){netBegin(m.lp,m.n);return}
+  if(m.t==="ready"){NET.rdy.opp=true;netTossIfReady();return}
+  if(m.t==="toss"&&NET.seat===1){introCoin(!m.heads);return}
+  if(m.t==="first"){introFlash(NET.seat?1-m.starter:m.starter);return}
+  if(m.t==="leave"){NET.peer=false;if(NET.live){netBar("");open(`${closeX()}<h2>Online</h2><p>Your opponent left the duel.</p><div class="row"><button id="lv">Leave too</button><button onclick="dlg.close()">Stay</button></div>`,()=>{$("lv").onclick=()=>{dlg.close();netLeave();showSplash()}})}lobbyDraw();return}
+}
+function netBar(t){let b=$("netbar");if(!b){b=document.createElement("div");b.id="netbar";document.body.appendChild(b)}b.textContent=t;b.hidden=!t}
+function netLeave(){if(!NET)return;netRaw({t:"leave"});const ws=NET.ws;clearInterval(NET.pi);clearTimeout(NET.rt);clearTimeout(NET.tm);NET=null;netSave();netBar("");wakeLock(false);if(ws){ws.onclose=null;setTimeout(()=>{try{ws.close()}catch(e){}},150)}}
+const roomCode=()=>Array.from({length:5},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[rnd(32)]).join("");
+// keep the screen on during an online duel (a sleeping phone loses the connection)
+async function wakeLock(on){try{if(!on){if(wakeLock.l){wakeLock.l.release();wakeLock.l=null}return}if("wakeLock"in navigator&&!wakeLock.l&&document.visibilityState==="visible"){wakeLock.l=await navigator.wakeLock.request("screen");wakeLock.l.addEventListener("release",()=>{wakeLock.l=null})}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState!=="visible"||!NET)return;if(NET.live)wakeLock(true);if(!NET.ws||NET.ws.readyState>1)netConnect()});
+// ---- lobby: make a room (seat 0) or join one (seat 1)
+function lobbyCreate(mode){if(NET)netLeave();NET=netNew(roomCode(),0);NET.mode=mode;netSave();netConnect(true);lobbyDraw(true)}
+function lobbyJoin(){
+  open(`${closeX()}<h2>Join a room</h2><p>Type the room code from your opponent's phone.</p><input type="text" id="rc" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="ABCDE" style="text-transform:uppercase;font-size:24px;letter-spacing:6px;text-align:center"><div class="row"><button onclick="dlg.close()">Cancel</button><button id="rj" style="background:#1f5a3a">Join</button></div>`,()=>{
+    const go=()=>{const c=$("rc").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length!==5){$("rc").focus();return}if(NET)netLeave();NET=netNew(c,1);netSave();netConnect(false);lobbyDraw(true)};
+    $("rj").onclick=go;$("rc").onkeydown=e=>{if(e.key==="Enter")go()};$("rc").focus()});
+}
+function lobbyDraw(force){
+  if(!NET||NET.live)return;if(!force&&!(dlg.open&&dlg.dataset.lobby))return;
+  const host=NET.seat===0,speed=NET.mode==="speed";
+  open(`<button class="x" id="lbx">✕</button><h2>Play online</h2>${host
+    ?`<p>Room code:</p><div class="roomcode">${esc(NET.code)}</div><p><small>Your opponent opens ${esc(APP_NAME)} on their own phone, chooses <b>1 player · own phone</b> and taps <b>Join room</b>.</small></p>
+      <p>${NET.peer?"✅ <b>Opponent connected!</b>":"⏳ Waiting for your opponent…"}</p><p><small>Rules: ${speed?"Speed Duel (4000 LP, 3 zones, Skills)":"Master Duel (8000 LP, 5 zones)"}</small></p>
+      <div class="row"><button id="lbs" style="background:#8be32a;color:#0b2200;font-weight:800" ${NET.peer?"":"disabled"}>Start duel</button></div>`
+    :`<p>Room <b>${esc(NET.code)}</b></p><p>${NET.peer?"✅ Connected. Waiting for the other player to start the duel…":NET.ws&&NET.ws.readyState===1?"⏳ The other player is not connected right now…":"🔌 Connecting…"}</p>`}
+    <div class="row"><button id="lbl">Leave the room</button></div>`,()=>{
+    dlg.dataset.lobby="1";
+    const bye=()=>{delete dlg.dataset.lobby;netLeave();dlg.close()};
+    $("lbx").onclick=bye;$("lbl").onclick=bye;
+    if($("lbs"))$("lbs").onclick=()=>{delete dlg.dataset.lobby;dlg.close();netBegin(speed?4000:8000,speed?3:5)};
+  });
+}
+function netBegin(lp,n){ // both phones: a new online duel
+  if(!NET)return;
+  if(NET.seat===0)netRaw({t:"start",lp,n});
+  NET.live=true;NET.ver={0:0,1:0,g:0,l:0};NET.last={};NET.hide={};NET.rdy={me:false,opp:false};netSave();
+  if(dlg.open){delete dlg.dataset.lobby;dlg.close()}
+  wakeLock(true);netBar(NET.peer?"":"⏳ Opponent disconnected — waiting…");
+  startDuel(lp,n,"1p");
+}
+function netReady(){NET.rdy.me=true;netSend();netRaw({t:"ready"});netTossIfReady()}
+function netTossIfReady(){if(!online()||NET.seat!==0||!NET.rdy.me||!NET.rdy.opp)return;NET.rdy={me:false,opp:false};const heads=rnd(2)===0;netRaw({t:"toss",heads});introCoin(heads)}
 
 // ---------- Splash ----------
 const CREDITS_MUSIC=[ // Pixabay Content License: free to use, credit not required (but nice)
@@ -3023,11 +3535,16 @@ const CREDITS_MUSIC=[ // Pixabay Content License: free to use, credit not requir
   ["Beat Loop Guitar","ShimaFM","https://pixabay.com/music/alternative-hip-hop-beat-loop-guitar-615675/"],
   ["City Edge - Soulful Rock Loop","Sonican","https://pixabay.com/music/rock-city-edge-soulful-rock-loop-603503/"],
   ["Game Music Loop 18","XtremeFreddy","https://pixabay.com/music/video-games-game-music-loop-18-153392/"]];
+const CREDITS_SFX=[ // Pixabay Content License
+  ["Digging with shovel","freesound_community","https://pixabay.com/sound-effects/film-special-effects-digging-with-shovel-63069/"],
+  ["Lightning Spell Impact","DRAGON-STUDIO","https://pixabay.com/sound-effects/film-special-effects-lightning-spell-impact-393920/"],
+  ["Thunder clap","u_q2hb2391vb","https://pixabay.com/sound-effects/film-special-effects-thunder-clap-521194/"]];
 function creditsDialog(){
   open(`${closeX()}<h2>Credits</h2>
   <p><b>Music</b> (Pixabay)</p>
   ${CREDITS_MUSIC.map(([t,a,u])=>`<div class="card" style="margin:4px 0;padding:8px 10px"><a href="${u}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">${esc(t)}</a><br><small>by ${esc(a)} · Pixabay</small></div>`).join("")}
-  <p><b>Sound effects</b><br><small>Made for this app (generated with Web Audio + own recordings).</small></p>
+  <p><b>Sound effects</b><br><small>Made for this app (generated with Web Audio + own recordings), plus (Pixabay):</small></p>
+  ${CREDITS_SFX.map(([t,a,u])=>`<div class="card" style="margin:4px 0;padding:8px 10px"><a href="${u}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">${esc(t)}</a><br><small>by ${esc(a)} · Pixabay</small></div>`).join("")}
   <p><b>Card data</b><br><small>YGOPRODeck. Card names and card text © Konami.</small></p>
   <p><b>Logo, card back, field images, icons</b><br><small>Own work by Spawner Industries, partly created with AI image tools.</small></p>
   <p><b>Logo font</b><br><small><a href="https://www.iconian.com" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Danger Flight</a> by Iconian Fonts (Daniel Zadorozny).</small></p>
@@ -3037,24 +3554,28 @@ function showSplash(){
   const sp=$("splash");
   let view=S.view==="1p"?"1p":"2p",mode=S.n===3?"speed":"master";
   const hasDuel=S.tc>1||S.ph>0||(S.log&&S.log.length>0)||S.lp.some(v=>v!==(S.n===3?4000:8000));
-  const kofi="https://ko-fi.com/spawnerindustries";
+  const kofi="https://ko-fi.com/spawnerindustries",saved=netLoad();
   function draw(){
     sp.innerHTML=`<img src="img/logo.png" alt="Duelist Scorekeeper">
     <div class="by">by Spawner Industries</div>
     <div class="grp"><div class="lbl">View</div><div class="opt">
       <button data-v="2p" class="${view==="2p"?"on":""}">2 players<small>1 phone</small></button>
-      <button data-v="1p" class="${view==="1p"?"on":""}">1 player<small>own phone</small></button></div></div>
+      <button data-v="1p" class="${view==="1p"?"on":""}">1 player<small>own phone · online</small></button></div></div>
     <div class="grp"><div class="lbl">Rules</div><div class="opt">
       <button data-m="master" class="${mode==="master"?"on":""}">Master Duel<small>8000 LP, 5 zones</small></button>
       <button data-m="speed" class="${mode==="speed"?"on":""}">Speed Duel<small>4000 LP, 3 zones</small></button></div></div>
-    <button class="go" id="spGo">Start duel</button>
-    ${hasDuel?'<button class="go2" id="spCont">Continue previous duel</button>':""}
+    ${view==="1p"?`<button class="go" id="spMk">Create room</button><button class="go2" id="spJn">Join room</button>${saved&&saved.live?`<button class="go2" id="spCont">Continue online duel (room ${esc(saved.code)})</button>`:""}`
+      :`<button class="go" id="spGo">Start duel</button>${hasDuel&&S.view!=="1p"?'<button class="go2" id="spCont">Continue previous duel</button>':""}`}
     <a class="kofi" href="${kofi}" target="_blank" rel="noopener"><span class="kcup">☕</span> Support me on Ko-fi</a>
     <small class="fine">Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami.</small>`;
     sp.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{view=b.dataset.v;draw()});
     sp.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{mode=b.dataset.m;draw()});
-    $("spGo").onclick=()=>startDuel(mode==="speed"?4000:8000,mode==="speed"?3:5,view);
-    const c=$("spCont");if(c)c.onclick=()=>{S.view=view;FBS.on=false;FBS.a=FBS.b="";render();sp.hidden=true}; // the field pictures fade in again when the duel continues
+    if($("spGo"))$("spGo").onclick=()=>{if(NET)netLeave();startDuel(mode==="speed"?4000:8000,mode==="speed"?3:5,view)};
+    if($("spMk"))$("spMk").onclick=()=>lobbyCreate(mode);
+    if($("spJn"))$("spJn").onclick=()=>lobbyJoin();
+    const c=$("spCont");if(c)c.onclick=()=>{ // the field pictures fade in again when the duel continues
+      if(view==="1p"){if(!NET||NET.code!==saved.code){if(NET)netLeave();NET=Object.assign(netNew(saved.code,saved.seat),saved,{last:{}})}S.view="1p";const P=netParts(netOut());PARTS.forEach(k=>NET.last[k]=JSON.stringify(P[k]));wakeLock(true);netConnect()}else if(NET)netLeave();
+      S.view=view;FBS.on=false;FBS.a=FBS.b="";render();sp.hidden=true};
   }
   draw();sp.hidden=false;sp.scrollTop=0;
 }
