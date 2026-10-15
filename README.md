@@ -63,7 +63,7 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 - At the end of the duel the app reminds you which cards to give back to their owner.
 
 **Helps with effects that change numbers (never runs the rest)**
-- The pop-up of every face-up monster, Spell and Trap shows the **card text straight away**, so you do not need the real card.
+- The pop-up of every face-up monster, Spell and Trap shows the **card text straight away**, so you can read an effect at once. You still play with your real cards; the app only keeps score.
 - Effects that change **Life Points or ATK/DEF by a fixed amount** become buttons built from the card text, for example *Apply: you gain 1000 LP*, *This turn: +1000 ATK (this card)* or *choose a monster*. One-shot cards go to the Graveyard when you apply them. You decide whether the effect really happens; the app never does it for you.
 - Effects that trigger **when a card leaves the field** have their own section, and **Standby Phase** effects (Snatch Steal, Lava Golem, Cure Mermaid, upkeep costs, counters) appear in a reminder when the Standby Phase starts.
 - A monster can be placed in the Spell & Trap Zone as a **Continuous Spell** (Pumprincess) or as an **Equip card** (Black Metal Dragon, Union monsters), and the stats follow.

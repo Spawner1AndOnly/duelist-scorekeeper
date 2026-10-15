@@ -63,7 +63,7 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 - Op het einde van het duel herinnert de app je aan welke kaarten je moet teruggeven aan hun eigenaar.
 
 **Helpt bij effecten die getallen veranderen (voert de rest nooit uit)**
-- Het venster van elk open monster, elke open Spell en Trap toont **meteen de kaarttekst**, zodat je de echte kaart niet nodig hebt.
+- Het venster van elk open monster, elke open Spell en Trap toont **meteen de kaarttekst**, zodat je een effect direct kan nalezen. Je speelt nog altijd met je echte kaarten; de app houdt enkel de score bij.
 - Effecten die **levenspunten of ATK/DEF met een vast bedrag** veranderen, worden knoppen op basis van de kaarttekst, bijvoorbeeld *Apply: you gain 1000 LP*, *This turn: +1000 ATK (this card)* of *choose a monster*. Eenmalige kaarten gaan naar de Graveyard als je ze toepast. Jij beslist of het effect echt gebeurt; de app doet het nooit voor je.
 - Effecten die afgaan **als een kaart het veld verlaat** hebben een eigen deel, en **Standby Phase**-effecten (Snatch Steal, Lava Golem, Cure Mermaid, onderhoudskosten, tellers) komen in een herinnering als de Standby Phase begint.
 - Een monster kan als **Continuous Spell** (Pumprincess) of als **Equip-kaart** (Black Metal Dragon, Union-monsters) in de Spell & Trap-zone worden gelegd, en de stats volgen.
