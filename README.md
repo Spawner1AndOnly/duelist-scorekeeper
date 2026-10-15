@@ -31,10 +31,10 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 
 **Plays on one phone or two**
 - *2 players, 1 phone:* the opponent's half of the screen is upside down so both of you can read it. The middle strip with the buttons and the pop-ups turn towards the player whose turn it is (and you can flip a pop-up by hand).
-- *1 player, own phone:* each player uses their own phone.
+- *1 player, own phone (online):* each player uses their own phone and joins the same room with a 5-letter code. You always see yourself at the bottom. Face-down cards and a Skill stay hidden from your opponent, "Respond?" questions (attack, summon, activation) go to the opponent's phone, and the animations play on both phones.
 
 **Knows the turn structure**
-- Draw, Standby, Main, Battle and End Phase, and the first-turn rules (no draw and no Battle Phase for the first player).
+- Draw, Standby, Main, Battle and End Phase, and the first-turn rules (no draw and no Battle Phase for the first player). In **Quick** mode (the default) a window asks you to draw, and a Standby Phase where no card has anything to do is skipped; in **Manual** mode you tap through every phase yourself.
 - A **Rules** button that tells you what you may and may not do in the current phase.
 - Normal Summon limit, Tribute counts, Flip Summon, changing battle position, attacks, and Spell/Trap timing are checked. If something is not allowed the app tells you why, and you can still choose **Do it anyway**, because a card effect may allow it.
 
@@ -65,7 +65,7 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 **Helps with effects that change numbers (never runs the rest)**
 - The pop-up of every face-up monster, Spell and Trap shows the **card text straight away**, so you can read an effect at once. You still play with your real cards; the app only keeps score.
 - Effects that change **Life Points or ATK/DEF by a fixed amount** become buttons built from the card text, for example *Apply: you gain 1000 LP*, *This turn: +1000 ATK (this card)* or *choose a monster*. One-shot cards go to the Graveyard when you apply them. A one-shot Spell/Trap with just one such effect is applied straight away, once your opponent has had the chance to respond, and then goes to the Graveyard. Cards with several effects keep their buttons, and you press the one you want. The app does not check costs or conditions: you decide whether you may activate the card.
-- Effects that trigger **when a card leaves the field** have their own section, and **Standby Phase** effects (Snatch Steal, Lava Golem, Cure Mermaid, upkeep costs, counters) appear in a reminder when the Standby Phase starts.
+- Effects that trigger **when a card leaves the field** have their own section, and **Standby Phase** effects (Snatch Steal, Lava Golem, Cure Mermaid, upkeep costs, counters) appear in a reminder window when the Standby Phase starts. You tap **Apply** per effect (or **Apply all**); the app does not apply them by itself.
 - A monster can be placed in the Spell & Trap Zone as a **Continuous Spell** (Pumprincess) or as an **Equip card** (Black Metal Dragon, Union monsters), and the stats follow.
 - A **warning** appears for ATK/DEF changes the app cannot work out (a condition, "becomes", "double"), and you adjust by hand.
 - When ATK/DEF change, the monster glows **green with white plusses** or **red with white minuses**; LP changes and hits flash the half of the player they happen to.
@@ -83,11 +83,11 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 ## What it does not do
 
 - **It is not a card game.** There is no deck, no hand and no drawing. Your real cards (or any other way you play) stay in your hands.
-- **It does not run card effects.** It only offers buttons for effects with a fixed number. No real chains, no costs, no "destroy that card" (the effect builder at an attack is a simple helper, not a rules engine). You apply effects yourself with the life-point buttons and by moving cards to the Graveyard, and the app helps where it can.
+- **It does not run card effects.** It only offers buttons for effects with a fixed number. No full chain rules, no costs, no "destroy that card" (the effect builder, used when someone responds to an attack, a summon or a Spell/Trap activation, is a simple helper, not a rules engine). You apply effects yourself with the life-point buttons and by moving cards to the Graveyard, and the app helps where it can.
 - **It does not track** Xyz materials, Fusion/Link materials or tokens as real cards, and "banished instead" effects are not applied automatically.
 - **It does not check your deck**: no deck size, no forbidden/limited list.
 - **It is not a judge.** It follows the official rules as far as they were available to the author, but you can always override it, and it can be wrong. If a card or a ruling says otherwise, the card and the rulebook win.
-- No online play and no syncing between two phones (yet), no timer, no match tracking (best of 3).
+- Online play with two phones is new and still being tested. No timer, no match tracking (best of 3).
 - No card pictures. English only.
 
 ## Rules used

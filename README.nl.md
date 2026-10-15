@@ -31,10 +31,10 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 
 **Op één gsm of op twee**
 - *2 spelers, 1 gsm:* de helft van de tegenstander staat ondersteboven, zodat jullie allebei kunnen lezen. De middenstrook met de knoppen en de pop-ups draaien mee naar de speler die aan de beurt is (en je kunt een pop-up met de hand omdraaien).
-- *1 speler, eigen gsm:* elke speler gebruikt zijn eigen gsm.
+- *1 speler, eigen gsm (online):* elke speler gebruikt zijn eigen gsm en komt in dezelfde kamer met een code van 5 tekens. Je ziet jezelf altijd onderaan. Face-down kaarten en een Skill blijven verborgen voor je tegenstander, de "Respond?"-vragen (aanval, summon, activatie) gaan naar de gsm van je tegenstander, en de animaties spelen op beide gsm's.
 
 **Kent de beurtstructuur**
-- Draw, Standby, Main, Battle en End Phase, en de regels van de eerste beurt (de starter trekt niet en heeft geen Battle Phase).
+- Draw, Standby, Main, Battle en End Phase, en de regels van de eerste beurt (de starter trekt niet en heeft geen Battle Phase). In **Quick**-modus (standaard) vraagt een venster of je getrokken hebt en wordt een Standby Phase waarin geen enkele kaart iets te doen heeft overgeslagen; in **Manual**-modus tik je zelf door elke fase.
 - Een **Rules**-knop die uitlegt wat je in de huidige fase wel en niet mag.
 - De limiet van één Normal Summon, het aantal Tributes, Flip Summon, positie wisselen, aanvallen en de timing van Spells en Traps worden gecontroleerd. Mag iets niet, dan zegt de app waarom, en je kunt toch kiezen voor **Do it anyway**, want een kaarteffect kan het wel toelaten.
 
@@ -65,7 +65,7 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 **Helpt bij effecten die getallen veranderen (voert de rest nooit uit)**
 - Het venster van elk open monster, elke open Spell en Trap toont **meteen de kaarttekst**, zodat je een effect direct kan nalezen. Je speelt nog altijd met je echte kaarten; de app houdt enkel de score bij.
 - Effecten die **levenspunten of ATK/DEF met een vast bedrag** veranderen, worden knoppen op basis van de kaarttekst, bijvoorbeeld *Apply: you gain 1000 LP*, *This turn: +1000 ATK (this card)* of *choose a monster*. Eenmalige kaarten gaan naar de Graveyard als je ze toepast. Een eenmalige Spell/Trap met maar één zo'n effect wordt meteen toegepast, nadat je tegenstander kon reageren, en gaat dan naar de Graveyard. Kaarten met meerdere effecten houden hun knoppen en jij drukt op degene die je wil. De app controleert geen kosten of voorwaarden: jij beslist of je de kaart mag activeren.
-- Effecten die afgaan **als een kaart het veld verlaat** hebben een eigen deel, en **Standby Phase**-effecten (Snatch Steal, Lava Golem, Cure Mermaid, onderhoudskosten, tellers) komen in een herinnering als de Standby Phase begint.
+- Effecten die afgaan **als een kaart het veld verlaat** hebben een eigen deel, en **Standby Phase**-effecten (Snatch Steal, Lava Golem, Cure Mermaid, onderhoudskosten, tellers) komen in een herinneringsvenster als de Standby Phase begint. Je tikt per effect op **Apply** (of **Apply all**); de app past ze niet zelf toe.
 - Een monster kan als **Continuous Spell** (Pumprincess) of als **Equip-kaart** (Black Metal Dragon, Union-monsters) in de Spell & Trap-zone worden gelegd, en de stats volgen.
 - Een **waarschuwing** verschijnt bij ATK/DEF-wijzigingen die de app niet kan uitrekenen (een voorwaarde, "wordt", "verdubbelt"), en dan pas je het zelf aan.
 - Verandert ATK/DEF, dan gloeit het monster **groen met witte plusjes** of **rood met witte minnetjes**; levenspunten en treffers laten de helft van de betrokken speler flitsen.
@@ -83,11 +83,11 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 ## Wat de app niet doet
 
 - **Het is geen kaartspel.** Er is geen deck, geen hand en geen kaarten trekken. Je echte kaarten (of hoe je ook speelt) blijven in je eigen handen.
-- **Hij voert geen kaarteffecten uit.** Hij biedt enkel knoppen voor effecten met een vast getal. Geen echte kettingen, geen kosten, geen "vernietig die kaart" (de effectbouwer bij een aanval is een eenvoudige hulp, geen regelmotor). Je past effecten zelf toe met de LP-knoppen en door kaarten naar de Graveyard te verplaatsen, en de app helpt waar het kan.
+- **Hij voert geen kaarteffecten uit.** Hij biedt enkel knoppen voor effecten met een vast getal. Geen volledige kettingregels, geen kosten, geen "vernietig die kaart" (de effectbouwer, die je gebruikt als iemand reageert op een aanval, een summon of een Spell/Trap-activatie, is een eenvoudige hulp, geen regelmotor). Je past effecten zelf toe met de LP-knoppen en door kaarten naar de Graveyard te verplaatsen, en de app helpt waar het kan.
 - **Hij houdt niet bij:** Xyz-materialen, Fusion-/Link-materialen en tokens als echte kaarten, en "banished instead"-effecten worden niet automatisch toegepast.
 - **Hij controleert je deck niet:** geen decksgrootte, geen verboden-/beperkt-lijst.
 - **Hij is geen scheidsrechter.** Hij volgt de officiële regels voor zover de maker ze kon opzoeken, maar je kunt hem altijd overrulen en hij kan fout zijn. Zegt een kaart of een uitspraak iets anders, dan wint de kaart en het regelboek.
-- Geen online spel en geen synchronisatie tussen twee gsm's (nog niet), geen timer, geen bijhouden van wedstrijden (best of 3).
+- Online spelen met twee gsm's is nieuw en wordt nog getest. Geen timer, geen bijhouden van wedstrijden (best of 3).
 - Geen kaartafbeeldingen. Alleen in het Engels.
 
 ## Gebruikte regels
