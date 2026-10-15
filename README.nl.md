@@ -73,7 +73,7 @@ Je duel wordt op je gsm bewaard, dus de app afsluiten kost je niets (gebruik **C
 **Rekent mee met ATK/DEF-wijzigingen**
 - Equip Spells en Field Spells die ATK/DEF verhogen of verlagen worden automatisch toegepast als de kaarttekst dat toelaat, ook bonussen die groeien met tellers of het aantal monsters.
 - Verandert een kaart ATK/DEF op een manier die de app niet kan uitrekenen (een voorwaarde, een effect voor één beurt), dan meldt de app dat en pas je het zelf aan.
-- Elke Field Spell heeft een eigen achtergrondbeeld; het scherm verandert zodra er een wordt gespeeld.
+- Wordt er een Field Spell gespeeld, dan verandert de achtergrond naar een passend landschap (zee, berg, vuur…). Sommige Field Spells hebben een eigen beeld, de andere delen er één met gelijkaardige kaarten, dus niet elke Field Spell heeft een unieke achtergrond.
 
 **Praktisch**
 - Tellers op kaarten, "deze beurt gebruikt"-markeringen en "één keer per Duel"-vinkjes.

@@ -73,7 +73,7 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 **Does the maths for stat changes**
 - Equip Spells and Field Spells that raise or lower ATK/DEF are applied automatically when the card text allows it, including bonuses that grow with counters or the number of monsters.
 - When a card changes ATK/DEF in a way the app cannot work out (a condition, a one-turn effect), it says so and you adjust by hand.
-- Every Field Spell has its own background picture; the screen changes when one is played.
+- When a Field Spell is played, the screen background changes to a matching landscape (sea, mountain, fire…). Some Field Spells have their own picture; the others share one with similar cards, so not every Field Spell has a unique background.
 
 **Practical**
 - Counters on cards, "used this turn" markers and "once per Duel" ticks.
