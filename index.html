@@ -45,6 +45,7 @@ html,body{margin:0;height:100%;background:var(--bg) url(img/bg-embers.jpg) cente
 dialog.flip{transform:rotate(180deg)}.x.fl{float:left;font-size:20px}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 70px);transform:translateX(-50%);background:#000c;color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
 #toast.on{opacity:1}
+dialog button.chg{animation:chg .6s ease-out}@keyframes chg{0%{box-shadow:0 0 0 3px #ffe08a,0 0 18px #ffd34d;filter:brightness(1.35)}100%{filter:none}}
 .slot,.fchip{position:relative}.bdg{position:absolute;top:1px;right:3px;font-size:10px;font-weight:800;color:var(--gold);text-shadow:0 1px 2px #000;pointer-events:none}
 .lk{font-size:10px;letter-spacing:1px;color:var(--gold);line-height:1;white-space:nowrap}
 #pickbar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;display:flex;align-items:center;gap:10px;background:#1c1109ee;border:2px solid var(--gold);border-radius:14px;padding:8px 12px;font-weight:800;font-size:14px;box-shadow:0 4px 18px #000b;width:max-content;max-width:calc(100vw - 16px);box-sizing:border-box}#pickbar span{min-width:0;line-height:1.25}#pickbar button{white-space:nowrap;flex:none}#pickbar.rot{transform:translate(-50%,-50%) rotate(180deg)}
@@ -2972,6 +2973,14 @@ function introFlash(starter){
 }
 
 // ---------- Menu ----------
+// on/off options: the button switches in place (label = what is active now) and glows briefly, the menu stays open
+const OPTS={
+  ask:{lbl:()=>`Ask the defender before each attack: ${S.noAsk?"OFF":"ON"}`,flip:()=>{S.noAsk=!S.noAsk}},
+  asks:{lbl:()=>`Ask for a response when a monster is Summoned: ${S.noAskSum?"OFF":"ON"}`,flip:()=>{S.noAskSum=!S.noAskSum}},
+  askd:{lbl:()=>S.phManual?"Phases: 🖐 Manual<small style='display:block;font-weight:400'>you click through every phase</small>":"Phases: ⚡ Quick<small style='display:block;font-weight:400'>draw pop-up, an empty Standby Phase is skipped</small>",flip:()=>{S.phManual=!S.phManual}},
+  banl:{lbl:()=>`Forbidden &amp; Limited List (TCG): ${BANON?"ON":"OFF"}${S.n===3?" <small>(not used in a Speed Duel)</small>":""}`,flip:()=>{BANON=!BANON;try{localStorage.setItem("ygoref-ban",BANON?"1":"0")}catch(e){}if(BANON)banList()}},
+  aska:{lbl:()=>`Ask for a response when a Spell/Trap is activated: ${S.noAskAct?"OFF":"ON"}`,flip:()=>{S.noAskAct=!S.noAskAct}},
+};
 const APP_NAME="Duelist Scorekeeper";
 const COFFEE_URL="https://ko-fi.com/spawnerindustries";
 $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
@@ -2981,11 +2990,7 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <div class="row volrow"><button id="snd" class="${SFX.on?"":"off"}">${SFX.on?"🔊":"🔇"} Sound</button><input type="range" id="sndv" min="0" max="100" value="${Math.round(SFX.vol*100)}" aria-label="Sound volume"></div>
   <div class="row volrow"><button id="mus" class="${SFX.music?"":"off"}">${SFX.music?"🎵":"🔇"} Music</button><input type="range" id="musv" min="0" max="100" value="${Math.round(SFX.musVol*100)}" aria-label="Music volume"><button id="musn" class="nx" aria-label="Switch music">⏭</button></div>
   <div id="mtn" class="mtn">Now playing: ${esc(SFX.trackName)}</div>
-  <div class="row"><button id="ask">Ask the defender before each attack: ${S.noAsk?"OFF":"ON"}</button></div>
-  <div class="row"><button id="asks">Ask for a response when a monster is Summoned: ${S.noAskSum?"OFF":"ON"}</button></div>
-  <div class="row"><button id="askd">${S.phManual?"Phases: 🖐 Manual<small style='display:block;font-weight:400'>you click through every phase</small>":"Phases: ⚡ Quick<small style='display:block;font-weight:400'>draw pop-up, an empty Standby Phase is skipped</small>"}</button></div>
-  <div class="row"><button id="banl">Forbidden &amp; Limited List (TCG): ${BANON?"ON":"OFF"}${S.n===3?" <small>(not used in a Speed Duel)</small>":""}</button></div>
-  <div class="row"><button id="aska">Ask for a response when a Spell/Trap is activated: ${S.noAskAct?"OFF":"ON"}</button></div>
+  ${["ask","asks","askd","banl","aska"].map(k=>`<div class="row"><button id="${k}">${OPTS[k].lbl()}</button></div>`).join("")}
   <div class="row"><button id="surr" style="background:#6b2230">🏳 Surrender…</button></div>
   <p><small>A new duel resets LP, monsters and the turn counter.</small></p>
   <div class="row"><button id="home">🏠 Back to main menu</button><button id="cred" style="flex:0 0 96px">📜 Credits</button></div>
@@ -3001,11 +3006,7 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   $("sndv").onchange=()=>SFX.pok(); // a test 'pok' at the new volume
   $("musn").onclick=()=>{SFX.nextTrack();tog("mus",true,"🎵");$("mtn").textContent="Now playing: "+SFX.trackName};
   $("musv").oninput=e=>{SFX.setMusVol(e.target.value/100);if(!SFX.music){SFX.setMusic(true);tog("mus",true,"🎵")}};
-  $("ask").onclick=()=>{S.noAsk=!S.noAsk;render();dlg.close()};
-  $("asks").onclick=()=>{S.noAskSum=!S.noAskSum;render();dlg.close()};
-  $("askd").onclick=()=>{S.phManual=!S.phManual;render();dlg.close()};
-  $("banl").onclick=()=>{BANON=!BANON;try{localStorage.setItem("ygoref-ban",BANON?"1":"0")}catch(e){}if(BANON)banList();dlg.close();toast(BANON?"Forbidden & Limited List: ON":"Forbidden & Limited List: OFF")};
-  $("aska").onclick=()=>{S.noAskAct=!S.noAskAct;render();dlg.close()};
+  for(const k in OPTS)$(k).onclick=()=>{OPTS[k].flip();render();const b=$(k);b.innerHTML=OPTS[k].lbl();b.classList.remove("chg");void b.offsetWidth;b.classList.add("chg")}; // switch in place, the menu stays open
   $("surr").onclick=()=>open(`${closeX()}<h2>Surrender?</h2><p>The duel ends and the other player wins.</p><div class="row"><button id="s0" style="background:#6b2230">I surrender</button>${S.view==="1p"?"":`<button id="s1" style="background:#6b2230">Opponent surrenders</button>`}</div><div class="row"><button id="sno">Cancel</button></div>`,()=>{
     const go=p=>{dlg.close();setLP(p,0,()=>`${NAME(p)} surrendered`)};
     $("s0").onclick=()=>go(0);if($("s1"))$("s1").onclick=()=>go(1);$("sno").onclick=()=>dlg.close();

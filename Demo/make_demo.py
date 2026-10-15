@@ -64,6 +64,11 @@ r"""D.cap("Battle: Blue-Eyes (3700 ATK) attacks Silent Magician LV8 (3500 ATK)")
 r"""D.cap("Silent Magician LV8 is destroyed. Player 2 takes 200 damage.");await D.sleep(2200);
  D.cap("Main Phase 2: Set Tyrant Wing (a Trap that equips and gives up to 2 attacks)");await D.phase(1,500);await D.setSt(0,"Tyrant Wing");await D.sleep(500);
  D.cap("End of turn 5");await D.phase(2,500);await D.sleep(500);""",
+# ---------------- Settings: switch the music twice ----------------
+r"""D.cap("Settings: switch the background music");await D.sleep(1500);D.cap();   // the menu covers the caption: 'Now playing' tells the story
+ await D.touch($("btnMenu"));$("btnMenu").onclick();await D.sleep(1600);
+ await D.click(/⏭/,300);await D.sleep(4800);
+ await D.click(/⏭/,300);await D.sleep(5200);D.close();await D.sleep(400);""",
 # ---------------- Turn 6: Player 2 passes, Turn 7: Player 1 ----------------
 r"""D.cap("Turn 6 – Player 2 passes");await D.phase(6,380);D.close();await D.sleep(300);""",
 r"""D.cap("Turn 7 – Player 1: Blue-Eyes (3700 ATK) attacks Cyberdark End Dragon (3800 DEF) – blocked");await D.phase(3,450);D.close();
@@ -115,7 +120,7 @@ def run(which,scenes,out):
     with sync_playwright() as p:
         b=p.chromium.launch(channel="chrome",headless=True,args=["--force-device-scale-factor=2","--autoplay-policy=no-user-gesture-required"])
         ctx=b.new_context(viewport={"width":390,"height":844},device_scale_factor=2,is_mobile=True,has_touch=True)
-        ctx.add_init_script(f"try{{if(!sessionStorage.getItem('demoSeed')){{localStorage.setItem({json.dumps(KEY)},{json.dumps(state)});sessionStorage.setItem('demoSeed','1')}}}}catch(e){{}}")
+        ctx.add_init_script(f"try{{if(!sessionStorage.getItem('demoSeed')){{localStorage.setItem({json.dumps(KEY)},{json.dumps(state)});sessionStorage.setItem('demoSeed','1');localStorage.setItem('ygoref-mv','0.8')}}}}catch(e){{}}")   # music slider at 80%: clearly audible in the video
         ctx.add_init_script(AUDIO_JS)
         pg=ctx.new_page();errs=[]
         pg.on("pageerror",lambda e:errs.append(str(e)))

@@ -34,9 +34,20 @@ class Recorder:
 # Sound: demo-audio.js (init script) taps every Web Audio connection to the speakers into a MediaRecorder; __audStop() returns {t0 (epoch s), b64 webm}
 AUDIO_JS=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"demo-audio.js"),encoding="utf-8").read()
 def mux(video,aud,t0_video,out,dur):
-    """aud = result of __audStop(); the sound starts aud['t0']-t0_video seconds into the video; dur = video length (s)."""
-    if not aud:os.replace(video,out);return "no audio"
-    wa=video+".webm";open(wa,"wb").write(base64.b64decode(aud["b64"]))
-    d=max(0,int(round((aud["t0"]-t0_video)*1000)))
-    subprocess.run([FF,"-y","-loglevel","error","-i",video,"-i",wa,"-filter_complex",f"[1:a]adelay={d}:all=1,apad=whole_dur={dur:.3f}[a]","-map","0:v","-map","[a]","-c:v","copy","-c:a","aac","-b:a","160k","-ar","48000","-t",f"{dur:.3f}","-movflags","+faststart",out],check=True)
-    os.remove(wa);os.remove(video);return f"audio delay {d} ms"
+    """aud = result of __audStop() = {fx, mus}; each track starts its t0-t0_video seconds into the video; dur = video length (s).
+    out = video with effects + music mixed; next to it <name>.fx.m4a = the effects alone, same timing (for the trailer)."""
+    tr=[(k,a) for k,a in (("fx",(aud or {}).get("fx")),("mus",(aud or {}).get("mus"))) if a]
+    if not tr:os.replace(video,out);return "no audio"
+    ins=[];flt=[];info=[]
+    for n,(k,a) in enumerate(tr):
+        wa=f"{video}.{k}.webm";open(wa,"wb").write(base64.b64decode(a["b64"]));ins+=["-i",wa]
+        d=max(0,int(round((a["t0"]-t0_video)*1000)));info.append(f"{k} {d} ms")
+        flt.append(f"[{n+1}:a]adelay={d}:all=1,apad=whole_dur={dur:.3f},atrim=0:{dur:.3f}[{k}]")
+    labels="".join(f"[{k}]" for k,_ in tr)
+    mix=f"{labels}amix=inputs={len(tr)}:normalize=0[a]" if len(tr)>1 else f"{labels}anull[a]"
+    fc=";".join(flt)+";"+mix
+    subprocess.run([FF,"-y","-loglevel","error","-i",video]+ins+["-filter_complex",fc,"-map","0:v","-map","[a]","-c:v","copy","-c:a","aac","-b:a","160k","-ar","48000","-t",f"{dur:.3f}","-movflags","+faststart",out],check=True)
+    if tr[0][0]=="fx":   # the effects alone, for the trailer
+        subprocess.run([FF,"-y","-loglevel","error"]+ins[:2]+["-filter_complex",flt[0].replace("[1:a]","[0:a]"),"-map","[fx]","-c:a","aac","-b:a","160k","-ar","48000",out.replace(".mp4",".fx.m4a")],check=True)
+    for k,_ in tr:os.remove(f"{video}.{k}.webm")
+    os.remove(video);return "audio: "+", ".join(info)
