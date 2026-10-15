@@ -142,6 +142,12 @@ dialog::backdrop{background:#000a}
 dialog h2{margin:0 0 8px;font-size:18px}
 dialog .row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 dialog .row button{flex:1;min-width:56px}
+dialog .volrow{align-items:center}
+dialog .volrow button{flex:0 0 112px}
+dialog .volrow button.off{opacity:.55}
+dialog .mtn{font-size:12px;opacity:.75;text-align:right;margin:-4px 2px 4px}
+dialog .volrow button.nx{flex:0 0 44px;min-width:44px;padding-left:0;padding-right:0}
+dialog .volrow input[type=range]{flex:1;min-width:0;accent-color:#d4a940;height:28px}
 input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid #7a5230;background:#0a0705;color:var(--txt);user-select:text}
 .res{max-height:38dvh;overflow:auto;margin-top:6px}
 .res div{padding:8px;border-bottom:1px solid #4a3220;font-size:14px}
@@ -403,12 +409,13 @@ function phaseClick(){
 const $=id=>document.getElementById(id);
 // ---------- Sound: all sounds are generated here with Web Audio (no files, no copyright) ----------
 const SFX=(()=>{
-  let ac=null,master,echo,on=true;
-  try{on=localStorage.getItem("ygoref-snd")!=="0"}catch(e){}
+  let ac=null,master,echo,on=true,vol=1,mOn=true,mVol=.5,mSrc=null,mT=null,mGain=null,mIdx=0,mBusy=false;
+  const LS=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},SV=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+  on=LS("ygoref-snd","1")!=="0";mOn=LS("ygoref-mus","1")!=="0";vol=+LS("ygoref-sv",1);mVol=+LS("ygoref-mv",.5);
   function init(){
     if(ac)return ac;
     const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
-    ac=new C();master=ac.createGain();master.gain.value=.55;
+    ac=new C();master=ac.createGain();master.gain.value=.55*vol;
     const comp=ac.createDynamicsCompressor();master.connect(comp);comp.connect(ac.destination);
     echo=ac.createGain();const d=ac.createDelay(1),fb=ac.createGain(),lp=ac.createBiquadFilter(),wet=ac.createGain();
     d.delayTime.value=.13;fb.gain.value=.4;lp.type="lowpass";lp.frequency.value=2400;wet.gain.value=.5;
@@ -448,10 +455,62 @@ const SFX=(()=>{
     s.connect(g);g.connect(master);if(o.echo){const e=ac.createGain();e.gain.value=o.echo===true?1:o.echo;g.connect(e);e.connect(echo)} // o.echo = how much echo (1 = full)
     s.start();return true;
   }
+  // background music (Pixabay, free to use): ONE track repeats endlessly; 'switch music' (⏭) cross-fades to the next one and the choice is remembered.
+  // Its own volume, separate from the sound effects, straight to the speakers (not through the compressor).
+  const MUS=["music5","music1","music2","music3","music4"],mBufs={},mLoad={};
+  const MUSN=["Mystical Energy","Epic History","Beat Loop Guitar","City Edge","Game Loop 18"];
+  mIdx=Math.min(MUS.length-1,Math.max(0,+LS("ygoref-mt",0)||0)); // 0 = Mystical Energy (default)
+  const mLevel=()=>.35*mVol*mVol+.0001; // squared = feels even on the slider
+  function mFetch(i){
+    if(mLoad[i])return mLoad[i];
+    return mLoad[i]=fetch("snd/"+MUS[i]+".m4a").then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(b=>new Promise((ok,no)=>ac.decodeAudioData(b,ok,no)))
+      .then(d=>mBufs[i]=d).catch(()=>{mLoad[i]=null;return null});
+  }
+  function mPlay(i){
+    mBusy=true;
+    mFetch(i).then(b=>{
+      mBusy=false;
+      if(!mOn||!b)return;
+      const t0=ac.currentTime,old=mSrc,oldT=mT;
+      if(old){try{oldT.gain.setValueAtTime(oldT.gain.value,t0);oldT.gain.linearRampToValueAtTime(.0001,t0+2);old.stop(t0+2.1)}catch(e){}}
+      mIdx=i;mT=ac.createGain();mT.connect(mGain);
+      mT.gain.setValueAtTime(.0001,t0);mT.gain.linearRampToValueAtTime(1,t0+2);
+      mSrc=ac.createBufferSource();mSrc.buffer=b;mSrc.loop=true;mSrc.connect(mT);
+      const [ls,le]=mEdges(b);mSrc.loopStart=ls;mSrc.loopEnd=le;mSrc.start(t0,ls);
+    });
+  }
+  function mEdges(b){ // skip silence at the start/end of the file (encoder padding, a silent tail) so the loop joins without a gap
+    const d=b.getChannelData(0),sr=b.sampleRate,thr=.003,max=Math.min(d.length,sr*2);
+    let s=0,e=d.length-1;while(s<max&&Math.abs(d[s])<thr)s++;while(e>d.length-max&&Math.abs(d[e])<thr)e--;
+    if(s>=max)s=0;if(e<=d.length-max)e=d.length-1;
+    return [s/sr,(e+1)/sr];
+  }
+  function musGo(){
+    if(!mOn||mSrc||mBusy||!init())return;
+    if(ac.state==="suspended")ac.resume();
+    if(!mGain){mGain=ac.createGain();mGain.connect(ac.destination)}
+    mGain.gain.setValueAtTime(mLevel(),ac.currentTime);
+    mPlay(mIdx);
+  }
+  function musStop(){if(!mSrc)return;const s=mSrc,g=mT;mSrc=mT=null;try{g.gain.setTargetAtTime(.0001,ac.currentTime,.15);s.stop(ac.currentTime+.8)}catch(e){}}
+  document.addEventListener("visibilitychange",()=>{if(!ac)return;try{document.hidden?ac.suspend():ac.resume()}catch(e){}}); // no sound or music while the app is in the background
   const api={
     get on(){return on},
-    set(v){on=!!v;try{localStorage.setItem("ygoref-snd",on?"1":"0")}catch(e){}if(on)this.click()},
-    unlock(){if(on&&init()){loadSamples();if(ac.state==="suspended")ac.resume()}},
+    get vol(){return vol},
+    get music(){return mOn},
+    get musVol(){return mVol},
+    get musPlaying(){return !!mSrc&&ac.state==="running"},
+    get musTrack(){return mIdx},
+    set(v){on=!!v;SV("ygoref-snd",on?"1":"0");if(on)this.click()},
+    setVol(v){vol=Math.max(0,Math.min(1,+v));SV("ygoref-sv",vol);if(master)master.gain.value=.55*vol},
+    setMusic(v){mOn=!!v;SV("ygoref-mus",mOn?"1":"0");mOn?musGo():musStop()},
+    setMusVol(v){mVol=Math.max(0,Math.min(1,+v));SV("ygoref-mv",mVol);if(mGain)mGain.gain.setTargetAtTime(mLevel(),ac.currentTime,.05)},
+    get trackName(){return MUSN[mIdx]},
+    nextTrack(){ // 'switch music': next track, remembered on this phone
+      if(mBusy)return;mIdx=(mIdx+1)%MUS.length;SV("ygoref-mt",mIdx);
+      if(!mOn)this.setMusic(true);else if(mSrc)mPlay(mIdx);else musGo();
+    },
+    unlock(){if(on&&init()){loadSamples();if(ac.state==="suspended")ac.resume()}musGo()},
     pok(){tone({f:400,f2:250,type:"sine",dur:.045,vol:.22})}, // very short, dry 'pok' (apply, OK, yes ...)
     close(){tone({f:640,f2:520,type:"sine",dur:.05,vol:.15});tone({f:210,f2:100,type:"sine",dur:.13,vol:.35,t:.075});noise({dur:.04,vol:.06,f:500,type:"lowpass",t:.075})}, // ka-dunk, no echo
     click(){tone({f:520,f2:300,type:"sine",dur:.08,vol:.2,echo:true});noise({dur:.03,vol:.05,f:700,type:"lowpass"})}, // a dull, soft tap with a fading echo
@@ -2867,19 +2926,28 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <div class="row"><button id="view">View: ${S.view==="2p"?"2 players, 1 phone (switch to 1 player)":"1 player, own phone (switch to 2 players)"}</button></div>
   <div class="row"><button id="n8">New duel (8000 LP, 5 zones)</button><button id="n4">Speed Duel (4000 LP, 3 zones)</button></div>
   <div class="row"><button id="who">Who starts? Now: ${NAME(S.startPlayer)}</button></div>
-  <div class="row"><button id="snd">Sound: ${SFX.on?"ON":"OFF"}</button></div>
+  <div class="row volrow"><button id="snd" class="${SFX.on?"":"off"}">${SFX.on?"🔊":"🔇"} Sound</button><input type="range" id="sndv" min="0" max="100" value="${Math.round(SFX.vol*100)}" aria-label="Sound volume"></div>
+  <div class="row volrow"><button id="mus" class="${SFX.music?"":"off"}">${SFX.music?"🎵":"🔇"} Music</button><input type="range" id="musv" min="0" max="100" value="${Math.round(SFX.musVol*100)}" aria-label="Music volume"><button id="musn" class="nx" aria-label="Switch music">⏭</button></div>
+  <div id="mtn" class="mtn">Now playing: ${esc(SFX.trackName)}</div>
   <div class="row"><button id="ask">Ask the defender before each attack: ${S.noAsk?"OFF":"ON"}</button></div>
   <div class="row"><button id="asks">Ask for a response when a monster is Summoned: ${S.noAskSum?"OFF":"ON"}</button></div>
   <div class="row"><button id="banl">Forbidden &amp; Limited List (TCG): ${BANON?"ON":"OFF"}${S.n===3?" <small>(not used in a Speed Duel)</small>":""}</button></div>
   <div class="row"><button id="aska">Ask for a response when a Spell/Trap is activated: ${S.noAskAct?"OFF":"ON"}</button></div>
   <div class="row"><button id="surr" style="background:#6b2230">🏳 Surrender…</button></div>
   <p><small>A new duel resets LP, monsters and the turn counter.</small></p>
-  <div class="row"><button id="home">🏠 Back to main menu</button></div>
+  <div class="row"><button id="home">🏠 Back to main menu</button><button id="cred" style="flex:0 0 96px">📜 Credits</button></div>
   <div class="row"><a href="${COFFEE_URL}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#ff5e5b;color:#fff;font-weight:800;border-radius:10px;padding:10px;text-decoration:none">☕ Support me on Ko-fi</a></div>
   <p><small>Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami. Yu-Gi-Oh! and all card names and card text are © Konami. This app shows no card artwork. Card data via YGOPRODeck.</small></p>`,()=>{
   const nd=(lp,n)=>{dlg.close();startDuel(lp,n,S.view)};
   $("home").onclick=()=>{dlg.close();showSplash()};
-  $("snd").onclick=()=>{SFX.set(!SFX.on);dlg.close()};
+  $("cred").onclick=creditsDialog;
+  const tog=(id,on,ic)=>{const b=$(id);b.classList.toggle("off",!on);b.textContent=(on?ic:"🔇")+(id==="snd"?" Sound":" Music")};
+  $("snd").onclick=()=>{SFX.set(!SFX.on);tog("snd",SFX.on,"🔊")};
+  $("mus").onclick=()=>{SFX.setMusic(!SFX.music);tog("mus",SFX.music,"🎵")};
+  $("sndv").oninput=e=>SFX.setVol(e.target.value/100);
+  $("sndv").onchange=()=>SFX.pok(); // a test 'pok' at the new volume
+  $("musn").onclick=()=>{SFX.nextTrack();tog("mus",true,"🎵");$("mtn").textContent="Now playing: "+SFX.trackName};
+  $("musv").oninput=e=>{SFX.setMusVol(e.target.value/100);if(!SFX.music){SFX.setMusic(true);tog("mus",true,"🎵")}};
   $("ask").onclick=()=>{S.noAsk=!S.noAsk;render();dlg.close()};
   $("asks").onclick=()=>{S.noAskSum=!S.noAskSum;render();dlg.close()};
   $("banl").onclick=()=>{BANON=!BANON;try{localStorage.setItem("ygoref-ban",BANON?"1":"0")}catch(e){}if(BANON)banList();dlg.close();toast(BANON?"Forbidden & Limited List: ON":"Forbidden & Limited List: OFF")};
@@ -2894,6 +2962,21 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
 });
 
 // ---------- Splash ----------
+const CREDITS_MUSIC=[ // Pixabay Content License: free to use, credit not required (but nice)
+  ["Rock Loop - Mystical Energy","Sonican","https://pixabay.com/music/rock-rock-loop-mystical-energy-271224/"],
+  ["Epic History - Orchestral Cinematic Loop","Sonican","https://pixabay.com/music/main-title-epic-history-orchestral-cinematic-loop-299284/"],
+  ["Beat Loop Guitar","ShimaFM","https://pixabay.com/music/alternative-hip-hop-beat-loop-guitar-615675/"],
+  ["City Edge - Soulful Rock Loop","Sonican","https://pixabay.com/music/rock-city-edge-soulful-rock-loop-603503/"],
+  ["Game Music Loop 18","XtremeFreddy","https://pixabay.com/music/video-games-game-music-loop-18-153392/"]];
+function creditsDialog(){
+  open(`${closeX()}<h2>Credits</h2>
+  <p><b>Music</b> (Pixabay)</p>
+  ${CREDITS_MUSIC.map(([t,a,u])=>`<div class="card" style="margin:4px 0;padding:8px 10px"><a href="${u}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">${esc(t)}</a><br><small>by ${esc(a)} · Pixabay</small></div>`).join("")}
+  <p><b>Sound effects</b><br><small>Made for this app (generated with Web Audio + own recordings).</small></p>
+  <p><b>Card data</b><br><small>YGOPRODeck. Card names and card text © Konami.</small></p>
+  <p><b>Logo, card back, field images, icons</b><br><small>Own work by Spawner Industries, partly created with AI image tools.</small></p>
+  <div class="row"><button id="credBack">← Back</button></div>`,()=>{$("credBack").onclick=()=>$("btnMenu").onclick()});
+}
 function showSplash(){
   const sp=$("splash");
   let view=S.view==="1p"?"1p":"2p",mode=S.n===3?"speed":"master";
