@@ -21,3 +21,6 @@ geluid-opnames/
 
 relay/node_modules/
 relay/.wrangler/
+
+# Local backups
+backup/

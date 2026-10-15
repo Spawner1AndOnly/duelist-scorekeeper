@@ -948,6 +948,7 @@ function fxArrow(ra,rt){
 }
 // plan: {kind:"direct",p,i,q} | {p,i,q,k,def,brk,tDies,aDies,aTxt,tTxt}
 async function fxBattle(pl){
+  if(fxOut()){const m=Object.assign({},pl,{p:1-pl.p,q:1-pl.q,i:zSwap(pl.i)});if(pl.k!=null)m.k=zSwap(pl.k);fxSend({k:"battle",pl:m})} // online: the other phone plays the same fight
   if(calmMotion())return;
   const ra=monEl(pl.p,pl.i)&&monEl(pl.p,pl.i).getBoundingClientRect();
   if(pl.kind==="direct"){
@@ -1047,8 +1048,14 @@ function fxBanish(fr,o){
 }
 function flyToPile(rect,c,p,kind,o2){ // call BEFORE the card is removed from the board (the rectangle is needed)
   const b=pileBtn(p,kind);if(!rect||!b||!c)return;
-  if(kind==="ban"){fxBanish(rect,{name:c.name,cls:cardCls(c),skel:skelOf(c)});fxPulse(b,1500);return}
-  fxFly(rect,b.getBoundingClientRect(),{name:c.name,cls:cardCls(c),skel:skelOf(c),go:!!(o2&&o2.go)});fxPulse(b,skelOf(c)?1500:560);
+  const o={name:c.name,cls:cardCls(c),skel:skelOf(c),go:!!(o2&&o2.go)};
+  if(fxOut()){const d=rDesc(rect);if(d)fxSend({k:"pile",d,p:1-p,kind,o:Object.assign({},o,{name:o.cls==="fdv"?"":o.name})})} // a face-down card keeps its name to itself
+  pileFx(rect,p,kind,o);
+}
+function pileFx(rect,p,kind,o){
+  const b=pileBtn(p,kind);if(!rect||!b)return;
+  if(kind==="ban"){fxBanish(rect,{name:o.name,cls:o.cls,skel:o.skel});fxPulse(b,1500);return}
+  fxFly(rect,b.getBoundingClientRect(),o);fxPulse(b,o.skel?1500:560);
 }
 // ---------- Summon with materials: Fusion (purple swirl), Synchro (gold rings), Xyz (black vortex), Link (cyan arrows) ----------
 const SUMK={fusion:{c1:"#c58bff",c2:"#ffffff",spin:2.4,dur:1700},synchro:{c1:"#fff3b0",c2:"#7dff9a",spin:0.6,dur:1500},xyz:{c1:"#16102e",c2:"#6aa8ff",spin:1.2,dur:1700},link:{c1:"#38e8ff",c2:"#ffffff",spin:0.4,dur:1400}};
@@ -1056,6 +1063,12 @@ const sumKind=t=>/Fusion/i.test(t)?"fusion":/Synchro/i.test(t)?"synchro":/Xyz/i.
 // mats: [{rect, name, cls, hand}] fly into the middle of the target zone; resolves when the new monster may appear (during the flash)
 function fxSummonMat(kind,mats,tEl,o){
   o=o||{};const K=SUMK[kind];
+  if(fxOut()&&K){ // online: the other phone plays the swirl too (materials and zone as board positions, mirrored)
+    const tr0=tEl&&tEl.getBoundingClientRect();
+    if(tr0&&tr0.width){const td=tEl.dataset?rDesc(tr0):null;
+      fxSend({k:"sum",kind,td,nr:td?null:[(innerWidth-tr0.left-tr0.width)/innerWidth,tr0.top/innerHeight,tr0.width/innerWidth,tr0.height/innerHeight],mask:o.mask|0,
+        mats:mats.map(m=>m.hand?{hand:1,cls:"fdv"}:{d:rDesc(m.rect),cls:m.cls,name:/fdv/.test(m.cls)?"":m.name}).filter(m=>m.hand||m.d)})}
+  }
   return new Promise(res=>{
     const tr=tEl&&tEl.getBoundingClientRect();
     if(calmMotion()||!K||!tr||!tr.width||!document.body.animate){res();return}
@@ -1070,7 +1083,7 @@ function fxSummonMat(kind,mats,tEl,o){
     mats.forEach((m,idx)=>{
       const e=document.createElement("div");e.className=`fxcard cb port ${m.cls}`;e.innerHTML=m.cls==="fdv"?"":`<span class="n">${esc(m.name)}</span>`;
       let sx,sy;
-      if(m.hand){const bottom=!o.top;sx=innerWidth*(0.2+0.6*(n===1?.5:idx/(n-1)));sy=bottom?innerHeight+H:-H}
+      if(m.hand){const bottom=!(o.top||o.htop);sx=innerWidth*(0.2+0.6*(n===1?.5:idx/(n-1)));sy=bottom?innerHeight+H:-H}
       else{sx=m.rect.left+m.rect.width/2;sy=m.rect.top+m.rect.height/2}
       e.style.cssText=`left:${sx-W/2}px;top:${sy-H/2}px;width:${W}px;height:${H}px;z-index:7;filter:drop-shadow(0 0 8px ${K.c1})`;
       fx.appendChild(e);
@@ -1092,7 +1105,7 @@ function fxSummonMat(kind,mats,tEl,o){
       for(let k=0;k<(kind==="synchro"?3:1);k++)setTimeout(()=>{const e=fxAdd("fxsumring",r,tr.width+10,tr.height+10,"",`--c:${kind==="xyz"?K.c2:kind==="synchro"?(k%2?K.c2:"#fff"):K.c1}`);fxLife(e,900)},k*160);
       if(kind==="link"&&o.mask){
         const D={1:[-135],2:[-90],4:[-45],8:[180],16:[0],32:[135],64:[90],128:[45]};
-        Object.keys(D).forEach(b=>{if(!(o.mask&b))return;const ang=D[b][0]+(o.top?180:0);
+        Object.keys(D).forEach(b=>{if(!(o.mask&b))return;const ang=D[b][0]+(o.top||o.aflip?180:0);
           const a=document.createElement("div");a.className="fxlkarrow";a.textContent="➤";
           a.style.cssText=`left:${cx-9}px;top:${cy-12}px;--ang:${ang}deg`;fx.appendChild(a);fxLife(a,900)});
       }
@@ -1101,7 +1114,16 @@ function fxSummonMat(kind,mats,tEl,o){
   });
 }
 function fxFlush(){
-  const q=FXQ;FXQ=[];if(q.some(f=>f.t==="dust"))SFX.stomp(q.filter(f=>f.t==="dust").every(f=>f.soft)?.7:1); // a monster that is Set (face-down) lands softerif(calmMotion())return;
+  const q=FXQ;FXQ=[];
+  if(fxOut()&&q.length){const L=[]; // online: dust, control change and flying-in cards are repeated on the other phone once its state has arrived
+    q.forEach(f=>{
+      if(f.t==="dust")L.push({t:"dust",p:1-f.p,i:zSwap(f.i),soft:f.soft});
+      else if(f.t==="move"){const d=rDesc(f.fr);if(d)L.push({t:"move",p:1-f.p,i:zSwap(f.i),d,name:f.name,cls:f.cls})}
+      else if(f.t==="flyin")L.push({t:"flyin",p:1-f.p,pp:1-(f.pp??f.p),i:zSwap(f.i),k:f.k,pile:f.pile,name:f.cls==="fdv"?"":f.name,cls:f.cls});
+    });
+    if(L.length)fxSend({k:"post",L});
+  }
+  if(q.some(f=>f.t==="dust"))SFX.stomp(q.filter(f=>f.t==="dust").every(f=>f.soft)?.7:1); // a monster that is Set (face-down) lands softerif(calmMotion())return;
   requestAnimationFrame(()=>q.forEach(f=>{
     if(f.t==="dust"){const el=monEl(f.p,f.i);if(el)fxDust(el.getBoundingClientRect())}
     if(f.t==="move"){const el=monEl(f.p,f.i);if(el&&f.fr)fxMove(f.fr,el,f)}
@@ -3404,11 +3426,63 @@ function netIn(parts){
   const L=NET.seat?mirror(N):N;L.view=S.view;S=L;
   UNDO=[];LASTSTR=null; // undo only takes back my own changes since the opponent's last move
   render();
+  fxPostRun();
   if(S.turn===0&&S.ph===0&&(oldTurn!==0||oldPh!==0))setTimeout(drawAsk,350); // the opponent ended their turn: my Draw Phase
 }
 const netBusy=()=>(dlg.open&&!WAITQ)||document.body.classList.contains("picking");
 function netFlushQ(force){if(NET&&NET.q&&(force||!netBusy())){const q=NET.q;NET.q=null;netIn(q)}}
 setInterval(()=>netFlushQ(false),400);
+
+// ---------- Online step 3: animations on both phones ----------
+// What the state shows by itself (ATK/DEF glow, flipping, LP counter, red/green flash) plays by itself when the state arrives.
+// What an ACTION starts (fight, card to the Graveyard/Banished, summon swirl, dust, control change) is sent as a small 'fx' message
+// (board positions, players swapped) just before the state; the other phone plays the same animation. FXRX: it is not sent back.
+var FXRX=false;
+const fxOut=()=>online()&&NET.peer&&!FXRX;
+const fxSend=o=>{o.t="fx";netRaw(o)};
+function rDesc(r){ // which board spot lies under this rectangle?
+  if(!r||!r.width)return null;const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  for(const e of document.querySelectorAll(".slot[data-p],.fchip[data-p]")){
+    const b=e.getBoundingClientRect();
+    if(b.width&&cx>=b.left&&cx<=b.right&&cy>=b.top&&cy<=b.bottom)return e.classList.contains("fchip")?{p:+e.dataset.p,f:1}:{p:+e.dataset.p,i:+e.dataset.i,row:e.dataset.row};
+  }
+  return null;
+}
+function dEl(d){if(!d)return null;const p=1-d.p;return d.f?fieldEl(p):d.row==="mon"?monEl(p,zSwap(d.i)):stEl(p,d.i)}
+function dRect(d){const e=dEl(d),r=e&&e.getBoundingClientRect();return r&&r.width?r:null}
+function fxRecv(m){
+  if(!online())return;
+  if(m.k==="post"){NET.fxp=(NET.fxp||[]).concat(m.L.map(f=>f.t==="move"?Object.assign({},f,{fr:dRect(f.d)}):f));clearTimeout(NET.fxt);NET.fxt=setTimeout(()=>{NET.fxp=null},6000);return}
+  FXRX=true;
+  try{
+    if(m.k==="battle")fxBattle(m.pl);
+    else if(m.k==="pile"){const r=dRect(m.d);if(r)pileFx(r,m.p,m.kind,m.o)}
+    else if(m.k==="sum"){
+      const mats=m.mats.map(x=>x.hand?x:{rect:dRect(x.d),cls:x.cls,name:x.name}).filter(x=>x.hand||x.rect);
+      let tEl=dEl(m.td);
+      if(!tEl&&m.nr){const rc={left:m.nr[0]*innerWidth,top:m.nr[1]*innerHeight,width:m.nr[2]*innerWidth,height:m.nr[3]*innerHeight};tEl={getBoundingClientRect:()=>rc}}
+      if(tEl)fxSummonMat(m.kind,mats,tEl,{htop:true,aflip:true,mask:m.mask});
+    }
+  }finally{FXRX=false}
+}
+function fxPostRun(){ // the state of the other phone is in: now the dust / gliding / flying-in cards that belong to it
+  const L=NET&&NET.fxp;if(!L)return;NET.fxp=null;clearTimeout(NET.fxt);
+  FXQ.push(...L);FXRX=true;try{fxFlush()}finally{FXRX=false}
+}
+// ping: a ring of light on what you tap, on the other phone too
+function pingRecv(d){
+  if(!online()||!d||calmMotion())return;let el=null;
+  if(d.k==="s")el=dEl({p:d.p,i:d.i,row:d.row});else if(d.k==="f")el=dEl({p:d.p,f:1});
+  else if(d.k==="l")el=document.querySelector(`.lp[data-lp="${1-d.p}"]`);else if(d.k==="z")el=pileBtn(1-d.p,d.pile);
+  const r=el&&el.getBoundingClientRect();if(r&&r.width)fxRing(r,"#7fd6ff");
+}
+document.addEventListener("pointerdown",e=>{
+  if(!online()||!NET.peer||!e.target.closest)return;
+  const t=e.target.closest(".slot[data-p],.fchip[data-p],.lp[data-lp],.zb[data-p]");if(!t||t.closest("dialog"))return;
+  const now=Date.now();if(now-(NET.pingT||0)<150)return;NET.pingT=now;
+  const d=t.classList.contains("slot")?{k:"s",p:+t.dataset.p,i:+t.dataset.i,row:t.dataset.row}:t.classList.contains("fchip")?{k:"f",p:+t.dataset.p}:t.classList.contains("zb")?{k:"z",p:+t.dataset.p,pile:t.dataset.pile}:{k:"l",p:+t.dataset.lp};
+  netRaw({t:"ping",d});
+},true);
 
 // ---------- Online step 2: questions for the other player go to THEIR phone ----------
 // The player who started it (attacker, summoner, activator) owns the chain: its CH (with the 'fin' callback) stays on that phone.
@@ -3482,6 +3556,8 @@ function netMsg(m){
   if(m.t==="peer"&&!m.on&&WAITQ){waitEnd();if(dlg.open)dlg.close();toast("Your opponent disconnected");NET.bat=null;NET.revCont=null}
   if(m.t==="peer"){NET.peer=m.on;netBar(m.on||!NET.live?"":"⏳ Opponent disconnected — waiting…");if(m.on&&NET.live)netSend(true);if(m.on)SFX.pok&&SFX.pok();lobbyDraw();return}
   if(m.t==="st"){if(netBusy()){NET.q=NET.q||{};for(const k in m.parts)if(!NET.q[k]||m.parts[k].v>=NET.q[k].v)NET.q[k]=m.parts[k]}else netIn(m.parts);return}
+  if(m.t==="fx"){fxRecv(m);return}
+  if(m.t==="ping"){pingRecv(m.d);return}
   if(["ask","resolve","clog","battle","bans","reveal","revealed"].includes(m.t)){netFlushQ(true);netQ(m);return}
   if(m.t==="start"&&NET.seat===1){netBegin(m.lp,m.n);return}
   if(m.t==="ready"){NET.rdy.opp=true;netTossIfReady();return}
