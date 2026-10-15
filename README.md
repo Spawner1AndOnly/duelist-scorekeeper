@@ -84,8 +84,8 @@ Your duel is saved on your phone, so closing the app does not lose it (use **Con
 
 - **It is not a card game.** There is no deck, no hand and no drawing. Your real cards (or any other way you play) stay in your hands.
 - **It does not run card effects in general.** It cannot read what most cards do. It only acts on what it can recognise in the card text: fixed Life Point changes, ATK/DEF bonuses (Equip, Field and Continuous cards), counters and control changes, and some of these are applied for you. Costs and conditions are not checked, and there are no full chain rules. In the effect builder (used when someone responds to an attack, a summon or a Spell/Trap activation) you enter the response yourself (change ATK/DEF, destroy a monster or a Spell/Trap, negate, change Life Points), and the app then applies what you entered. Everything else you do by hand, with the Life Point buttons and by moving cards to the Graveyard.
-- **It does not track** Xyz materials, Fusion/Link materials or tokens as real cards, and "banished instead" effects are not applied automatically.
-- **It does not check your deck**: no deck size, no forbidden/limited list.
+- **Tokens are not tracked** as real cards (use a custom monster), and "banished instead" effects of cards are not applied automatically. Xyz materials are kept under the monster as Overlay Units, and Fusion, Synchro and Link materials go to the Graveyard of their owner.
+- **It does not check your deck**: no deck size. It does block a 4th copy of the same card that it can see (field, Graveyard, Banished), and the Forbidden & Limited List (TCG) can be switched on in the menu; it is off by default.
 - **It is not a judge.** It follows the official rules as far as they were available to the author, but you can always override it, and it can be wrong. If a card or a ruling says otherwise, the card and the rulebook win.
 - Online play with two phones is new and still being tested. No timer, no match tracking (best of 3).
 - No card pictures. English only.
