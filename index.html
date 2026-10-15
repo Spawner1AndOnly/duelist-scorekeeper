@@ -168,7 +168,7 @@ input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;p
 .omid{display:flex;gap:8px;justify-content:center;padding:8px}.omid button{padding:12px 16px;font-weight:700}
 #splash{position:fixed;inset:0;z-index:100;background:var(--bg) url(img/bg-embers.jpg) center/cover;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;overflow:auto}
 #splash[hidden]{display:none}
-#splash img{width:max(240px,min(92vw,360px,calc(100dvh - 416px)));height:auto}
+#splash img{width:max(170px,min(92vw,360px,calc(100dvh - 540px)));height:auto}
 #splash h1{margin:0;font-size:26px}
 #splash .by{color:#f1dcc8;font-size:13px;margin-top:-4px;font-weight:600;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1.5px 0 #000,0 1.5px 0 #000,-1.5px 0 0 #000,1.5px 0 0 #000,0 0 6px #000}
 #splash .grp{width:min(100%,380px)}
@@ -298,6 +298,17 @@ dialog[data-th] button img.zi{height:18px;margin-right:2px}
 .mid .row1 button{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a99,0 1px 3px #0008;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-weight:700;background-image:linear-gradient(#ffffff26,#00000033);background-blend-mode:overlay}
 .mid .row1 button.sm{text-shadow:0 1px 2px #000a}
 #toast{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a;font-family:"Palatino Linotype",Palatino,Georgia,serif}
+/* start screen: same black/gold card style (leather choices, the chosen one gets a gold frame) */
+#splash .grp{background:linear-gradient(165deg,#4b301bdd,#1a1009e6);border:3px solid #120c05;box-shadow:inset 0 0 0 2px #e8c36a,inset 0 0 0 4px #120c05,0 3px 10px #000a;border-radius:8px;padding:6px 10px 10px}
+#splash .lbl{font-family:"Palatino Linotype",Palatino,Georgia,serif;font-weight:700;font-size:13px;color:#e8c36a;text-shadow:0 1px 2px #000;letter-spacing:.4px}
+#splash .opt button,#splash .go,#splash .go2,#splash .kofi{border:2px solid #120c05;box-shadow:inset 0 0 0 1px #e8c36a99,0 2px 5px #000a;font-family:"Palatino Linotype",Palatino,Georgia,serif;text-shadow:0 1px 2px #000a;background-image:linear-gradient(#ffffff26,#00000033);background-blend-mode:overlay}
+#splash .opt button{background-color:#3a2414;color:#f1dcc8}
+#splash .opt button.on{background-color:#7a4f22;color:#fff6e6;border-color:#120c05;box-shadow:inset 0 0 0 2px #e8c36a,inset 0 0 0 3px #120c05,0 0 10px #e8c36a88}
+#splash .opt small{color:#e9cfae}
+#splash .go{text-shadow:0 1px 0 #d6ff9f;letter-spacing:.5px}
+#splash .go2{color:#001a33;text-shadow:0 1px 0 #cfe6ff}
+.kcup{display:inline-block;text-shadow:none;filter:drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000)} /* thin black outline so the cup stands out on the red */
+@media (max-height:700px){#splash{gap:6px}#splash .opt button{padding:8px 6px}#splash .go{padding:11px}#splash .go2{padding:9px}#splash .kofi{padding:8px}}
 /* Press feedback: everything tappable shrinks a bit and lights up while pressed (uses 'scale', so it never clashes with transform) */
 button,.slot,.fchip,.lp,.card,.pile,[data-lx],#pickbar button{transition:scale .09s ease-out,filter .09s ease-out;-webkit-tap-highlight-color:transparent}
 button:active,.slot:active,.fchip:active,.lp:active,.card:active,[data-lx]:active{scale:.93;filter:brightness(1.45) drop-shadow(0 0 5px #e8c36acc)}
@@ -366,9 +377,28 @@ function stepFrom(st){
   if(ph<PHASES.length-1){
     ph++;
     if(tc===1&&PHASES[ph].n==="Battle Phase")ph=PHASES.length-1; // no Battle Phase on the first turn, and Main Phase 2 only follows a Battle Phase
+    if(PHASES[ph].n==="Standby Phase"&&sbSkip(tc))ph++; // nothing to do in the Standby Phase: straight on to Main Phase 1
     return{ph,sub:0,turn,tc};
   }
   return{ph:0,sub:0,turn:1-turn,tc:tc+1};
+}
+// The Standby Phase is skipped when no card mentions it (445 cards do, always written out as "Standby Phase"):
+// face-up cards on the field of both players + cards in the Graveyards, banished and the face-up Extra Deck (e.g. Sacred Phoenix of Nephthys).
+// 'Stop at the Standby Phase' in the Rules pop-up of the Draw Phase (S.sbStop) stops there anyway, for a Trap or Quick-Play Spell.
+let CARDID=null;
+function cardDesc(e){if(e.desc)return e.desc;if(e.id==null)return"";if(!CARDS)return null;if(!CARDID){CARDID=new Map();CARDS.forEach(c=>CARDID.set(c.id,c))}const c=CARDID.get(e.id);return c?c.desc:""}
+function standbyCards(){
+  const L=[],add=(e,where)=>{if(!e||e.pos==="FD")return;const d=cardDesc(e);if(d===null||/Standby Phase/i.test(d))L.push(e.name+(where?" ("+where+")":""))};
+  [0,1].forEach(c=>{
+    S.mon[c].forEach(m=>add(m));S.st[c].forEach(e=>add(e));add(S.field[c]);
+    (S.gy[c]||[]).forEach(e=>add(e,"Graveyard"));(S.ban[c]||[]).forEach(e=>add(e,"banished"));(S.edup&&S.edup[c]||[]).forEach(e=>add(e,"Extra Deck"));
+  });
+  return L;
+}
+function sbSkip(tc){
+  if(S.phManual||S.sbStop===tc)return false; // menu 'Phases: Manual' = never skip
+  if(!CARDS&&!sbSkip.ld){sbSkip.ld=1;cards().then(()=>render()).catch(()=>{})} // card texts of the piles not loaded yet: stop to be safe, and load them
+  return !standbyCards().length;
 }
 function nextLabel(){
   const n=stepFrom(S);
@@ -378,12 +408,28 @@ function nextLabel(){
 }
 function nextPhase(){
   if(S.paused){resumeBattle();return}
-  if(oppWait()){ctlEndPhase();Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();return}
+  if(oppWait()){ctlEndPhase();Object.assign(S,{ph:0,sub:0,turn:0,tc:S.tc+1});S.ns=false;render();setTimeout(drawAsk,350);return}
   const n=stepFrom(S);if(n.turn!==S.turn)S.ns=false;
+  if(PHASES[S.ph].n==="Draw Phase"&&n.turn===S.turn&&PHASES[n.ph].n!=="Standby Phase")setTimeout(()=>toast("Standby Phase: nothing to do"),50);
   Object.assign(S,n);if(PHASES[S.ph].n==="End Phase"||n.turn!==S.turn)ctlEndPhase();render();
   if(PHASES[S.ph].n==="Standby Phase")setTimeout(showStandby,350);
+  if(PHASES[S.ph].n==="Draw Phase")setTimeout(drawAsk,350);
 }
 function oppWait(){return S.view==="1p"&&S.turn===1}
+// Draw Phase (not on the very first turn of the duel): one pop-up to confirm the draw and move on (Standby Phase, or Main Phase 1 when it is skipped)
+function drawAsk(){
+  if(S.phManual||dlg.open||PHASES[S.ph].n!=="Draw Phase"||S.tc===1||oppWait())return;
+  const p=S.turn;DLGP=p;
+  open(`${closeX()}<h2>Draw Phase</h2><p>Draw 1 card.</p>
+   <div class="row"><button id="drOk" style="background:#1f5a3a">✔ Card drawn → ${esc(nextLabel().replace(/^Move to /,""))}</button></div>
+   <div class="row"><button id="drStay">Stay in the Draw Phase</button></div>
+   <div class="row"><button id="drNo" style="background:#6b2230">⛔ No cards left to draw → lose the duel</button></div>
+   <small>A player who cannot draw loses the Duel. Stay in the Draw Phase to activate a Trap or Quick-Play Spell.</small>`,()=>{
+    $("drOk").onclick=()=>{dlg.close();nextPhase()};
+    $("drStay").onclick=()=>dlg.close();
+    $("drNo").onclick=()=>{dlg.close();setLP(p,0,()=>`${NAME(p)} could not draw a card and loses`)};
+  });
+}
 // Soul Exchange and similar: "you cannot conduct your Battle Phase the turn you activate this card" -> warn (do not block) when moving on to the Battle Phase
 const NOBP_RX=/cannot conduct your Battle Phase the turn you activate/i;
 // the middle strip keeps the same height: a status line stays on 1 line, the phase button on 2 lines; a longer text gets a smaller font
@@ -2808,11 +2854,17 @@ $("rules").onclick=()=>{
   if(!w&&S.tc===1&&ph.n==="Draw Phase")cant.unshift("FIRST TURN: the first player does NOT draw a card (the Draw Phase itself still takes place).");
   if(!w&&S.tc===1&&/^Main Phase/.test(ph.n))cant.unshift("FIRST TURN: the first player has no Battle Phase. From here the turn goes straight to the End Phase (Main Phase 2 only follows a Battle Phase).");
   const canSkip=!w&&S.tc>1&&S.ph===2&&PHASES[3]&&PHASES[3].n==="Battle Phase";
+  let sbx="";
+  if(!w&&ph.n==="Draw Phase"&&!S.phManual){const L=standbyCards();
+    sbx=L.length?`<p><small>The duel stops at the Standby Phase for: ${esc(L.slice(0,6).join(", "))}${L.length>6?" …":""}</small></p>`
+      :S.sbStop===S.tc?`<p><small>✓ The duel will stop at the Standby Phase this turn.</small></p>`
+      :`<p><small>No card mentions the Standby Phase, so it is skipped automatically.</small></p><div class="row"><button id="sbstop">Stop at the Standby Phase (for a Trap or Quick-Play Spell)</button></div>`}
   open(`${closeX()}<h2>${w?"Opponent's turn":ph.n+(ph.sub?" – "+ph.sub[S.sub]:"")}</h2><div class="phtxt">
    ${!w&&ph.sub?`<small>Steps: ${ph.sub.join(" → ")}</small>`:""}
    <h3 class="may">✅ You MAY / CAN</h3><ul>${r.may.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
    <h3 class="cant">⛔ You may NOT</h3><ul>${cant.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
-   </div>${canSkip?`<div class="row"><button id="skipbp">Skip the Battle Phase → End Phase</button></div><small>You do not have to battle. Without a Battle Phase there is no Main Phase 2 either.</small>`:""}<div class="row"><button onclick="dlg.close()">Close</button></div>`,()=>{
+   </div>${sbx}${canSkip?`<div class="row"><button id="skipbp">Skip the Battle Phase → End Phase</button></div><small>You do not have to battle. Without a Battle Phase there is no Main Phase 2 either.</small>`:""}<div class="row"><button onclick="dlg.close()">Close</button></div>`,()=>{
+    if($("sbstop"))$("sbstop").onclick=()=>{S.sbStop=S.tc;render();dlg.close()};
     if($("skipbp"))$("skipbp").onclick=()=>{S.ph=PHASES.length-1;S.sub=0;render();dlg.close()};
   });
 };
@@ -2931,12 +2983,13 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   <div id="mtn" class="mtn">Now playing: ${esc(SFX.trackName)}</div>
   <div class="row"><button id="ask">Ask the defender before each attack: ${S.noAsk?"OFF":"ON"}</button></div>
   <div class="row"><button id="asks">Ask for a response when a monster is Summoned: ${S.noAskSum?"OFF":"ON"}</button></div>
+  <div class="row"><button id="askd">${S.phManual?"Phases: 🖐 Manual<small style='display:block;font-weight:400'>you click through every phase</small>":"Phases: ⚡ Quick<small style='display:block;font-weight:400'>draw pop-up, an empty Standby Phase is skipped</small>"}</button></div>
   <div class="row"><button id="banl">Forbidden &amp; Limited List (TCG): ${BANON?"ON":"OFF"}${S.n===3?" <small>(not used in a Speed Duel)</small>":""}</button></div>
   <div class="row"><button id="aska">Ask for a response when a Spell/Trap is activated: ${S.noAskAct?"OFF":"ON"}</button></div>
   <div class="row"><button id="surr" style="background:#6b2230">🏳 Surrender…</button></div>
   <p><small>A new duel resets LP, monsters and the turn counter.</small></p>
   <div class="row"><button id="home">🏠 Back to main menu</button><button id="cred" style="flex:0 0 96px">📜 Credits</button></div>
-  <div class="row"><a href="${COFFEE_URL}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#ff5e5b;color:#fff;font-weight:800;border-radius:10px;padding:10px;text-decoration:none">☕ Support me on Ko-fi</a></div>
+  <div class="row"><a href="${COFFEE_URL}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#ff5e5b;color:#fff;font-weight:800;border-radius:10px;padding:10px;text-decoration:none"><span class="kcup">☕</span> Support me on Ko-fi</a></div>
   <p><small>Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami. Yu-Gi-Oh! and all card names and card text are © Konami. This app shows no card artwork. Card data via YGOPRODeck.</small></p>`,()=>{
   const nd=(lp,n)=>{dlg.close();startDuel(lp,n,S.view)};
   $("home").onclick=()=>{dlg.close();showSplash()};
@@ -2950,6 +3003,7 @@ $("btnMenu").onclick=()=>open(`${closeX()}<h2>Menu</h2>
   $("musv").oninput=e=>{SFX.setMusVol(e.target.value/100);if(!SFX.music){SFX.setMusic(true);tog("mus",true,"🎵")}};
   $("ask").onclick=()=>{S.noAsk=!S.noAsk;render();dlg.close()};
   $("asks").onclick=()=>{S.noAskSum=!S.noAskSum;render();dlg.close()};
+  $("askd").onclick=()=>{S.phManual=!S.phManual;render();dlg.close()};
   $("banl").onclick=()=>{BANON=!BANON;try{localStorage.setItem("ygoref-ban",BANON?"1":"0")}catch(e){}if(BANON)banList();dlg.close();toast(BANON?"Forbidden & Limited List: ON":"Forbidden & Limited List: OFF")};
   $("aska").onclick=()=>{S.noAskAct=!S.noAskAct;render();dlg.close()};
   $("surr").onclick=()=>open(`${closeX()}<h2>Surrender?</h2><p>The duel ends and the other player wins.</p><div class="row"><button id="s0" style="background:#6b2230">I surrender</button>${S.view==="1p"?"":`<button id="s1" style="background:#6b2230">Opponent surrenders</button>`}</div><div class="row"><button id="sno">Cancel</button></div>`,()=>{
@@ -2993,7 +3047,7 @@ function showSplash(){
       <button data-m="speed" class="${mode==="speed"?"on":""}">Speed Duel<small>4000 LP, 3 zones</small></button></div></div>
     <button class="go" id="spGo">Start duel</button>
     ${hasDuel?'<button class="go2" id="spCont">Continue previous duel</button>':""}
-    <a class="kofi" href="${kofi}" target="_blank" rel="noopener">☕ Support me on Ko-fi</a>
+    <a class="kofi" href="${kofi}" target="_blank" rel="noopener"><span class="kcup">☕</span> Support me on Ko-fi</a>
     <small class="fine">Unofficial fan tool, free to use. Not affiliated with or endorsed by Konami.</small>`;
     sp.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{view=b.dataset.v;draw()});
     sp.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{mode=b.dataset.m;draw()});

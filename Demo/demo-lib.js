@@ -6,7 +6,7 @@ window.D=(()=>{
   if(!document.getElementById("demotapcss")){const st=document.createElement("style");st.id="demotapcss";
       st.textContent=".demotap{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:3px solid #fff;background:#ffffff59;box-shadow:0 0 12px #fff;pointer-events:none;z-index:50;animation:demotap .6s ease-out forwards}@keyframes demotap{0%{transform:scale(.3);opacity:1}60%{opacity:.9}100%{transform:scale(1.5);opacity:0}}.demopress{scale:.93!important;filter:brightness(1.45) drop-shadow(0 0 5px #e8c36acc)!important}";
       document.head.appendChild(st)}
-  D.init=async()=>{await cards();S.noAskAct=true;S.noAskSum=true; // the chain questions are shown in their own scenes
+  D.init=async()=>{await cards();S.noAskAct=true;S.noAskSum=true;S.phManual=true; // the chain questions are shown in their own scenes
 
     if(!document.getElementById("democap")){const c=document.createElement("div");c.id="democap";
       c.style.cssText="position:fixed;top:5px;left:50%;transform:translateX(-50%);max-width:94vw;z-index:400;background:#000d;color:#fff;font:700 13px/1.25 system-ui,sans-serif;padding:5px 12px;border-radius:14px;border:1.5px solid #e8c36a;text-align:center;pointer-events:none;opacity:0;transition:opacity .25s";document.body.appendChild(c)}};

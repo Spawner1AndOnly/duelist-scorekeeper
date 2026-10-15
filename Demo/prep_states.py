@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 KEY="ygoref.v2"
 JS_A=r"""async()=>{
   const all=await cards();const f=n=>{const c=all.find(x=>x.name===n);if(!c)throw new Error("card missing: "+n);return c};
-  S=fresh(8000,5);S.view="2p";S.noAskAct=S.noAskSum=true;
+  S=fresh(8000,5);S.view="2p";S.noAskAct=S.noAskSum=S.phManual=true;
   const spell=(n,pos)=>{const c=f(n);return{name:c.name,kind:/Trap/.test(c.type)?"trap":"spell",type:c.type,pos:pos||"UP",id:c.id,desc:c.desc,setT:1}};
   // Player 1: Battle Ox (Normal Summoned turn 1), Sogen, Mystical Space Typhoon Set on turn 1
   placeMon(0,2,f("Battle Ox"),"ATK","normal");S.mon[0][2].sumT=1;
@@ -22,7 +22,7 @@ JS_A=r"""async()=>{
   save();return JSON.stringify(S)}"""
 JS_B=r"""async()=>{
   const all=await cards();const f=n=>{const c=all.find(x=>x.name===n);if(!c)throw new Error("card missing: "+n);return c};
-  S=fresh(8000,5);S.view="2p";S.noAskAct=S.noAskSum=true;
+  S=fresh(8000,5);S.view="2p";S.noAskAct=S.noAskSum=S.phManual=true;
   placeMon(0,1,f("Junk Synchron"),"ATK","normal");placeMon(0,2,f("Speed Warrior"),"ATK","special");placeMon(0,3,f("Beaver Warrior"),"ATK","special");
   for(const k of [1,2,3])S.mon[0][k].sumT=3;
   const gy=n=>{const c=f(n);return{name:c.name,id:c.id,type:c.type}};
